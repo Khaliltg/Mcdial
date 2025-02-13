@@ -1,47 +1,61 @@
 <script>
-  import svelteLogo from './assets/svelte.svg'
-  import viteLogo from '/vite.svg'
-  import Counter from './lib/Counter.svelte'
+  import Navbar from "./components/Navbar.svelte";
+  import Sidebar from "./components/Sidebar.svelte";
+  import Footer from "./components/Footer.svelte";
+
+  let isOpen = false;
+
+  function toggleSidebar() {
+    isOpen = !isOpen;
+  }
 </script>
 
-<main>
-  <div>
-    <a href="https://vite.dev" target="_blank" rel="noreferrer">
-      <img src={viteLogo} class="logo" alt="Vite Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank" rel="noreferrer">
-      <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-    </a>
-  </div>
-  <h1>Vite + Svelte</h1>
-
-  <div class="card">
-    <Counter />
-  </div>
-
-  <p>
-    Check out <a href="https://github.com/sveltejs/kit#readme" target="_blank" rel="noreferrer">SvelteKit</a>, the official Svelte app framework powered by Vite!
-  </p>
-
-  <p class="read-the-docs">
-    Click on the Vite and Svelte logos to learn more
-  </p>
-</main>
-
 <style>
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-    transition: filter 300ms;
+  :global(:root) {
+    --primary-color: #007bff;
+    --secondary-color: #343a40;
+    --sidebar-bg-color: #495057;
+    --background-color: #f8f9fa;
+    --text-color: #212529;
+    --white: #ffffff;
+    --border-radius: 8px;
   }
-  .logo:hover {
-    filter: drop-shadow(0 0 2em #646cffaa);
+
+  body {
+    margin: 0;
+    font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+    color: var(--text-color);
+    background-color: var(--background-color);
+    display: flex;
   }
-  .logo.svelte:hover {
-    filter: drop-shadow(0 0 2em #ff3e00aa);
+
+  .container {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
   }
-  .read-the-docs {
-    color: #888;
+
+  .main-content {
+    flex: 1;
+    margin-left: 250px;
+    padding: 70px 20px 60px; /* Pour éviter l'overlap avec la navbar et le footer */
+    display: flex;
+    flex-direction: column;
+  }
+
+  .content {
+    flex: 1;
   }
 </style>
+
+<div class="container">
+  <Sidebar  />
+  <div class="main-content">
+    <Navbar  />
+    <div class="content">
+      <h2>Welcome to the App!</h2>
+      <p>This is the main content area. You can add your features here.</p>
+    </div>
+    <Footer />
+  </div>
+</div>
