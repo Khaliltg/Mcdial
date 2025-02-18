@@ -5,7 +5,7 @@
 
 	const title = 'Create a Free Account';
 	const site = {
-		name: 'Flowbite',
+		name: '	Mcdial ',
 		img: '/images/flowbite-svelte-icon-logo.svg',
 		link: '/',
 		imgAlt: 'FlowBite Logo'

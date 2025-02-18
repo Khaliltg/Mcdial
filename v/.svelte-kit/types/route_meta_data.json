@@ -1,0 +1,58 @@
+{
+	"/(sidebar)": [
+		"src/routes/(sidebar)/+page.js",
+		"src/routes/+layout.server.js",
+		"src/routes/+layout.server.js"
+	],
+	"/(no-sidebar)": [
+		"src/routes/+layout.server.js"
+	],
+	"/": [
+		"src/routes/+layout.server.js"
+	],
+	"/authentication/[slug]": [
+		"src/routes/authentication/[slug]/+page.js",
+		"src/routes/+layout.server.js"
+	],
+	"/(sidebar)/crud/products": [
+		"src/routes/+layout.server.js"
+	],
+	"/(sidebar)/crud/users": [
+		"src/routes/+layout.server.js"
+	],
+	"/(sidebar)/dashboard": [
+		"src/routes/(sidebar)/dashboard/+page.js",
+		"src/routes/+layout.server.js"
+	],
+	"/errors/[code]": [
+		"src/routes/errors/[code]/+page.ts",
+		"src/routes/+layout.server.js"
+	],
+	"/(sidebar)/layouts/sidebar": [
+		"src/routes/(sidebar)/layouts/sidebar/+page.js",
+		"src/routes/+layout.server.js"
+	],
+	"/(no-sidebar)/layouts/stacked": [
+		"src/routes/(no-sidebar)/layouts/stacked/+page.js",
+		"src/routes/+layout.server.js"
+	],
+	"/(no-layout)/pages/pricing": [
+		"src/routes/+layout.server.js"
+	],
+	"/(no-sidebar)/pages/[slug]": [
+		"src/routes/(no-sidebar)/pages/[slug]/+page.js",
+		"src/routes/+layout.server.js"
+	],
+	"/(sidebar)/playground/sidebar": [
+		"src/routes/+layout.server.js"
+	],
+	"/(no-sidebar)/playground/stacked": [
+		"src/routes/+layout.server.js"
+	],
+	"/(sidebar)/settings": [
+		"src/routes/+layout.server.js"
+	],
+	"/sitemap.xml": [
+		"src/routes/sitemap.xml/+server.ts"
+	]
+}
