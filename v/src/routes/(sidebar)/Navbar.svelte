@@ -29,14 +29,16 @@
 	/>
 	<NavBrand href="/" class={list ? 'w-40' : 'lg:w-60'}>
 		<img
-			src="/images/flowbite-svelte-icon-logo.svg"
+			src="/images/cercle.png"
 			class="me-2.5 h-6 sm:h-8"
 			alt="Flowbite Logo"
+			
+
 		/>
 		<span
 			class="ml-px self-center whitespace-nowrap text-xl font-semibold dark:text-white sm:text-2xl"
 		>
-			Flowbite
+			MC DIAL
 		</span>
 	</NavBrand>
 	<div class="hidden lg:block lg:ps-3">
@@ -68,4 +70,6 @@
 		<DarkMode />
 		<UserMenu {...Users[4]} />
 	</div>
+	
+
 </Navbar>
