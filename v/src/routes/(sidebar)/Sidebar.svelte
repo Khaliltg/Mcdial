@@ -24,6 +24,7 @@
 		RectangleListSolid,
 		TableColumnSolid
 	} from 'flowbite-svelte-icons';
+    import type users from '../utils/graphs/users';
 
 	export let drawerHidden: boolean = false;
 
@@ -49,36 +50,49 @@
 	});
 
 	let posts = [
-		{ name: 'Dashboard', icon: ChartPieOutline, href: '/dashboard' },
+		{ name: 'Reports', icon: ChartPieOutline, href: '/dashboard' },
 		{
-			name: 'Layouts',
+			name: 'Users',
 			icon: TableColumnSolid,
 			children: {
-				Stacked: '/layouts/stacked',
-				Sidebar: '/layouts/sidebar'
+				"Show users": '/users/Show users',
+				"Add new users": '/layouts/sidebar',
+				"Copy user":'/',
+				"Search for a user": '/users/',
+				"User Stats": '/users/',
+				"User Status": '/users/',
+				"Time sheet": '/users/',
+
 			}
 		},
 		{
-			name: 'CRUD',
+			name: 'Champaigns',
 			icon: RectangleListSolid,
 			children: {
-				Products: '/crud/products',
-				Users: '/crud/users'
+				"Campaings Main": '/crud/products',
+				"Statuses": '/crud/users',
+				"HotKeys": '/crud/users',
+				"Lead Recycle":'/crud/users',
+				"Auto-Alt Dial":'/',
+				"List Mix":'/',
+				"Pause Codes":'/',
+				"Preserts":'/',
+				"AC-CDI":'/',
+
 			}
 		},
-		{ name: 'Settings', icon: CogOutline, href: '/settings' },
 		{
-			name: 'Pages',
+			name: 'Lists',
 			icon: FileChartBarSolid,
 			children: {
 				Pricing: '/pages/pricing',
-				Maintenance: '/errors/400',
-				'404 not found': '/errors/404',
-				'500 server error': '/errors/500'
+				"Show Lists":'/pages/pricing',
+				
+				
 			}
 		},
 		{
-			name: 'Authenication',
+			name: 'Scripts',
 			icon: LockSolid,
 			children: {
 				'Sign in': '/authentication/sign-in',
@@ -89,7 +103,7 @@
 			}
 		},
 		{
-			name: 'Playground',
+			name: 'Filters',
 			icon: WandMagicSparklesOutline,
 			children: {
 				Stacked: '/playground/stacked',
@@ -99,27 +113,7 @@
 	];
 
 	let links = [
-		{
-			label: 'GitHub Repository',
-			href: 'https://github.com/themesberg/flowbite-svelte-admin-dashboard',
-			icon: GithubSolid
-		},
-		{
-			label: 'Flowbite Svelte',
-			href: 'https://flowbite-svelte.com/docs/pages/quickstart',
-			icon: ClipboardListSolid
-		},
-		{
-			label: 'Components',
-			href: 'https://flowbite-svelte.com/docs/components/accordion',
-			icon: LayersSolid
-		},
-		{
-			label: 'Support',
-			href: 'https://github.com/themesberg/flowbite-svelte-admin-dashboard/issues',
-			icon: LifeSaverSolid
-		}
-	];
+			];
 	let dropdowns = Object.fromEntries(Object.keys(posts).map((x) => [x, false]));
 </script>
 
