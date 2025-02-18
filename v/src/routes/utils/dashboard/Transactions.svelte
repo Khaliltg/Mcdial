@@ -79,47 +79,7 @@
 			</div>
 		</div>
 	</div>
-	<Table
-		hoverable={true}
-		noborder
-		striped
-		class="mt-6 min-w-full divide-y divide-gray-200 dark:divide-gray-600"
-	>
-		<TableHead class="bg-gray-50 dark:bg-gray-700">
-			{#each headers as header}
-				<TableHeadCell class="whitespace-nowrap p-4 font-normal">{header}</TableHeadCell>
-			{/each}
-		</TableHead>
-		<TableBody>
-			{#each data as [name, date, amount, reference, method, status]}
-				<TableBodyRow>
-					<TableBodyCell class="px-4 font-normal">{name}</TableBodyCell>
-					<TableBodyCell class="px-4 font-normal text-gray-500 dark:text-gray-400">
-						{date}
-					</TableBodyCell>
-					<TableBodyCell class="px-4">{amount}</TableBodyCell>
-					<TableBodyCell class="px-4 font-normal  text-gray-500 dark:text-gray-400">
-						{reference}
-					</TableBodyCell>
-					<TableBodyCell
-						class="flex items-center gap-2 px-4 font-normal  text-gray-500 dark:text-gray-400"
-					>
-						<CreditCard number={method} /> <span>••• {method}</span>
-					</TableBodyCell>
-					<TableBodyCell class="px-4 font-normal"
-						><StatusBadge state={status} {dark} /></TableBodyCell
-					>
-				</TableBodyRow>
-			{/each}
-		</TableBody>
-	</Table>
-	<div class="-mb-1 flex items-center justify-between pt-3 sm:pt-6">
-		<LastRange />
-		<a
-			href="#top"
-			class="inline-flex items-center rounded-lg p-1 text-xs font-medium uppercase text-primary-700 hover:bg-gray-100 dark:text-primary-500 dark:hover:bg-gray-700 sm:text-sm"
-		>
-			Transactions report <ChevronRightOutline size="lg" />
-		</a>
-	</div>
+
+		
+		
 </Card>

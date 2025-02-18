@@ -4,8 +4,8 @@
   import MetaTag from '../utils/MetaTag.svelte';
 	let title = 'Sign in to platform';
 	let site = {
-		name: 'Flowbite',
-		img: '/images/flowbite-svelte-icon-logo.svg',
+		name: 'Mcdial',
+		img: '/images/logo1.png',
 		link: '/',
 		imgAlt: 'FlowBite Logo'
 	};

@@ -60,58 +60,6 @@
 			<Toggle class="ms-3 peer-focus:ring-0" bind:checked={yearly} />
 			<span class="text-base font-medium text-gray-900 dark:text-gray-400"> Yearly </span>
 		</div>
-		<section
-			class="grid grid-cols-1 space-y-12 pt-9 md:grid-cols-2 md:gap-6 md:gap-x-6 md:space-y-0 lg:grid-cols-3"
-		>
-			<PriceCard title="Starter" price={prices[0][+yearly]} {period} let:Item>
-				<svelte:fragment slot="subtitle">
-					Best option for personal use and for your next project.
-				</svelte:fragment>
-				<Item>Individual configuration</Item>
-				<Item>No setup, or hidden fees</Item>
-				<Item>Team size: <span class="font-semibold">1 developer</span></Item>
-				<Item>
-					<CloseOutline slot="icon" class="text-red-500 dark:text-red-400" />
-					Premium support
-				</Item>
-				<Item>
-					<CloseOutline slot="icon" class="text-red-500 dark:text-red-400" />
-					Free updates
-				</Item>
-			</PriceCard>
-			<PriceCard title="Company" price={prices[1][+yearly]} {period} let:Item>
-				<svelte:fragment slot="subtitle">
-					Relevant for multiple users, extended & premium support.
-				</svelte:fragment>
-				<Item>Individual configuration</Item>
-				<Item>No setup, or hidden fees</Item>
-				<Item>Team size: <span class="font-semibold">10 developers</span></Item>
-				<Item>Premium support: <span class="font-semibold">24 months</span></Item>
-				<Item>Free updates: <span class="font-semibold">24 months</span></Item>
-			</PriceCard>
-			<PriceCard title="Enterprise" price={prices[2][+yearly]} {period} let:Item>
-				<svelte:fragment slot="subtitle">
-					Best for large scale uses and extended redistribution rights.
-				</svelte:fragment>
-				<Item>Individual configuration</Item>
-				<Item>No setup, or hidden fees</Item>
-				<Item>Team size: <span class="font-semibold">100 developers</span></Item>
-				<Item>Premium support: <span class="font-semibold">36 months</span></Item>
-				<Item>Free updates: <span class="font-semibold">36 months</span></Item>
-			</PriceCard>
-		</section>
-		<section class="flex flex-col pt-10 md:pt-20">
-			<div class="overflow-x-auto rounded-lg">
-				<div class="inline-block min-w-full align-middle">
-					<div class="overflow-hidden shadow sm:rounded-lg">
-						<ComparisonTable />
-					</div>
-				</div>
-			</div>
-		</section>
-		<section class="pt-20">
-			<Faq />
-		</section>
-	</div>
+		
 </main>
 <Footer />
