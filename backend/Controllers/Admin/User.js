@@ -3,7 +3,7 @@ const db = require('../../config/bd'); // Assurez-vous que ce chemin est correct
 const bcrypt = require('bcryptjs');
 
 const checkUserExists = async (userNumber) => {
-    const [rows] = await db.query('SELECT * FROM vicidial_users WHERE user_id = ?', [userNumber]);
+    const [rows] = await db.query('SELECT * FROM vicidial_users WHERE user= ?', [userNumber]);
     return rows.length > 0;
 };
 
@@ -14,7 +14,7 @@ const insertUser = async (newUser) => {
 // create new user 
 exports.createUser = async (req, res) => {
     const {
-        user_id,
+        user,
         pass,
         full_name,
         user_level ,
@@ -24,13 +24,13 @@ exports.createUser = async (req, res) => {
     } = req.body;
 
     // Validation des champs obligatoires
-    if (!user_id || !pass || !full_name) {
+    if (!user|| !pass || !full_name) {
         return res.status(400).json({ message: 'User Number, Password, and Full Name are required.' });
     }
 
     try {
         // Vérification de l'existence de l'utilisateur
-        const userExists = await checkUserExists(user_id);
+        const userExists = await checkUserExists(user);
         if (userExists) {
             return res.status(400).json({ message: 'User already exists.' });
         }
@@ -40,8 +40,7 @@ exports.createUser = async (req, res) => {
 
         // Création de l'utilisateur
         const newUser = {
-            user: user_id,
-            user_id: user_id,
+            user: user,
             pass: hashedPassword,
             full_name: full_name,
             user_level: user_level,
@@ -66,6 +65,27 @@ exports.getUsers = async (req, res) => {
         res.json(users);
     } catch (error) {
         console.error('Error retrieving users:', error);
+        res.status(500).json({ message: 'An error occurred, please try again later.' });
+    }
+};
+
+// Retrieve user by ID
+exports.getUserById = async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const [user] = await db.query('SELECT * FROM vicidial_users WHERE user_id = ?', [userId]);
+        
+        
+        if (user.length<1) {
+            console.log('user not fouund');
+            
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        res.json(user);
+    } catch (error) {
+        console.error('Error retrieving user by ID:', error);
         res.status(500).json({ message: 'An error occurred, please try again later.' });
     }
 };
