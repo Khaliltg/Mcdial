@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
-
 	import {
 		Sidebar,
 		SidebarDropdownWrapper,
@@ -12,19 +11,10 @@
 	import {
 		AngleDownOutline,
 		AngleUpOutline,
-		ClipboardListSolid,
-		CogOutline,
-		FileChartBarSolid,
-		GithubSolid,
-		LayersSolid,
-		LifeSaverSolid,
-		LockSolid,
-		WandMagicSparklesOutline,
 		ChartPieOutline,
 		RectangleListSolid,
-		TableColumnSolid
+		UserSolid
 	} from 'flowbite-svelte-icons';
-    import type users from '../utils/graphs/users';
 
 	export let drawerHidden: boolean = false;
 
@@ -38,88 +28,58 @@
 		'flex items-center p-2 text-base text-gray-900 transition duration-75 rounded-lg hover:bg-gray-100 group dark:text-gray-200 dark:hover:bg-gray-700';
 	let groupClass = 'pt-2 space-y-2';
 
-	$: mainSidebarUrl = $page.url.pathname;
 	let activeMainSidebar: string;
 
 	afterNavigate((navigation) => {
-		// this fixes https://github.com/themesberg/flowbite-svelte/issues/364
 		document.getElementById('svelte')?.scrollTo({ top: 0 });
 		closeDrawer();
-
 		activeMainSidebar = navigation.to?.url.pathname ?? '';
 	});
 
+	// Sidebar items
 	let posts = [
-		{ name: 'Reports', icon: ChartPieOutline, href: '/dashboard' },
+		{ 
+			name: 'Reports', 
+			icon: ChartPieOutline, 
+			href: '/dashboard' 
+		},
 		{
-			name: 'Users',
-			icon: TableColumnSolid,
+			name: 'User Management',
+			icon: UserSolid,
 			children: {
-				"Show users": '/users/Show users',
-				"Add new users": '/layouts/sidebar',
-				"Copy user":'/',
-				"Search for a user": '/users/',
-				"User Stats": '/users/',
-				"User Status": '/users/',
-				"Time sheet": '/users/',
-
+				"Show Users": '/crud/users/User',
+				"Add New User": '/crud/users/AddUser',
+				"Copy User": '/users/copy',
+				"Search Users": '/users/search',
+				"User Stats": '/users/stats',
+				"User Status": '/users/status',
+				"Time Sheet": '/users/timesheet'
 			}
 		},
 		{
-			name: 'Champaigns',
+			name: 'Campaigns',
 			icon: RectangleListSolid,
 			children: {
-				"Campaings Main": '/crud/products',
+				"Campaigns Main": '/crud/products',
 				"Statuses": '/crud/users',
 				"HotKeys": '/crud/users',
-				"Lead Recycle":'/crud/users',
-				"Auto-Alt Dial":'/',
-				"List Mix":'/',
-				"Pause Codes":'/',
-				"Preserts":'/',
-				"AC-CDI":'/',
-
-			}
-		},
-		{
-			name: 'Lists',
-			icon: FileChartBarSolid,
-			children: {
-				Pricing: '/pages/pricing',
-				"Show Lists":'/pages/pricing',
-				
-				
-			}
-		},
-		{
-			name: 'Scripts',
-			icon: LockSolid,
-			children: {
-				'Sign in': '/authentication/sign-in',
-				'Sign up': '/authentication/sign-up',
-				'Forgot password': '/authentication/forgot-password',
-				'Reset password': '/authentication/reset-password',
-				'Profile lock': '/authentication/profile-lock'
-			}
-		},
-		{
-			name: 'Filters',
-			icon: WandMagicSparklesOutline,
-			children: {
-				Stacked: '/playground/stacked',
-				Sidebar: '/playground/sidebar'
+				"Lead Recycle": '/crud/users',
+				"Auto-Alt Dial": '/',
+				"List Mix": '/',
+				"Pause Codes": '/',
+				"Presets": '/',
+				"AC-CDI": '/'
 			}
 		}
 	];
 
-	let links = [
-			];
-	let dropdowns = Object.fromEntries(Object.keys(posts).map((x) => [x, false]));
+	let links = [];
+	let dropdowns = Object.fromEntries(posts.map((post) => [post.name, false]));
 </script>
 
+<!-- Sidebar -->
 <Sidebar
 	class={drawerHidden ? 'hidden' : ''}
-	activeUrl={mainSidebarUrl}
 	activeClass="bg-gray-100 dark:bg-gray-700"
 	asideClass="fixed inset-0 z-30 flex-none h-full w-64 lg:h-auto border-e border-gray-200 dark:border-gray-600 lg:overflow-y-visible lg:pt-16 lg:block"
 >
@@ -157,23 +117,11 @@
 					{/if}
 				{/each}
 			</SidebarGroup>
-			<SidebarGroup ulClass={groupClass}>
-				{#each links as { label, href, icon } (label)}
-					<SidebarItem
-						{label}
-						{href}
-						spanClass="ml-3"
-						class={itemClass}
-						target="_blank"
-					>
-						<svelte:component this={icon} slot="icon" class={iconClass} />
-					</SidebarItem>
-				{/each}
-			</SidebarGroup>
 		</nav>
 	</SidebarWrapper>
 </Sidebar>
 
+<!-- Overlay for mobile drawer -->
 <div
 	hidden={drawerHidden}
 	class="fixed inset-0 z-20 bg-gray-900/50 dark:bg-gray-900/60"
