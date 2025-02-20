@@ -22,7 +22,13 @@
 		WandMagicSparklesOutline,
 		ChartPieOutline,
 		RectangleListSolid,
-		TableColumnSolid
+		TableColumnSolid,
+		FileVideoOutline,
+		 PhoneHangupOutline,
+
+         PhoneHangupSolid
+
+
 	} from 'flowbite-svelte-icons';
     import type users from '../utils/graphs/users';
 
@@ -85,8 +91,13 @@
 			name: 'Lists',
 			icon: FileChartBarSolid,
 			children: {
-				Pricing: '/pages/pricing',
+				
 				"Show Lists":'/pages/pricing',
+				"Add New List":'/pages/pricing',
+				"Search For A lead":'/pages/',
+				"Add New Lead":'/pages/',
+				"Add-Delette DNC Number":'/pages/',
+				"Load New Leads":'/pages/',
 				
 				
 			}
@@ -95,22 +106,47 @@
 			name: 'Scripts',
 			icon: LockSolid,
 			children: {
-				'Sign in': '/authentication/sign-in',
-				'Sign up': '/authentication/sign-up',
-				'Forgot password': '/authentication/forgot-password',
-				'Reset password': '/authentication/reset-password',
-				'Profile lock': '/authentication/profile-lock'
+				"Show Scripts":'/',
+				"Add A New Script":'/',
 			}
 		},
 		{
 			name: 'Filters',
-			icon: WandMagicSparklesOutline,
+			icon: FileVideoOutline,
 			children: {
-				Stacked: '/playground/stacked',
-				Sidebar: '/playground/sidebar'
+				"Show filters": '/playground/stacked',
+				"Add A New filter": '/playground/sidebar'
 			}
-		}
+	
+		},
+		
+		{name:'Inbound',
+			icon: PhoneHangupOutline,
+			children: {
+
+				"Show in-group":'/',
+				"Add a new in-group":'/',
+				"Copy In-Group":'/',
+				"Show DIDs":'/',
+				"Add a new DID":'/',
+				"copy DID":'/',
+				"Show Call Menus":'/',
+				"Add a new Call Menu":'/',
+                "Copy Call Menu":'/',
+                "Filter Phone Groups":'/',
+				"Add filter phone groups":'/',
+				"Add-Delete FPG Number":'/',
+			}
+				
+		 },
+		 {name: 'User Groups',
+		 icon: ,
+         children: {
+			    "Show User Groups": '/pages/pricing',
+		 }
+
 	];
+	
 
 	let links = [
 			];
