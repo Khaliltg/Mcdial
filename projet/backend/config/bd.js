@@ -6,7 +6,7 @@ const db = mysql.createPool({
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    port:process.env.port,
+    port: process.env.DB_PORT,  // ✅ FIXED
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
@@ -15,11 +15,11 @@ const db = mysql.createPool({
 // Vérification de la connexion pour les erreurs
 db.getConnection()
     .then(connection => {
-        console.log('Connected to the MySQL database');
+        console.log('✅ Connected to the MySQL database');
         connection.release(); // Libérez la connexion après la vérification
     })
     .catch(err => {
-        console.error('Error connecting to the database:', err);
+        console.error('❌ Error connecting to the database:', err);
         process.exit(1);
     });
 
