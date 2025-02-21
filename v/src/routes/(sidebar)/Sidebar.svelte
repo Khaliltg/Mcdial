@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
+
 	import {
 		Sidebar,
 		SidebarDropdownWrapper,
@@ -11,10 +12,25 @@
 	import {
 		AngleDownOutline,
 		AngleUpOutline,
+		ClipboardListSolid,
+		CogOutline,
+		FileChartBarSolid,
+		GithubSolid,
+		LayersSolid,
+		LifeSaverSolid,
+		LockSolid,
+		WandMagicSparklesOutline,
 		ChartPieOutline,
 		RectangleListSolid,
-		UserSolid
+		TableColumnSolid,
+		FileVideoOutline,
+		 PhoneHangupOutline,
+
+         PhoneHangupSolid
+
+
 	} from 'flowbite-svelte-icons';
+    import type users from '../utils/graphs/users';
 
 	export let drawerHidden: boolean = false;
 
@@ -28,58 +44,118 @@
 		'flex items-center p-2 text-base text-gray-900 transition duration-75 rounded-lg hover:bg-gray-100 group dark:text-gray-200 dark:hover:bg-gray-700';
 	let groupClass = 'pt-2 space-y-2';
 
+	$: mainSidebarUrl = $page.url.pathname;
 	let activeMainSidebar: string;
 
 	afterNavigate((navigation) => {
+		// this fixes https://github.com/themesberg/flowbite-svelte/issues/364
 		document.getElementById('svelte')?.scrollTo({ top: 0 });
 		closeDrawer();
+
 		activeMainSidebar = navigation.to?.url.pathname ?? '';
 	});
 
-	// Sidebar items
 	let posts = [
-		{ 
-			name: 'Reports', 
-			icon: ChartPieOutline, 
-			href: '/dashboard' 
-		},
+		{ name: 'Reports', icon: ChartPieOutline, href: '/dashboard' },
 		{
-			name: 'User Management',
-			icon: UserSolid,
+			name: 'Users',
+			icon: TableColumnSolid,
 			children: {
-				"Show Users": '/crud/users/User',
-				"Add New User": '/crud/users/AddUser',
-				"Copy User": '/users/copy',
-				"Search Users": '/users/search',
-				"User Stats": '/users/stats',
-				"User Status": '/users/status',
-				"Time Sheet": '/users/timesheet'
+				"Show users": '/users/Show users',
+				"Add new users": '/layouts/sidebar',
+				"Copy user":'/',
+				"Search for a user": '/users/',
+				"User Stats": '/users/',
+				"User Status": '/users/',
+				"Time sheet": '/users/',
+
 			}
 		},
 		{
-			name: 'Campaigns',
+			name: 'Champaigns',
 			icon: RectangleListSolid,
 			children: {
-				"Campaigns Main": '/crud/products',
+				"Campaings Main": '/crud/products',
 				"Statuses": '/crud/users',
 				"HotKeys": '/crud/users',
-				"Lead Recycle": '/crud/users',
-				"Auto-Alt Dial": '/',
-				"List Mix": '/',
-				"Pause Codes": '/',
-				"Presets": '/',
-				"AC-CDI": '/'
-			}
-		}
-	];
+				"Lead Recycle":'/crud/users',
+				"Auto-Alt Dial":'/',
+				"List Mix":'/',
+				"Pause Codes":'/',
+				"Preserts":'/',
+				"AC-CDI":'/',
 
-	let links = [];
-	let dropdowns = Object.fromEntries(posts.map((post) => [post.name, false]));
+			}
+		},
+		{
+			name: 'Lists',
+			icon: FileChartBarSolid,
+			children: {
+				
+				"Show Lists":'/pages/pricing',
+				"Add New List":'/pages/pricing',
+				"Search For A lead":'/pages/',
+				"Add New Lead":'/pages/',
+				"Add-Delette DNC Number":'/pages/',
+				"Load New Leads":'/pages/',
+				
+				
+			}
+		},
+		{
+			name: 'Scripts',
+			icon: LockSolid,
+			children: {
+				"Show Scripts":'/',
+				"Add A New Script":'/',
+			}
+		},
+		{
+			name: 'Filters',
+			icon: FileVideoOutline,
+			children: {
+				"Show filters": '/playground/stacked',
+				"Add A New filter": '/playground/sidebar'
+			}
+	
+		},
+		
+		{name:'Inbound',
+			icon: PhoneHangupOutline,
+			children: {
+
+				"Show in-group":'/',
+				"Add a new in-group":'/',
+				"Copy In-Group":'/',
+				"Show DIDs":'/',
+				"Add a new DID":'/',
+				"copy DID":'/',
+				"Show Call Menus":'/',
+				"Add a new Call Menu":'/',
+                "Copy Call Menu":'/',
+                "Filter Phone Groups":'/',
+				"Add filter phone groups":'/',
+				"Add-Delete FPG Number":'/',
+			}
+				
+		 },
+		 {name: 'User Groups',
+		 icon: ,
+         children: {
+			    "Show User Groups": '/pages/pricing',
+		 }
+
+	];
+	
+
+	let links = [
+			];
+	let dropdowns = Object.fromEntries(Object.keys(posts).map((x) => [x, false]));
 </script>
 
-<!-- Sidebar -->
 <Sidebar
 	class={drawerHidden ? 'hidden' : ''}
+	activeUrl={mainSidebarUrl}
 	activeClass="bg-gray-100 dark:bg-gray-700"
 	asideClass="fixed inset-0 z-30 flex-none h-full w-64 lg:h-auto border-e border-gray-200 dark:border-gray-600 lg:overflow-y-visible lg:pt-16 lg:block"
 >
@@ -117,11 +193,23 @@
 					{/if}
 				{/each}
 			</SidebarGroup>
+			<SidebarGroup ulClass={groupClass}>
+				{#each links as { label, href, icon } (label)}
+					<SidebarItem
+						{label}
+						{href}
+						spanClass="ml-3"
+						class={itemClass}
+						target="_blank"
+					>
+						<svelte:component this={icon} slot="icon" class={iconClass} />
+					</SidebarItem>
+				{/each}
+			</SidebarGroup>
 		</nav>
 	</SidebarWrapper>
 </Sidebar>
 
-<!-- Overlay for mobile drawer -->
 <div
 	hidden={drawerHidden}
 	class="fixed inset-0 z-20 bg-gray-900/50 dark:bg-gray-900/60"
