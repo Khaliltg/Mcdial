@@ -32,8 +32,8 @@ function toggleSidebar() {
 
 <style>
   .sidebar {
-    position: fixed;
-    top: 56px;
+    position: relative; ;
+    top: -46px;
     bottom: 0;
     left: 0;
     z-index: 100;
