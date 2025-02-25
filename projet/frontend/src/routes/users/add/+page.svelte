@@ -1,16 +1,62 @@
 <script>
+    import { onMount } from 'svelte';
+
   let formData = {
-    name: '',
-    email: '',
-    password: '',
-    role: 'User',
-    status: 'Active'
+    user: '',
+    full_name: '',
+    pass: '',
+    user_level: 1,
+    user_group: 'test',
+    status: 'Active' // Added status to match the form
   };
 
-  function handleSubmit() {
-    console.log('Submitting user:', formData);
-    alert('User would be added in a real application');
+
+
+  /**
+     * @type {never[]}
+     */
+  let userGrp = [];
+
+
+  
+  async function handleSubmit() {
+    try {
+      const response = await fetch('http://localhost:8000/api/admin/user/create-users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        alert('User created successfully!');
+        resetForm(); // Reset the form after successful submission
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      alert('An error occurred while submitting the form.');
+    }
   }
+
+  onMount(async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/admin/user/users-group'); // Replace with your API URL
+      if (response.ok) {
+        userGrp = await response.json();
+        console.log(userGrp);
+        
+      } else {
+        console.error('Failed to fetch users');
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  });
+
 
   function handleCancel() {
     resetForm();
@@ -26,13 +72,17 @@
 
   function resetForm() {
     formData = {
-      name: '',
-      email: '',
-      password: '',
-      role: 'User',
+      user: '',
+      full_name: '',
+      pass: '',
+      user_level: 1,
+      user_group: 'test',
       status: 'Active'
     };
   }
+ 
+  console.log(userGrp);
+  
 </script>
 
 <style>
@@ -70,12 +120,12 @@
         <div class="card-body">
           <form on:submit|preventDefault={handleSubmit}>
             <div class="mb-3">
-              <label for="number" class="form-label">User Number</label>
+              <label for="number" class="form-label">User</label>
               <input 
                 type="text" 
                 class="form-control" 
-                id="number" 
-                bind:value={formData.name} 
+                id="user" 
+                bind:value={formData.user} 
                 placeholder="Enter user number" 
                 required
               >
@@ -85,8 +135,8 @@
               <input 
                 type="text" 
                 class="form-control" 
-                id="name" 
-                bind:value={formData.email} 
+                id="full_name" 
+                bind:value={formData.full_name} 
                 placeholder="Enter full name" 
                 required
               >
@@ -96,8 +146,8 @@
               <input 
                 type="password" 
                 class="form-control" 
-                id="password" 
-                bind:value={formData.password} 
+                id="pass" 
+                bind:value={formData.pass} 
                 placeholder="Enter password" 
                 required
               >
@@ -106,12 +156,12 @@
               <label for="role" class="form-label">User Level</label>
               <select 
                 class="form-select" 
-                id="role" 
-                bind:value={formData.role}
+                id="user_level" 
+                bind:value={formData.user_level}
               >
-                <option value="User">1: Test</option>
-                <option value="Manager">8: Manager</option>
-                <option value="Admin">9: Admin</option>
+                <option value="9">9: Admin </option>
+                <option value="8">8: Manager</option>
+                <option value="1">1: Test</option>
               </select>
             </div>
 
@@ -119,12 +169,13 @@
               <label for="group" class="form-label">User Group</label>
               <select 
                 class="form-select" 
-                id="group" 
-                bind:value={formData.role}
+                id="user_group" 
+                bind:value={formData.user_group}
               >
-                <option value="User">All Admin User Group</option>
-                <option value="Manager">ADMIN-VICIDIAL ADMINISTRATORS</option>
-                <option value="Admin">Test-test</option>
+                <option value="" disabled>Select a user group</option>
+                {#each userGrp as group}
+                  <option value={group.user_group}>{group.user_group}</option>
+                {/each}
               </select>
             </div>
 
