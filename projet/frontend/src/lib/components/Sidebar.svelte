@@ -1,192 +1,173 @@
 <script>
-// @ts-nocheck
-
-// svelte-ignore export_let_unused
-export let isOpen = false;
-
-const menuItems = [
-  { 
-    category: 'Main', 
-    items: [
-      { 
-        name: 'Dashboard', 
-        href: '/dashboard', 
-        icon: 'speedometer2', 
-        badge: '4',
-        description: 'Overview of your workspace'
-      },
-      { 
-        name: 'Analytics', 
-        href: '/analytics', 
-        icon: 'graph-up', 
-        badge: 'New',
-        description: 'Detailed performance insights'
-      },
-    ]
-  },
-  { 
-    category: 'Management', 
-    items: [
-      { 
-        name: 'Reports', 
-        href: '/reports', 
-        icon: 'file-earmark-text', 
-        badge: '2',
-        description: 'Comprehensive report center'
-      },
-      { 
-        name: 'Users', 
-        href: null, 
-        icon: 'people-fill',
-        description: 'User management tools',
-        children: [
-          { 
-            name: 'Show Users', 
-            href: '/users/list', 
-            icon: 'list-ul',
-            description: 'View all user accounts'
-          },
-          { 
-            name: 'Add User', 
-            href: '/users/add', 
-            icon: 'person-plus-fill',
-            description: 'Create new user account'
-          },
-          { 
-            name: 'User Roles', 
-            href: '/users/roles', 
-            icon: 'shield-lock-fill',
-            description: 'Manage user permissions'
-          }
-        ]
-      },
-      { 
-        name: 'Settings', 
-        href: '/settings', 
-        icon: 'gear-fill',
-        description: 'Application configuration'
-      },
-    ]
-  },
-  { 
-    category: 'Support', 
-    items: [
-      { 
-        name: 'Help Center', 
-        href: '/help', 
-        icon: 'question-circle',
-        description: 'Get assistance and documentation'
-      },
-      { 
-        name: 'Feedback', 
-        href: '/feedback', 
-        icon: 'chat-text',
-        description: 'Share your thoughts and suggestions'
-      },
-    ]
+  // @ts-nocheck
+  
+  // svelte-ignore export_let_unused
+  export let isOpen = false;
+  
+  const menuItems = [
+    { 
+      name: 'Dashboard', 
+      href: '/dashboard', 
+      icon: 'book', 
+      description: 'Server Stats and Dashboard'
+    },
+    { 
+      name: 'Users', 
+      href: null, 
+      icon: 'people-fill',
+      description: 'User management tools',
+      children: [
+        { 
+          name: 'Show Users', 
+          href: '/users/list', 
+          icon: 'list-ul',
+          description: 'View all user accounts'
+        },
+        { 
+          name: 'Add new User', 
+          href: '/users/add', 
+          icon: 'person-plus-fill',
+          description: 'Create new user account'
+        },
+        {
+          name: 'Copy User',
+          href: '/users/copy', 
+          icon: 'person',
+          description: 'Copy user account information'
+        },
+        { 
+          name: 'Search For A User',
+          href: '/users/search', 
+          icon: 'search',
+          description: 'Search for a user account'
+        },
+        {
+          name: 'User Stats',
+          href: '/users/stats', 
+          icon: 'bi-bar-chart',
+          description: 'View user statistics'
+        },
+      ]
+    },
+    { 
+      name: 'Settings', 
+      href: '/settings', 
+      icon: 'gear-fill',
+      description: 'Application configuration'
+    },
+    { 
+      name: 'Help Center', 
+      href: '/help', 
+      icon: 'question-circle',
+      description: 'Get assistance and documentation'
+    },
+    { 
+      name: 'Feedback', 
+      href: '/feedback', 
+      icon: 'chat-text',
+      description: 'Share your thoughts and suggestions'
+    }
+  ];
+  
+  let activeItem = '/dashboard';
+  let activeParentItem = null;
+  let hoveredItem = null;
+  
+  function toggleSubmenu(item) {
+    activeParentItem = activeParentItem === item ? null : item;
   }
-];
 
-let activeItem = '/dashboard';
-let activeParentItem = null;
-let hoveredItem = null;
-
-function toggleSubmenu(item) {
-  activeParentItem = activeParentItem === item ? null : item;
-}
+  function handleItemClick(item) {
+    if (item.children) {
+      toggleSubmenu(item);
+    } else if (item.href) {
+      activeItem = item.href;
+      window.location.href = item.href;
+    }
+  }
 </script>
 
 <div class="bg-white border-end h-100 shadow-sm font-inter">
   <div class="d-flex flex-column h-100">
-
-
-    <!-- Navigation Sections -->
-    {#each menuItems as section}
-      <div class="px-3 pt-3">
-        <small class="text-muted text-uppercase font-light fs-7">{section.category}</small>
-        <div class="list-group list-group-flush">
-          {#each section.items as item}
-            <div>
-              <!-- svelte-ignore a11y_click_events_have_key_events -->
-              <!-- svelte-ignore a11y_no_static_element_interactions -->
-              <div 
-                class={`
-                  list-group-item list-group-item-action 
-                  d-flex justify-content-between align-items-center 
-                  ${item.children ? 'cursor-pointer' : ''}
-                  py-3 px-0 border-0
-                  font-regular
-                  position-relative
-                  hover-effect
-                `}
-                on:mouseenter={() => hoveredItem = item}
-                on:mouseleave={() => hoveredItem = null}
-                on:click={() => {
-                  if (item.children) {
-                    toggleSubmenu(item);
-                  } else if (item.href) {
-                    activeItem = item.href;
-                  }
-                }}
-              >
-                <div class="d-flex align-items-center">
-                  <i class="bi bi-{item.icon} me-3 text-muted fs-5"></i>
-                  <div>
-                    <span class="font-regular fs-6 d-block">{item.name}</span>
-                    {#if hoveredItem === item}
-                      <small class="text-muted fs-7 description-tooltip">
-                        {item.description}
-                      </small>
-                    {/if}
-                  </div>
+    <div class="px-3 pt-3">
+      <div class="list-group list-group-flush">
+        {#each menuItems as item}
+          <div>
+            <div 
+              class={`
+                list-group-item list-group-item-action 
+                d-flex justify-content-between align-items-center 
+                cursor-pointer
+                ${activeItem === item.href ? 'active' : ''}
+                py-3 px-0 border-0
+                font-regular
+                position-relative
+                hover-effect
+              `}
+              on:mouseenter={() => hoveredItem = item}
+              on:mouseleave={() => hoveredItem = null}
+              on:click={() => handleItemClick(item)}
+              role="button"
+              tabindex="0"
+            >
+              <div class="d-flex align-items-center">
+                <i class="bi bi-{item.icon} me-3 text-muted fs-5"></i>
+                <div>
+                  <span class="font-regular fs-6 d-block">{item.name}</span>
+                  {#if hoveredItem === item}
+                    <small class="text-muted fs-7 description-tooltip">
+                      {item.description}
+                    </small>
+                  {/if}
                 </div>
-                {#if item.badge}
-                  <span class="badge bg-primary rounded-pill font-light fs-7">
-                    {item.badge}
-                  </span>
-                {/if}
-                {#if item.children}
-                  <i class={`bi bi-chevron-${activeParentItem === item ? 'down' : 'right'} ms-2`}></i>
-                {/if}
               </div>
-
-              <!-- Submenu -->
-              {#if item.children && activeParentItem === item}
-                <div class="list-group list-group-flush ps-4 submenu-animation">
-                  {#each item.children as childItem}
-                    <a 
-                      href={childItem.href} 
-                      class={`
-                        list-group-item list-group-item-action 
-                        d-flex align-items-center 
-                        ${activeItem === childItem.href ? 'active' : ''}
-                        py-3 px-0 border-0
-                        font-regular
-                        position-relative
-                        hover-effect
-                      `}
-                      on:mouseenter={() => hoveredItem = childItem}
-                      on:mouseleave={() => hoveredItem = null}
-                      on:click={() => activeItem = childItem.href}
-                    >
-                      <i class="bi bi-{childItem.icon} me-3 text-muted fs-5"></i>
-                      <div>
-                        <span class="font-regular fs-6 d-block">{childItem.name}</span>
-                        {#if hoveredItem === childItem}
-                          <small class="text-muted fs-7 description-tooltip">
-                            {childItem.description}
-                          </small>
-                        {/if}
-                      </div>
-                    </a>
-                  {/each}
-                </div>
+              {#if item.badge}
+                <span class="badge bg-primary rounded-pill font-light fs-7">
+                  {item.badge}
+                </span>
+              {/if}
+              {#if item.children}
+                <i class={`bi bi-chevron-${activeParentItem === item ? 'down' : 'right'} ms-2`}></i>
               {/if}
             </div>
-          {/each}
-        </div>
+
+            {#if item.children && activeParentItem === item}
+              <div class="list-group list-group-flush ps-4 submenu-animation">
+                {#each item.children as childItem}
+                  <div 
+                    class={`
+                      list-group-item list-group-item-action 
+                      d-flex align-items-center 
+                      ${activeItem === childItem.href ? 'active' : ''}
+                      py-3 px-0 border-0
+                      font-regular
+                      position-relative
+                      hover-effect
+                      cursor-pointer
+                    `}
+                    on:mouseenter={() => hoveredItem = childItem}
+                    on:mouseleave={() => hoveredItem = null}
+                    on:click={() => handleItemClick(childItem)}
+                    role="button"
+                    tabindex="0"
+                  >
+                    <i class="bi bi-{childItem.icon} me-3 text-muted fs-5"></i>
+                    <div>
+                      <span class="font-regular fs-6 d-block">{childItem.name}</span>
+                      {#if hoveredItem === childItem}
+                        <small class="text-muted fs-7 description-tooltip">
+                          {childItem.description}
+                        </small>
+                      {/if}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/each}
       </div>
-    {/each}
+    </div>
   </div>
 </div>
 

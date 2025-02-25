@@ -22,7 +22,7 @@ exports.createUser = async (req, res) => {
         phone_login,
         phone_pass,
     } = req.body;
-
+ 
     // Validation des champs obligatoires
     if (!user|| !pass || !full_name) {
         return res.status(400).json({ message: 'User Number, Password, and Full Name are required.' });
@@ -58,16 +58,19 @@ exports.createUser = async (req, res) => {
     }
 };
 
-// Retrieve all users
 exports.getUsers = async (req, res) => {
     try {
-        const [users] = await db.query('SELECT * FROM vicidial_users');
-        res.json(users);
+      const [users] = await db.query("SELECT * FROM vicidial_users");
+      res.status(200).json(users);
     } catch (error) {
-        console.error('Error retrieving users:', error);
-        res.status(500).json({ message: 'An error occurred, please try again later.' });
-    }
-};
+      console.error("Error retrieving users:", error);
+      res
+        .status(500)
+        .json({ message: "An error occurred, please try again later." });
+    }
+  };
+
+
 
 // Retrieve user by ID
 exports.getUserById = async (req, res) => {

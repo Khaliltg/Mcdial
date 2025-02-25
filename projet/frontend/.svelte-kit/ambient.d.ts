@@ -1,4 +1,6 @@
-// This file is generated — do not edit it
+
+// this file is generated — do not edit it
+
 
 /// <reference types="@sveltejs/kit" />
 
@@ -25,10 +27,7 @@
  */
 declare module '$env/static/private' {
 	export const ALLUSERSPROFILE: string;
-	export const AMDRMSDKPATH: string;
 	export const APPDATA: string;
-	export const ChocolateyInstall: string;
-	export const ChocolateyLastPathUpdate: string;
 	export const CHROME_CRASHPAD_PIPE_NAME: string;
 	export const COLOR: string;
 	export const COLORTERM: string;
@@ -38,7 +37,7 @@ declare module '$env/static/private' {
 	export const ComSpec: string;
 	export const DriverData: string;
 	export const EDITOR: string;
-	export const EFC_1816: string;
+	export const EFC_10356: string;
 	export const FPS_BROWSER_APP_PROFILE_STRING: string;
 	export const FPS_BROWSER_USER_PROFILE_STRING: string;
 	export const GIT_ASKPASS: string;
@@ -73,12 +72,10 @@ declare module '$env/static/private' {
 	export const NUMBER_OF_PROCESSORS: string;
 	export const OneDrive: string;
 	export const OneDriveConsumer: string;
-	export const OnlineServices: string;
 	export const ORIGINAL_XDG_CURRENT_DESKTOP: string;
 	export const OS: string;
 	export const Path: string;
 	export const PATHEXT: string;
-	export const platformcode: string;
 	export const PROCESSOR_ARCHITECTURE: string;
 	export const PROCESSOR_IDENTIFIER: string;
 	export const PROCESSOR_LEVEL: string;
@@ -89,7 +86,6 @@ declare module '$env/static/private' {
 	export const PROMPT: string;
 	export const PSModulePath: string;
 	export const PUBLIC: string;
-	export const RegionCode: string;
 	export const SESSIONNAME: string;
 	export const SystemDrive: string;
 	export const SystemRoot: string;
@@ -102,6 +98,7 @@ declare module '$env/static/private' {
 	export const USERNAME: string;
 	export const USERPROFILE: string;
 	export const VBOX_HWVIRTEX_IGNORE_SVM_IN_USE: string;
+	export const VBOX_MSI_INSTALL_PATH: string;
 	export const VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
 	export const VSCODE_GIT_ASKPASS_MAIN: string;
 	export const VSCODE_GIT_ASKPASS_NODE: string;
@@ -140,10 +137,7 @@ declare module '$env/static/public' {
 declare module '$env/dynamic/private' {
 	export const env: {
 		ALLUSERSPROFILE: string;
-		AMDRMSDKPATH: string;
 		APPDATA: string;
-		ChocolateyInstall: string;
-		ChocolateyLastPathUpdate: string;
 		CHROME_CRASHPAD_PIPE_NAME: string;
 		COLOR: string;
 		COLORTERM: string;
@@ -153,7 +147,7 @@ declare module '$env/dynamic/private' {
 		ComSpec: string;
 		DriverData: string;
 		EDITOR: string;
-		EFC_1816: string;
+		EFC_10356: string;
 		FPS_BROWSER_APP_PROFILE_STRING: string;
 		FPS_BROWSER_USER_PROFILE_STRING: string;
 		GIT_ASKPASS: string;
@@ -166,18 +160,80 @@ declare module '$env/dynamic/private' {
 		LOGONSERVER: string;
 		NODE: string;
 		NODE_ENV: string;
-		OnlineServices: string;
+		npm_command: string;
+		npm_config_cache: string;
+		npm_config_globalconfig: string;
+		npm_config_global_prefix: string;
+		npm_config_init_module: string;
+		npm_config_local_prefix: string;
+		npm_config_node_gyp: string;
+		npm_config_noproxy: string;
+		npm_config_npm_version: string;
+		npm_config_prefix: string;
+		npm_config_userconfig: string;
+		npm_config_user_agent: string;
+		npm_execpath: string;
+		npm_lifecycle_event: string;
+		npm_lifecycle_script: string;
+		npm_node_execpath: string;
+		npm_package_json: string;
+		npm_package_name: string;
+		npm_package_version: string;
+		NUMBER_OF_PROCESSORS: string;
+		OneDrive: string;
+		OneDriveConsumer: string;
+		ORIGINAL_XDG_CURRENT_DESKTOP: string;
 		OS: string;
-		platformcode: string;
-		RegionCode: string;
+		Path: string;
+		PATHEXT: string;
+		PROCESSOR_ARCHITECTURE: string;
+		PROCESSOR_IDENTIFIER: string;
+		PROCESSOR_LEVEL: string;
+		PROCESSOR_REVISION: string;
+		ProgramData: string;
+		ProgramFiles: string;
+		ProgramW6432: string;
+		PROMPT: string;
+		PSModulePath: string;
+		PUBLIC: string;
+		SESSIONNAME: string;
+		SystemDrive: string;
+		SystemRoot: string;
 		TEMP: string;
 		TERM_PROGRAM: string;
+		TERM_PROGRAM_VERSION: string;
+		TMP: string;
+		USERDOMAIN: string;
+		USERDOMAIN_ROAMINGPROFILE: string;
 		USERNAME: string;
 		USERPROFILE: string;
 		VBOX_HWVIRTEX_IGNORE_SVM_IN_USE: string;
+		VBOX_MSI_INSTALL_PATH: string;
+		VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
+		VSCODE_GIT_ASKPASS_MAIN: string;
+		VSCODE_GIT_ASKPASS_NODE: string;
+		VSCODE_GIT_IPC_HANDLE: string;
 		VSCODE_INJECTION: string;
 		windir: string;
 		[key: `PUBLIC_${string}`]: undefined;
 		[key: `${string}`]: string | undefined;
+	}
+}
+
+/**
+ * Similar to [`$env/dynamic/private`](https://svelte.dev/docs/kit/$env-dynamic-private), but only includes variables that begin with [`config.kit.env.publicPrefix`](https://svelte.dev/docs/kit/configuration#env) (which defaults to `PUBLIC_`), and can therefore safely be exposed to client-side code.
+ * 
+ * Note that public dynamic environment variables must all be sent from the server to the client, causing larger network requests — when possible, use `$env/static/public` instead.
+ * 
+ * Dynamic environment variables cannot be used during prerendering.
+ * 
+ * ```ts
+ * import { env } from '$env/dynamic/public';
+ * console.log(env.PUBLIC_DEPLOYMENT_SPECIFIC_VARIABLE);
+ * ```
+ */
+declare module '$env/dynamic/public' {
+	export const env: {
+		[key: `PUBLIC_${string}`]: string | undefined;
 	}
 }
