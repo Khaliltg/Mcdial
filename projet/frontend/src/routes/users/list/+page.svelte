@@ -1,28 +1,20 @@
 <script>
-  // Simulated user data - in a real app, this would come from an API
-  const users = [
-    { 
-      id: 1, 
-      name: 'John Doe', 
-      email: 'john@example.com', 
-      role: 'Admin',
-      status: 'Active'
-    },
-    { 
-      id: 2, 
-      name: 'Jane Smith', 
-      email: 'jane@example.com', 
-      role: 'Manager',
-      status: 'Active'
-    },
-    { 
-      id: 3, 
-      name: 'Bob Johnson', 
-      email: 'bob@example.com', 
-      role: 'User',
-      status: 'Inactive'
+  import { onMount } from 'svelte';
+
+  let users = [];
+
+  onMount(async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/admin/user/allUsers'); // Remplacez par l'URL de votre API
+      if (response.ok) {
+        users = await response.json();
+      } else {
+        console.error('Failed to fetch users');
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
     }
-  ];
+  });
 </script>
 
 <div class="container-fluid py-4">
@@ -42,40 +34,28 @@
             <table class="table table-striped table-hover">
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>User ID</th>
+                  <th>Full Name</th>
+                  <th>user_level</th>
+                  <th>user_group</th>
+                  <th>phone_login</th>
+                  <th>phone_pass</th>
                 </tr>
               </thead>
               <tbody>
                 {#each users as user}
                   <tr>
-                    <td>{user.id}</td>
-                    <td>{user.name}</td>
-                    <td>{user.email}</td>
+                    <td>{user.user}</td>
+                    <td>{user.full_name}</td>
+                    <td>{user.user_level}</td>
                     <td>
-                      <span class="badge bg-{user.role === 'Admin' ? 'danger' : user.role === 'Manager' ? 'warning' : 'secondary'}">
-                        {user.role}
-                      </span>
+                      {user.user_group}
                     </td>
                     <td>
-                      <span class="badge bg-{user.status === 'Active' ? 'success' : 'secondary'}">
-                        {user.status}
-                      </span>
+                    {user.phone_login}
                     </td>
-                    <td>
-                      <div class="btn-group" role="group">
-                        <button class="btn btn-sm btn-outline-primary">
-                          <i class="bi bi-pencil"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger">
-                          <i class="bi bi-trash"></i>
-                        </button>
-                      </div>
-                    </td>
+                    <td>{user.phone_pass}</td>
+
                   </tr>
                 {/each}
               </tbody>
