@@ -1,59 +1,110 @@
 <script>
   // @ts-nocheck
-  
+  import Truck from "bootstrap-icons/icons/truck.svg";
   // svelte-ignore export_let_unused
   export let isOpen = false;
   
   const menuItems = [
     { 
-      name: 'Dashboard', 
+      name: 'Tableau de bord', 
       href: '/dashboard', 
       icon: 'book', 
-      description: 'Server Stats and Dashboard'
+      description: 'Statistiques du serveur et tableau de bord'
     },
     { 
-      name: 'Users', 
+      name: 'Utilisateurs', 
       href: null, 
       icon: 'people-fill',
-      description: 'User management tools',
+      description: 'Outils de gestion des utilisateurs',
       children: [
         { 
-          name: 'Show Users', 
+          name: 'Afficher les utilisateurs', 
           href: '/users/list', 
           icon: 'list-ul',
-          description: 'View all user accounts'
+          description: 'Afficher tous les comptes d utilisateurs'
         },
         { 
-          name: 'Add new User', 
+          name: 'Ajouter un nouvel utilisateur', 
           href: '/users/add', 
           icon: 'person-plus-fill',
-          description: 'Create new user account'
+          description: 'Créer un nouveau compte utilisateur'
         },
         {
-          name: 'Copy User',
+          name: 'Copier l utilisateur',
           href: '/users/copy', 
           icon: 'person',
-          description: 'Copy user account information'
+          description: 'Copier les informations du compte utilisateur'
         },
         { 
-          name: 'Search For A User',
+          name: 'Rechercher un utilisateur',
           href: '/users/search', 
           icon: 'search',
-          description: 'Search for a user account'
+          description: 'Rechercher un compte utilisateur'
         },
         {
-          name: 'User Stats',
+          name: 'Statistiques des utilisateurs',
           href: '/users/stats', 
-          icon: 'bi-bar-chart',
-          description: 'View user statistics'
+          icon: 'clipboard',
+          description: 'Afficher les statistiques des utilisateurss'
+        },
+        {
+          name : 'statut des utilisateurs',
+          href: '/users/status', 
+          icon: 'stop-circle',
+          description: 'Afficher l etat des utilisateurs'
+        },
+        {
+          name : 'feuille de temps',
+          href: '/users/timesheet', 
+          icon: 'calendar-week',
+          description: 'Gérer les temps de travail'
         },
       ]
     },
     { 
-      name: 'Settings', 
-      href: '/settings', 
-      icon: 'gear-fill',
-      description: 'Application configuration'
+     name : ' campagnes',
+      href: null,
+      icon: 'bullseye',
+      description: 'Gestion des campagnes',
+      children: [
+        {name : 'campagnes principales',
+         href: '/campaigns/main', 
+         icon: 'list-ul',
+         description: 'Liste des campagnes principales'
+        },
+        {
+          name : 'statuts',
+          href: '/campaigns/statuses', 
+          icon: 'stop-circle',
+          description: 'Gérer les états des campagnes'
+        },
+        {
+          name : ' hotkeys',
+          href: '/campaigns/hotkeys', 
+          icon: 'keyboard',
+          description: 'Gérer les hotkeys'
+        },
+        {
+          name :'Recyclage Liste',
+          href: '/campaigns/lead-recycle', 
+          icon: 'trash',
+          description: 'Gérer la suppression des leads'
+        },
+        {
+          name :'Cadran automatique',
+          href: '/campaigns/auto-alt-dial', 
+          icon: 'telephone',
+          description: 'Gérer le cadran automatique',
+        },
+        {
+          name : ' List Mix',
+          href: '/campaigns/list-mix', 
+          icon: 'list-numbered',
+          description: 'Gérer la liste mix'
+        }
+      ]
+        
+
     },
     { 
       name: 'Help Center', 
@@ -86,6 +137,7 @@
     }
   }
 </script>
+
 
 <div class="bg-white border-end h-100 shadow-sm font-inter">
   <div class="d-flex flex-column h-100">
