@@ -21,24 +21,26 @@ export const nodes = [
 export const server_loads = [];
 
 export const dictionary = {
-		"/": [2],
-		"/compagnes/add": [3],
-		"/compagnes/show": [4],
-		"/dashboard": [5],
-		"/liste/afficherlist": [6],
-		"/liste/ajouterprospect": [8],
-		"/liste/ajouter": [7],
-		"/liste/dnc": [9],
-		"/liste/prospects": [10],
-		"/liste/recherchelist": [11],
-		"/users": [12],
-		"/users/add": [13],
-		"/users/list": [14]
-	};
+	"/": [2],
+	"/compagnes/add": [3],
+	"/compagnes/show": [4],
+	"/dashboard": [5],
+	"/liste/afficherlist": [6],
+	"/liste/ajouterprospect": [8],
+	"/liste/ajouter": [7],
+	"/liste/dnc": [9],
+	"/liste/prospects": [10],
+	"/liste/recherchelist": [11],
+	"/users": [12],
+	"/users/add": [13],
+	"/users/list": [14],
+	"/users/copy": [8],
+	"/users/detail": [9],
+	"/users/search": [11]
+};
 
 export const hooks = {
 	handleError: (({ error }) => { console.error(error) }),
-	
 	reroute: (() => {}),
 	transport: {}
 };

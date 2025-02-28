@@ -11,5 +11,8 @@
 	"/liste/recherchelist": [],
 	"/users": [],
 	"/users/add": [],
-	"/users/list": []
+	"/users/copy": [],
+	"/users/detail": [],
+	"/users/list": [],
+	"/users/search": []
 }
