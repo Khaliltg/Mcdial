@@ -68,7 +68,7 @@
       description: 'Gestion des campagnes',
       children: [
         {name : 'campagnes principales',
-         href: '/campaigns/main', 
+         href: '/compagnes/show', 
          icon: 'list-ul',
          description: 'Liste des campagnes principales'
         },
