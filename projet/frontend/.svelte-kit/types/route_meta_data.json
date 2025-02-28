@@ -1,6 +1,12 @@
 {
 	"/": [],
 	"/dashboard": [],
+	"/liste/afficherlist": [],
+	"/liste/ajouterprospect": [],
+	"/liste/ajouter": [],
+	"/liste/dnc": [],
+	"/liste/prospects": [],
+	"/liste/recherchelist": [],
 	"/users": [],
 	"/users/add": [],
 	"/users/list": []

@@ -131,39 +131,39 @@
       description: 'Gestion des listes',
       children: [
         {name : 'Afficher les listes',
-         href: '/lists/show', 
+         href: '/liste/afficherlist', 
          icon: 'list-ul',
          description: 'Liste des listes',
         },
         {
           name : 'Ajouter une nouvelle liste',
-          href: '/lists/add', 
+          href: '/liste/ajouter', 
           icon: 'plus-circle',
           description: 'Créer une nouvelle liste',
          
         },
         {
           name : ' Rechercher une nouvelle liste',
-          href: '/lists/search', 
+          href: '/liste/recherchelist', 
           icon: 'search',
           description: 'Rechercher une liste',
         },
         { 
           name : ' Ajouter un nouveau prospect',
-         href: '/lists/add-lead', 
+         href: '/liste/ajouterprospect', 
          icon: 'plus-circle',
          description: 'Ajouter un nouveau lead',
         },
         {
          name : 'Ajouter-Supprimer un numéro DNC',
-         href: '/lists/add-delete-dnc', 
+         href: '/liste/dnc', 
          icon :['plus-circle', 'trash'],
          description: 'Ajouter ou supprimer un numéro DNC',
         
         },
         {
           name : 'Charger de nouveaux prospects',
-          href: '/lists/load-new-leads', 
+          href: '/liste/prospects', 
           icon: 'upload',
           description: 'Charger des nouveaux leads',
         },
