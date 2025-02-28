@@ -16,15 +16,18 @@ export const nodes = [
 export const server_loads = [];
 
 export const dictionary = {
-		"/": [2],
-		"/dashboard": [3],
-		"/users": [4],
-		"/users/add": [5],
-		"/users/copy": [6],
-		"/users/detail": [7],
-		"/users/list": [8],
-		"/users/search": [9]
-	};
+	"/": [2],
+	"/dashboard": [5],
+	"/users": [6],
+	"/users/add": [7],
+	"/users/list": [8],
+	"/users/detail": [9],
+	"/users/search": [10],
+	"/users/copy": [11],
+	"/compagnes": [3],
+	"/compagnes/add": [4],
+	"/compagnes/show": [5]
+};
 
 export const hooks = {
 	handleError: (({ error }) => { console.error(error) }),
