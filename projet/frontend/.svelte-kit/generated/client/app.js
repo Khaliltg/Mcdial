@@ -19,18 +19,20 @@ export const nodes = [
 export const server_loads = [];
 
 export const dictionary = {
-		"/": [2],
-		"/dashboard": [3],
-		"/liste/afficherlist": [4],
-		"/liste/ajouterprospect": [6],
-		"/liste/ajouter": [5],
-		"/liste/dnc": [7],
-		"/liste/prospects": [8],
-		"/liste/recherchelist": [9],
-		"/users": [10],
-		"/users/add": [11],
-		"/users/list": [12]
-	};
+	"/": [2],
+	"/dashboard": [5],
+	"/liste/afficherlist": [4],
+	"/liste/ajouterprospect": [6],
+	"/liste/ajouter": [5],
+	"/liste/dnc": [7],
+	"/liste/prospects": [8],
+	"/liste/recherchelist": [9],
+	"/users": [6],
+	"/users/add": [7],
+	"/users/list": [8],
+	"/compagnes/add": [3],
+	"/compagnes/show": [4]
+};
 
 export const hooks = {
 	handleError: (({ error }) => { console.error(error) }),
