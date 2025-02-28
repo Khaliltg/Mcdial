@@ -65,7 +65,7 @@
                   {#if showAll || user.active === 'Y'}
                     <tr>
                     
-                      <td>{user.user}</td>
+                    <a href="/users/detail">  <td>{user.user}</td></a>
                       <td>{user.full_name}</td>
                       <td>{user.user_level}</td>
                       <td>{user.active}</td>
