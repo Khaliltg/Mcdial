@@ -25,7 +25,7 @@ exports.createList = async (req, res) => {
 // Récupérer toutes les listes
 exports.getLists = async (req, res) => {
     try {
-        const [results, fields] = await db.query('SELECT * FROM vicidial_list');  // Using .query() with promises
+        const [results, fields] = await db.query('SELECT * FROM vicidial_lists');  // Using .query() with promises
         res.json(results);
     } catch (err) {
         console.error("Erreur lors de la récupération des listes : ", err);
