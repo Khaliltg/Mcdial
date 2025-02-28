@@ -5,7 +5,7 @@ const db = require('./config/bd');
 
 const AdminRoute = require('./Routes/Admin/userRoute');
 const listRoutes = require('./Routes/Admin/listRoutes');
-
+const compagnieRoutes = require('./Routes/Admin/compagniesRoutes')
 
 
 const app = express();
