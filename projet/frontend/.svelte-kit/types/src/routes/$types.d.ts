@@ -3,7 +3,9 @@ import type * as Kit from '@sveltejs/kit';
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 // @ts-ignore
 type MatcherParam<M> = M extends (param: string) => param is infer U ? U extends string ? U : string : string;
-type RouteParams = { };
+
+type RouteParams = {}; // Choose this as the final definition
+
 type RouteId = '/';
 type MaybeWithVoid<T> = {} extends T ? T | void : T;
 export type RequiredKeys<T> = { [K in keyof T]-?: {} extends { [P in K]: T[K] } ? never : K; }[keyof T];
@@ -15,7 +17,9 @@ type PageParentData = EnsureDefined<LayoutData>;
 
 type LayoutRouteId = RouteId | "/" | "/compagnes/add" | "/compagnes/show" | "/dashboard" | "/liste/afficherlist" | "/liste/ajouter" | "/liste/ajouterprospect" | "/liste/dnc" | "/liste/prospects" | "/liste/recherchelist" | "/users" | "/users/add" | "/users/copy" | "/users/detail" | "/users/list" | "/users/search" | null;
 
-type LayoutParams = RouteParams & { };
+// Retain the optional list_id parameter
+type LayoutParams = RouteParams & { list_id?: string };
+
 type LayoutParentData = EnsureDefined<{}>;
 
 export type PageServerData = null;
