@@ -1,9 +1,11 @@
 <script>
   import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
 
   let users = [];
-  let showAll = false; // Reactive variable to control the display
-  
+  let showAll = false;
+
+  // Fetch the list of users when the component mounts
   onMount(async () => {
     try {
       const response = await fetch('http://localhost:8000/api/admin/user/allUsers'); // Replace with your API URL
@@ -17,14 +19,15 @@
     }
   });
 
+  // Function to toggle between showing all users or just active ones
   function showAllUsers() {
-    showAll = !showAll; // Toggle between showing all users and only active users
-   
+    showAll = !showAll;
   }
 
- 
-
-  
+  // Function to navigate to the detail page with the userId as a query parameter
+  function navigateToUserDetail(userId) {
+    goto(`/users/detail?id=${userId}`); // Navigate to the detail page
+  }
 </script>
 
 <div class="container-fluid py-4">
@@ -36,8 +39,7 @@
           <a href="/users/add" class="btn btn-light btn-sm">
             <i class="bi bi-person-plus me-2"></i>Add New User
           </a>
-          <a on:click="{showAllUsers}" class="btn btn-light btn-sm">
-            <i class="bi bi-person-plus me-2"></i>
+          <a on:click={showAllUsers} class="btn btn-light btn-sm">
             {#if showAll}
               Show Active Users
             {:else}
@@ -50,7 +52,6 @@
             <table class="table table-striped table-hover">
               <thead>
                 <tr>
-                 
                   <th>User Name</th>
                   <th>Full Name</th>
                   <th>User Level</th>
@@ -64,8 +65,11 @@
                 {#each users as user}
                   {#if showAll || user.active === 'Y'}
                     <tr>
-                    
-                    <a href="/users/detail">  <td>{user.user}</td></a>
+                      <td>
+                        <a href="javascript:void(0)" on:click={() => navigateToUserDetail(user.user_id)}>
+                          {user.user}
+                        </a>
+                      </td>
                       <td>{user.full_name}</td>
                       <td>{user.user_level}</td>
                       <td>{user.active}</td>

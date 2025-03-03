@@ -252,12 +252,42 @@ exports.getUserById = async (req, res) => {
         res.status(500).json({ message: 'An error occurred, please try again later.' });
     }
 };
+// Update user by ID
+exports.updateUser = async (req, res) => {
+    const { userId } = req.params; // Extract user ID from the URL
+    const updatedData = req.body; // Extract updated data from the request body
+    console.log('User ID:', userId);
+    console.log('Updated Data:', updatedData);
+    
+    // Validate if the user ID and updated data are provided
+    if (!userId || !updatedData) {
+        return res.status(400).json({ message: 'User ID and updated data are required.' });
+    }
 
+    try {
+        // Check if the user exists
+        const [user] = await db.query('SELECT * FROM vicidial_users WHERE user_id = ?', [userId]);
+        if (user.length < 1) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
 
+        // If no data to update, return an error
+        if (Object.keys(updatedData).length === 0) {
+            return res.status(400).json({ message: 'No data to update.' });
+        }
 
+        console.log('Updating with the following data:', updatedData);  // Debugging log
 
+        // Update the user in the database
+        const query = 'UPDATE vicidial_users SET ? WHERE user_id = ?';
+        await db.query(query, [updatedData, userId]);
 
-
+        res.status(200).json({ message: 'User updated successfully.' });
+    } catch (error) {
+        console.error('Error updating user:', error);
+        res.status(500).json({ message: 'An error occurred, please try again later.' });
+    }
+};
 
 
 
