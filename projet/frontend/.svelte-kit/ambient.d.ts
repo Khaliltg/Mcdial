@@ -1,6 +1,4 @@
-
 // this file is generated — do not edit it
-
 
 /// <reference types="@sveltejs/kit" />
 
@@ -84,6 +82,7 @@ declare module '$env/static/private' {
 	export const npm_config_prefix: string;
 	export const COLORTERM: string;
 	export const NODE_ENV: string;
+	// Add any additional common variables if necessary
 }
 
 /**
@@ -96,7 +95,7 @@ declare module '$env/static/private' {
  * ```
  */
 declare module '$env/static/public' {
-	
+	// Define public environment variables here
 }
 
 /**
@@ -115,65 +114,7 @@ declare module '$env/static/public' {
  */
 declare module '$env/dynamic/private' {
 	export const env: {
-		TERM_PROGRAM: string;
-		NODE: string;
-		INIT_CWD: string;
-		TERM: string;
-		SHELL: string;
-		HOMEBREW_REPOSITORY: string;
-		TMPDIR: string;
-		npm_config_global_prefix: string;
-		TERM_PROGRAM_VERSION: string;
-		ZDOTDIR: string;
-		ORIGINAL_XDG_CURRENT_DESKTOP: string;
-		MallocNanoZone: string;
-		COLOR: string;
-		npm_config_noproxy: string;
-		npm_config_local_prefix: string;
-		USER: string;
-		COMMAND_MODE: string;
-		npm_config_globalconfig: string;
-		SSH_AUTH_SOCK: string;
-		__CF_USER_TEXT_ENCODING: string;
-		npm_execpath: string;
-		PATH: string;
-		npm_package_json: string;
-		_: string;
-		npm_config_userconfig: string;
-		npm_config_init_module: string;
-		USER_ZDOTDIR: string;
-		__CFBundleIdentifier: string;
-		npm_command: string;
-		PWD: string;
-		npm_lifecycle_event: string;
-		EDITOR: string;
-		npm_package_name: string;
-		LANG: string;
-		npm_config_npm_version: string;
-		VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
-		XPC_FLAGS: string;
-		npm_config_node_gyp: string;
-		npm_package_version: string;
-		XPC_SERVICE_NAME: string;
-		VSCODE_INJECTION: string;
-		SHLVL: string;
-		HOME: string;
-		VSCODE_GIT_ASKPASS_MAIN: string;
-		HOMEBREW_PREFIX: string;
-		npm_config_cache: string;
-		LOGNAME: string;
-		npm_lifecycle_script: string;
-		VSCODE_GIT_IPC_HANDLE: string;
-		npm_config_user_agent: string;
-		VSCODE_GIT_ASKPASS_NODE: string;
-		GIT_ASKPASS: string;
-		INFOPATH: string;
-		HOMEBREW_CELLAR: string;
-		npm_node_execpath: string;
-		npm_config_prefix: string;
-		COLORTERM: string;
-		NODE_ENV: string;
-		[key: `PUBLIC_${string}`]: undefined;
+		[key: `PUBLIC_${string}`]: string | undefined;
 		[key: `${string}`]: string | undefined;
 	}
 }
