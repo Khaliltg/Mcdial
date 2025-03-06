@@ -85,3 +85,35 @@ exports.recuperer = async (req, res) => {
         res.status(500).json({ message: 'Erreur lors de la récupération des compagnies' });
     }
 };
+//afficher les compagnies avec l id
+exports.getById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [rows] = await connection.execute('SELECT * FROM vicidial_campaigns WHERE campaign_id = ?', [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Compagnie non trouvée' });
+        }
+        res.json(rows[0]);
+    } catch (err) {
+        console.error('Erreur SQL:', err);
+        res.status(500).json({ message: 'Erreur lors de la récupération des compagnies' });
+    }
+};
+
+//retriving user from vicidial_campaign_agents
+exports.getCampaignAgents = async (req, res) => {
+    try {
+        const { campaign_id } = req.params;
+        const [rows] = await connection.execute(
+            'SELECT * FROM vicidial_campaign_agents WHERE campaign_id = ?',
+            [campaign_id]
+        );
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Aucun agent trouvé pour cette compagnie' });
+        }
+        res.json(rows);
+    } catch (err) {
+        console.error('Erreur SQL:', err);
+        res.status(500).json({ message: 'Erreur lors de la récupération des agents pour la compagnie' });
+    }
+};

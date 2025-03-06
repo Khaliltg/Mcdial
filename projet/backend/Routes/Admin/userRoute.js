@@ -1,6 +1,6 @@
 // routes/userRoutes.js
 const express = require('express');
-const { createUser,getUsers,getUserById,getUsersGroups,updateUser} = require('../../Controllers/Admin/User');
+const { createUser,getUsers,getUserById,getUsersGroups,updateUser,copyUser} = require('../../Controllers/Admin/User');
 //const userController = require('../controllers/Admin/User');
 
 const router = express.Router();
@@ -18,4 +18,6 @@ router.get('/getUserById/:userId', getUserById);
 
 router.put('/users/:userId', updateUser);
 
+//copy user route
+router.post("/copyUser",copyUser)
 module.exports = router;
