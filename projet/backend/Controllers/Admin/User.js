@@ -288,11 +288,52 @@ exports.updateUser = async (req, res) => {
         res.status(500).json({ message: 'An error occurred, please try again later.' });
     }
 };
+exports.copyUser = async (req, res) => {
+    const { userID, user, pass, full_name } = req.body;
 
+    console.log("User ID:", userID); // This should log the correct value
 
+    try {
+        // Check if the original user exists
+        const [existingUser] = await db.query('SELECT * FROM vicidial_users WHERE user_id = ?', [userID]);
+        if (existingUser.length < 1) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
 
+        // Get the original user data
+        const originalUser = existingUser[0];
 
+        // Create a new user object
+        const newUser = {
+            user: user || originalUser.user, // Use user from request or original if not provided
+            pass: pass || originalUser.pass, // Use pass from request or original if not provided
+            full_name: full_name || originalUser.full_name, // Use full_name from request or original if not provided
+            // Copy necessary fields from the original user while excluding unique constraints
+            // Use a spread operator to include other fields as needed
+            modify_stamp: new Date().toISOString().slice(0, 19).replace('T', ' '), // Update timestamp
+            // Exclude user_id and other unique fields to avoid duplication issues
+            user_id: undefined, // Make sure to not copy user_id
+        };
 
+        console.log(newUser);
 
+        // Check if the new user already exists
+        const [duplicateUser] = await db.query('SELECT * FROM vicidial_users WHERE user = ?', [newUser.user]);
+        if (duplicateUser.length > 0) {
+            console.log(req.body.user);
+            return res.status(400).json({ message: 'User already exists with this username.' });
+        }
 
+        // Insert the new user into the database
+        const query = 'INSERT INTO vicidial_users SET ?';
+        await db.query(query, [newUser]);
+        res.status(201).json({ message: 'User copied successfully.' });
+
+        // Log the copied user details for debugging purposes
+        console.log('Copied user details:', newUser);
+    } catch (error) {
+        console.error('Error copying user:', error);
+        res.status(500).json({ message: 'An error occurred, please try again later.' });
+    }
+};
 

@@ -18,8 +18,7 @@ export const nodes = [
 	() => import('./nodes/14'),
 	() => import('./nodes/15'),
 	() => import('./nodes/16'),
-	() => import('./nodes/17'),
-	() => import('./nodes/18')
+	() => import('./nodes/17')
 ];
 
 export const server_loads = [];
@@ -36,16 +35,16 @@ export const dictionary = {
 		"/liste/list-details/[list_id]": [10],
 		"/liste/prospects": [11],
 		"/liste/recherchelist": [12],
-		"/users": [13],
-		"/users/add": [14],
-		"/users/copy": [15],
-		"/users/detail": [16],
-		"/users/list": [17],
-		"/users/search": [18]
+		"/users/add": [13],
+		"/users/copy": [14],
+		"/users/detail": [15],
+		"/users/list": [16],
+		"/users/search": [17]
 	};
 
 export const hooks = {
-	handleError: (({ error }) => { console.error(error); }),
+	handleError: (({ error }) => { console.error(error) }),
+	
 	reroute: (() => {}),
 	transport: {}
 };
