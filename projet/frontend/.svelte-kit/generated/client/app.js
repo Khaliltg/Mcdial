@@ -27,16 +27,16 @@ export const server_loads = [];
 export const dictionary = {
 		"/": [2],
 		"/compagnes/add": [3],
-		"/compagnes/show": [4],
-		"/dashboard": [5],
-		"/liste/afficherlist": [6],
-		"/liste/ajouterprospect": [8],
-		"/liste/ajouter": [7],
-		"/liste/dnc": [9],
-		"/liste/list-details/[list_id]": [10],
-		"/liste/prospects": [11],
-		"/liste/recherchelist": [12],
-		"/users": [13],
+		"/compagnes/detail/[campaign_id]": [4],
+		"/compagnes/show": [5],
+		"/dashboard": [6],
+		"/liste/afficherlist": [7],
+		"/liste/ajouterprospect": [9],
+		"/liste/ajouter": [8],
+		"/liste/dnc": [10],
+		"/liste/list-details/[list_id]": [11],
+		"/liste/prospects": [12],
+		"/liste/recherchelist": [13],
 		"/users/add": [14],
 		"/users/copy": [15],
 		"/users/detail": [16],
@@ -45,7 +45,8 @@ export const dictionary = {
 	};
 
 export const hooks = {
-	handleError: (({ error }) => { console.error(error); }),
+	handleError: (({ error }) => { console.error(error) }),
+	
 	reroute: (() => {}),
 	transport: {}
 };
