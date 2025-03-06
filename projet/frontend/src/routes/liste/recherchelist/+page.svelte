@@ -1,7 +1,6 @@
 <script>
-    import { LogarithmicScale } from 'chart.js';
   import { onMount } from 'svelte';
-
+  import { goto } from '$app/navigation';
   let lists = [];
   let searchQuery = '';
   let filteredLists = [];
@@ -10,8 +9,22 @@
   let editMode = false;
   let editedList = { list_id: null, list_name: "", list_description: "", campaign_id: "", active: "" };
   let deletedLists = [];
-  let id=null;
-  // Fetch lists from the API
+  let id = null;
+  let additionalData = []; // Pour stocker les données supplémentaires
+  let showAdditionalTables = false; // État pour afficher ou masquer les tableaux supplémentaires
+  let selectedListDetails = null; // Détails de la liste sélectionnée
+
+  
+
+  async function fetchListDetails(list_id) {
+    const response = await fetch(`http://localhost:8000/api/lists/getListById/${list_id}`);
+    if (response.ok) {
+      selectedListDetails = await response.json();
+    } else {
+      alert('⚠️ Problème lors de la récupération des détails de la liste.');
+    }
+  }
+
   async function loadLists() {
     isLoading = true;
     errorMessage = '';
@@ -33,7 +46,6 @@
 
   async function deleteList(list_id) {
     const listToDelete = lists.find(list => list.list_id === list_id);
-
     if (confirm('Êtes-vous sûr de vouloir déplacer cette liste vers la corbeille ?')) {
       isLoading = true; // Afficher le chargement
       try {
@@ -60,7 +72,6 @@
     }
   }
 
-  // Fetch deleted lists from the API
   async function fetchCorbeille() {
     isLoading = true;
     errorMessage = '';
@@ -81,20 +92,18 @@
     }
   }
 
-  // Restore a deleted list
   async function restoreList(list_id) {
     if (confirm('Êtes-vous sûr de vouloir restaurer cette liste ?')) {
       isLoading = true; // Afficher le chargement
       try {
         const response = await fetch(`http://localhost:8000/api/lists/restaurer/${list_id}`, {
-          method: 'POST', // Ou la méthode appropriée pour votre API
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
         });
 
         if (response.ok) {
-          // Mettre à jour les listes
           await fetchCorbeille(); // Recharger les listes supprimées
           await loadLists(); // Recharger les listes principales
           alert('✅ Liste restaurée avec succès !');
@@ -109,7 +118,6 @@
     }
   }
 
-  // Filter lists based on search input
   function filterLists() {
     filteredLists = searchQuery
       ? lists.filter(({ list_name, list_id }) =>
@@ -119,24 +127,19 @@
       : lists;
   }
 
-  // Navigate to list details
   function viewList(list_id) {
     window.location.href = `/liste/list-details/${list_id}`;
+    fetchListDetails(list_id);
+    fetchAdditionalData(list_id);
   }
 
-  // Edit a list
-  /**
-     * @param {{ list_id: null; list_name: string; list_description: string; campaign_id: string; active: string; }} list
-     */
   function editList(list) {
-    id=list;
+    id = list;
     editMode = true;
     editedList = { ...list };
   }
 
   async function saveEdit() {
-
-
     isLoading = true;
     errorMessage = '';
 
@@ -146,9 +149,8 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editedList),
       });
-      console.log(id);
-      
-   if (response.ok) {
+
+      if (response.ok) {
         await loadLists();
         editMode = false;
         alert("✅ Liste modifiée avec succès !");
@@ -167,6 +169,10 @@
 
   // Load lists on component mount
   onMount(loadLists);
+
+  function viewAdditionalTables(list_id) {
+  goto(`/liste/details/${list_id}`);
+}
 </script>
 
 <div class="page-container">
@@ -185,6 +191,9 @@
       />
       <button type="submit" class="search-button">
         Rechercher
+      </button>
+      <button on:click={fetchCorbeille} class="btn btn-warning">
+        Voir la Corbeille 🗑️
       </button>
     </form>
 
@@ -217,7 +226,8 @@
                 <td class="list-name">{list_name}</td>
                 <td>
                   <button class="action-button view-button" on:click={() => viewList(list_id)}>Voir</button>
-                  <button class="action-button edit-button" on:click={() => editList(list_id)}>Modifier</button>
+                  <button class="action-button" on:click={() => viewAdditionalTables(list_id)}>Afficher les détails supplémentaires</button>
+                  <button class="action-button edit-button" on:click={() => editList({ list_id, list_name })}>Modifier</button>
                   <button class="action-button delete-button" on:click={() => deleteList(list_id)}>Supprimer</button>
                 </td>
               </tr>
@@ -227,9 +237,131 @@
       {/if}
     </div>
 
-    <button on:click={fetchCorbeille} class="btn btn-warning">
-      Voir la Corbeille 🗑️
-    </button>
+   
+
+    {#if showAdditionalTables}
+      <div class="additional-data-container">
+        <h2>Détails supplémentaires</h2>
+
+        <div class="table-section">
+          <h3>Fuseaux horaires dans cette liste :</h3>
+          <table class="styled-table">
+            <thead>
+              <tr>
+                <th>Décalage GMT (heure locale)</th>
+                <th>Appels</th>
+                <th>Non appelés</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>-5.00 (Wed 5 Mar 2025 03:43)</td>
+                <td>0</td>
+                <td>1</td>
+              </tr>
+              <tr>
+                <td>Sous-totaux</td>
+                <td>0</td>
+                <td>1</td>
+              </tr>
+              <tr>
+                <td>Total</td>
+                <td>1</td>
+                <td>1</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-section">
+          <h3>Propriétaires dans cette liste :</h3>
+          <table class="styled-table">
+            <thead>
+              <tr>
+                <th>Propriétaire</th>
+                <th>Appels</th>
+                <th>Non appelés</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>0</td>
+                <td>0</td>
+                <td>1</td>
+              </tr>
+              <tr>
+                <td>Sous-totaux</td>
+                <td>0</td>
+                <td>1</td>
+              </tr>
+              <tr>
+                <td>Total</td>
+                <td>0</td>
+                <td>1</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-section">
+          <h3>Rangs dans cette liste :</h3>
+          <table class="styled-table">
+            <thead>
+              <tr>
+                <th>Rang</th>
+                <th>Appels</th>
+                <th>Non appelés</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>0</td>
+                <td>0</td>
+                <td>1</td>
+              </tr>
+              <tr>
+                <td>Sous-totaux</td>
+                <td>0</td>
+                <td>1</td>
+              </tr>
+              <tr>
+                <td>Total</td>
+                <td>0</td>
+                <td>1</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-section">
+          <h3>Comptes d'appels dans cette liste :</h3>
+          <table class="styled-table">
+            <thead>
+              <tr>
+                <th>Statut</th>
+                <th>Nom du statut</th>
+                <th>0</th>
+                <th>Sous-total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>NOUVEAU</td>
+                <td>Nouveau Lead</td>
+                <td>1</td>
+                <td>1</td>
+              </tr>
+              <tr>
+                <td>Total</td>
+                <td></td>
+                <td>1</td>
+                <td>1</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {/if}
 
     {#if deletedLists.length > 0}
       <h2>Listes supprimées</h2>
@@ -422,9 +554,54 @@
     opacity: 0.8;
   }
 
-  /* Spinner animation */
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  /* Additional Data Styles */
+  .additional-data-container {
+    margin-top: 20px;
+    width: 100%;
   }
-</style>
+
+  .table-section {
+    margin-bottom: 30px;
+  }
+
+  h2 {
+    font-size: 1.8rem;
+    color: #333;
+    text-align: center;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    color: #007bff;
+    margin-bottom: 10px;
+  }
+
+  .styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(63, 63, 66, 0.1);
+  }
+
+  .styled-table thead {
+    background-color: #007bff;
+    color: white;
+  }
+
+  .styled-table th, .styled-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .styled-table tr:hover {
+    background-color: #f1f1f1;
+  }
+
+  .styled-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+  }
+  </style>

@@ -86,9 +86,7 @@ exports.getListById = async (req, res) => {
 
     try {
         // Construire dynamiquement la requête
-        const updates = Object.keys(fields)
-            .map((key) => `${key} = ?`)
-            .join(", ");
+        const updates = Object.keys(fields).map((key) => `${key} = ?`).join(", ");
 
         const values = Object.values(fields);
         values.push(id); // Ajouter l'ID à la fin pour la clause WHERE
