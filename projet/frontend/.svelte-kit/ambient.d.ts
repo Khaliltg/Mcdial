@@ -1,6 +1,4 @@
-
 // this file is generated — do not edit it
-
 
 /// <reference types="@sveltejs/kit" />
 
@@ -49,6 +47,7 @@ declare module '$env/static/private' {
 	export const LOCALAPPDATA: string;
 	export const LOGONSERVER: string;
 	export const NODE: string;
+	export const TERM_PROGRAM: string;
 	export const NODE_ENV: string;
 	export const npm_command: string;
 	export const npm_config_cache: string;
@@ -90,7 +89,6 @@ declare module '$env/static/private' {
 	export const SystemDrive: string;
 	export const SystemRoot: string;
 	export const TEMP: string;
-	export const TERM_PROGRAM: string;
 	export const TERM_PROGRAM_VERSION: string;
 	export const TMP: string;
 	export const USERDOMAIN: string;
@@ -215,6 +213,15 @@ declare module '$env/dynamic/private' {
 		VSCODE_GIT_IPC_HANDLE: string;
 		VSCODE_INJECTION: string;
 		windir: string;
+		TERM_PROGRAM: string;
+		INIT_CWD: string;
+		TERM: string;
+		SHELL: string;
+		HOMEBREW_REPOSITORY: string;
+		TMPDIR: string;
+		npm_config_global_prefix: string;
+		TERM_PROGRAM_VERSION: string;
+		ZDOTDIR: string;
 		[key: `PUBLIC_${string}`]: undefined;
 		[key: `${string}`]: string | undefined;
 	}

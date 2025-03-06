@@ -1,6 +1,7 @@
 {
 	"/": [],
 	"/compagnes/add": [],
+	"/compagnes/detail/[campaign_id]": [],
 	"/compagnes/show": [],
 	"/dashboard": [],
 	"/liste/afficherlist": [],

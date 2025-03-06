@@ -1,4 +1,3 @@
-
 import root from '../root.svelte';
 import { set_building, set_prerendering } from '__sveltekit/environment';
 import { set_assets } from '__sveltekit/paths';
@@ -29,11 +28,8 @@ export async function get_hooks() {
 	let handleFetch;
 	let handleError;
 	let init;
-	
-
 	let reroute;
 	let transport;
-	
 
 	return {
 		handle,
