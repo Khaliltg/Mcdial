@@ -5,12 +5,14 @@
       export let isOpen = false;
       
       const menuItems = [
-        { 
-          name: 'Tableau de bord', 
-          href: '/dashboard', 
-          icon: 'book', 
-          description: 'Statistiques du serveur et tableau de bord'
+        {
+          name : ' Rapport',
+          href: null, 
+          icon: 'file-text-fill',
+          description: 'Générer un rapport',
+          
         },
+      
         { 
           name: 'Utilisateurs', 
           href: null, 
@@ -170,99 +172,8 @@
             
           ]
         },
-        {
-          name : 'scripts',
-        href: null,
-          icon: 'code',
-          description: 'Gestion des scripts',
-          children: [
-            {name : 'Afficher les scripts',
-              href: '/scripts/show', 
-              icon: 'list-ul',
-              description: 'Liste des scripts',
-            },
-            {name: 'Ajouter un nouveau script',
-              href: '/scripts/add', 
-              icon: 'plus-circle',
-              description: 'Ajouter un nouveau script',
-            }
-            ]
-        },
-        {
-          name : 'Entrant',
-          href: null,
-          icon: 'telephone-inbound-fill',
-          description: 'Gestion des entrées',
-          children: [
-            {name : 'Afficher les groupes',
-            href: '/incoming/show-in-groups', 
-            icon: 'list-ul',
-            description: 'Liste des groupes d entrées',
-            },
-            {
-              name : 'Ajouter un nouveau groupe',
-            href: '/incoming/add-in-group', 
-            icon: 'plus-circle',
-            description: 'Ajouter un nouveau groupe d entrées',
-            },
-            {
-              name : 'Copier dans le groupe',
-              href: '/incoming/copy-in-group', 
-              icon: 'clipboard-plus',
-              description: 'Copier un groupe d entrées',
-            },
-            {
-              name : 'Afficher les DiDs',
-              href: '/incoming/show-ids', 
-              icon: 'list-ul',
-              description: 'Afficher les DiDs',
-            },
-            {
-              name : 'Ajouter un nouveau DiD',
-              href: '/incoming/add-new-id', 
-              icon: 'plus-circle',
-              description: 'Ajouter un nouveau DiD',
-            },
-            {
-              name : 'Copier DiD',
-              href: '/incoming/copy-id', 
-              icon: 'clipboard-plus',
-              description: 'Copier un DiD',
-            },
-            {
-              name : 'Afficher les menus d appel',
-              href: '/incoming/show-call-menus', 
-              icon: 'menu-button-wide',
-              description: 'Afficher les menus d appel',
-            },
-            {
-              name : 'Ajouter un nouveau menu d appel',
-              href: '/incoming/add-new-call-menu', 
-              icon: 'building-add',
-              description: 'Ajouter un nouveau menu d appel',
-            },
-            {name : 'Copier un menu d appel',
-            href: '/incoming/copy-call-menu', 
-            icon: 'clipboard-plus',
-            description: 'Copier un menu d appel',
-            },
-            { name : 'filtrer les groupes téléphoniques',
-            href: '/incoming/filter', 
-            icon: 'filter',
-            description: 'Filter  calls',
-            },
-            {name : 'ajouter un groupe de téléphone filtré',
-            href: '/incoming/add-filter-phone-group', 
-            icon: 'telephone-plus',
-            description: 'Add filter phone group',
-            },
-            { name :'ajouter-supprimer un numéro FPG',
-            href: '/incoming/add-delete-fpg-number', 
-            icon: 'plus-slash-minus',
-            description: 'Add or delete a FPG number',
-            },
-      ]
-      },
+       
+       
       {
         name: 'Groupes d utilisateurs',
         href: null,
@@ -294,36 +205,13 @@
     ]
     },
     {
-      name: 'Agents distants',
+      name : 'Telephone',
       href: null,
-      icon: 'person-circle',
-      description: 'Manage remote agents',
-      children: [
-        {name: 'Afficher les agents distants',
-        href: '/remote-agents/show', 
-        icon: 'people',
-        description: 'Liste des agents distants',
-        },
-        { name : 'Ajouter un nouvel agent distant',
-        href: '/remote-agents/add', 
-        icon: 'person-plus',
-        description: 'Ajouter un nouvel agent distant',
-        },
-        { name : 'Afficher les groupes d extensions',
-        href: '/remote-agents/groups', 
-        icon: 'people-group',
-        description: 'Remote Agent Groups',
-        },
-        { name : 'Ajouter un groupe d extensions',
-        href: '/remote-agents/add-group', 
-        icon: 'people-group-plus',
-        description: 'Ajouter un groupe d extensions',
-        },
-        
-
-
-      ]
+      icon: 'telephone 1',
+      description: 'Phone settings',
+      
     },
+  
     {
       name :' Admin',
       href: null,

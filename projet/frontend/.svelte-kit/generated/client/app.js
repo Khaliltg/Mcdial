@@ -28,7 +28,7 @@ export const dictionary = {
 	"/compagnes/add": [3],
 	"/compagnes/detail/[campaign_id]": [4],  // Merged from both versions
 	"/compagnes/show": [5],                   // Updated index to match
-	"/dashboard": [6],                         // Updated index to match
+	"/dashboard": [6],                         // New entry added
 	"/liste/afficherlist": [7],               // Updated index to match
 	"/liste/ajouterprospect": [9],            // Updated index to match
 	"/liste/ajouter": [8],
@@ -44,7 +44,7 @@ export const dictionary = {
 };
 
 export const hooks = {
-	handleError: (({ error }) => { console.error(error) }),
+	handleError: (({ error }) => { console.error(error); }),
 	reroute: (() => {}),
 	transport: {}
 };

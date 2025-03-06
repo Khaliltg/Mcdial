@@ -1,1 +1,2 @@
-export { default as component } from "../../../../src/routes/compagnes/show/+page.svelte";
+export { default as afficherListComponent } from "../../../../src/routes/liste/afficherlist/+page.svelte";
+export { default as compagnesShowComponent } from "../../../../src/routes/compagnes/show/+page.svelte";
