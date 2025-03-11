@@ -85,7 +85,8 @@ exports.recuperer = async (req, res) => {
         res.status(500).json({ message: 'Erreur lors de la récupération des compagnies' });
     }
 };
-//afficher les compagnies avec l id
+
+// Afficher les compagnies avec l'id
 exports.getById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -100,7 +101,7 @@ exports.getById = async (req, res) => {
     }
 };
 
-//retriving user from vicidial_campaign_agents
+// Récupérer les agents de la campagne
 exports.getCampaignAgents = async (req, res) => {
     try {
         const { campaign_id } = req.params;
@@ -115,5 +116,44 @@ exports.getCampaignAgents = async (req, res) => {
     } catch (err) {
         console.error('Erreur SQL:', err);
         res.status(500).json({ message: 'Erreur lors de la récupération des agents pour la compagnie' });
+    }
+};
+
+// Nouvelle fonction pour récupérer les listes de campagne
+exports.getCampaignLists = async (req, res) => {
+    try {
+        const [rows] = await connection.execute(`
+            SELECT vls.list_id, list_name, local_call_time, list_description, COUNT(*) AS tally, active, list_lastcalldate, campaign_id
+            FROM vicidial_lists vls
+            JOIN vicidial_list vl ON vls.list_id = vl.list_id
+            WHERE campaign_id = 'Sta_Fixe'
+            GROUP BY list_id
+        `);
+        res.json(rows);
+    } catch (err) {
+        console.error('Erreur SQL:', err);
+        res.status(500).json({ message: 'Erreur lors de la récupération des listes de campagne' });
+    }
+};
+
+// Function to get status counts from vicidial_list based on list_ids
+exports.getStatusCountsByList = async (req, res) => {
+    try {
+        const { list_ids } = req.params;
+        console.log("Received list_ids:", list_ids);
+        
+        if (!list_ids) {
+            return res.status(400).json({ message: 'list_ids parameter is required' });
+        }
+
+        const idArray = list_ids.split(',');
+        if (idArray.length === 0) {
+            return res.status(400).json({ message: 'No valid list IDs provided' });
+        }
+
+        // Continue with the SQL query...
+    } catch (err) {
+        console.error('Erreur SQL:', err);
+        res.status(500).json({ message: 'Erreur lors de la récupération des statistiques' });
     }
 };
