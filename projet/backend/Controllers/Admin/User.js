@@ -289,7 +289,7 @@ exports.updateUser = async (req, res) => {
     }
 };
 exports.copyUser = async (req, res) => {
-    const { userID, user, pass, full_name } = req.body;
+    const { userID, user, pass, full_name,mobile_number ,phone_login, phone_pass,user_group,user_code,email,user_nickname,voicemail_id,territory} = req.body;
 
     console.log("User ID:", userID); // This should log the correct value
 
@@ -302,12 +302,24 @@ exports.copyUser = async (req, res) => {
 
         // Get the original user data
         const originalUser = existingUser[0];
-
+phone_pass
         // Create a new user object
         const newUser = {
-            user: user || originalUser.user, // Use user from request or original if not provided
+            user: user || originalUser.user, // Use user from request or original if not provideduser_group
             pass: pass || originalUser.pass, // Use pass from request or original if not provided
-            full_name: full_name || originalUser.full_name, // Use full_name from request or original if not provided
+            full_name: full_name || originalUser.full_name, 
+            mobile_number: mobile_number || originalUser.mobile_number,
+             phone_login: phone_login || originalUser.phone_login,
+             phone_pass: phone_pass || originalUser.phone_pass,
+             user_group: user_group || originalUser.user_group,
+             user_code: user_code || originalUser.user_code,
+             email: email || originalUser.email,
+             user_nickname: user_nickname || originalUser.user_nickname,
+             voicemail_id: voicemail_id || originalUser.voicemail_id,
+             territory: territory || originalUser.territory,
+
+
+            // Use full_name from request or original if not provided
             // Copy necessary fields from the original user while excluding unique constraints
             // Use a spread operator to include other fields as needed
             modify_stamp: new Date().toISOString().slice(0, 19).replace('T', ' '), // Update timestamp
