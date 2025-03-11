@@ -65,18 +65,46 @@ exports.getListById = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const [result] = await db.query('SELECT * FROM vicidial_lists WHERE list_id = ?', [id]);
+        // Query to get the list details
+        const [listResult] = await db.query('SELECT * FROM vicidial_lists WHERE list_id = ?', [id]);
 
-        if (!result.length) {
+        if (!listResult.length) {
             return res.status(404).json({ message: 'List not found.' });
         }
 
-        res.json(result[0]);
+        const listDetails = listResult[0];
+
+        // Queries to gather additional data
+        const gmtOffsetQuery = db.query('SELECT gmt_offset_now, called_since_last_reset, count(*) FROM vicidial_list WHERE list_id = ? GROUP BY gmt_offset_now, called_since_last_reset ORDER BY gmt_offset_now, called_since_last_reset', [id]);
+        const statusQuery = db.query('SELECT status, called_since_last_reset, count(*) FROM vicidial_list WHERE list_id = ? GROUP BY status, called_since_last_reset ORDER BY status, called_since_last_reset', [id]);
+        const ownerQuery = db.query('SELECT owner, called_since_last_reset, count(*) FROM vicidial_list WHERE list_id = ? GROUP BY owner, called_since_last_reset ORDER BY owner, called_since_last_reset', [id]);
+        const fieldsCountQuery = db.query('SELECT count(*) FROM vicidial_lists_fields WHERE list_id = ?', [id]);
+
+        // Execute all queries in parallel
+        const [gmtOffsetResult, statusResult, ownerResult, fieldsCountResult] = await Promise.all([
+            gmtOffsetQuery,
+            statusQuery,
+            ownerQuery,
+            fieldsCountQuery
+        ]);
+
+        // Prepare the response
+        const response = {
+            listDetails,
+            gmtOffsets: gmtOffsetResult,
+            statuses: statusResult,
+            owners: ownerResult,
+            fieldsCount: fieldsCountResult[0]['count(*)'] // Assuming this returns an array with the count
+        };
+
+        res.json(response);
     } catch (err) {
         console.error('Error retrieving list by ID:', err);
         res.status(500).json({ message: 'An error occurred, please try again later.' });
     }
-};exports.updateList = async (req, res) => {
+};
+
+exports.updateList = async (req, res) => {
     const { id } = req.params;
     const fields = req.body;
 
@@ -86,9 +114,7 @@ exports.getListById = async (req, res) => {
 
     try {
         // Construire dynamiquement la requête
-        const updates = Object.keys(fields)
-            .map((key) => `${key} = ?`)
-            .join(", ");
+        const updates = Object.keys(fields).map((key) => `${key} = ?`).join(", ");
 
         const values = Object.values(fields);
         values.push(id); // Ajouter l'ID à la fin pour la clause WHERE

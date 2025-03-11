@@ -25,23 +25,23 @@ export const nodes = [
 export const server_loads = [];
 
 export const dictionary = {
-		"/": [2],
-		"/compagnes/add": [3],
-		"/compagnes/show": [4],
-		"/dashboard": [5],
-		"/liste/afficherlist": [6],
-		"/liste/ajouterprospect": [8],
-		"/liste/ajouter": [7],
-		"/liste/dnc": [9],
-		"/liste/list-details/[list_id]": [10],
-		"/liste/prospects": [11],
-		"/liste/recherchelist": [12],
-		"/users/add": [13],
-		"/users/copy": [14],
-		"/users/detail": [15],
-		"/users/list": [16],
-		"/users/search": [17],
-		"/users/stats": [18]
+		"/": [[2]](http://stackoverflow.com/questions/9233936/),
+		"/compagnes/add": [[3]](https://github.com/topics/conflict-resolution?l=javascript),
+		"/compagnes/detail/[campaign_id]":,
+		"/compagnes/show":,
+		"/liste/afficherlist":,
+		"/liste/ajouterprospect":,
+		"/liste/ajouter":,
+		"/liste/dnc":,
+		"/liste/details/[list_id]":, // Merged route
+		"/liste/list-details/[list_id]":, // Merged route
+		"/liste/prospects":,
+		"/liste/recherchelist":,
+		"/users/add":,
+		"/users/copy":,
+		"/users/detail":,
+		"/users/list":,
+		"/users/search":
 	};
 
 export const hooks = {

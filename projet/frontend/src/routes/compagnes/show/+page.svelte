@@ -60,7 +60,7 @@
                 {#each compagnies as compagnie}
                   {#if showAll || compagnie.active === 'Y'}
                     <tr>
-                      <td><a href="/compagnies/detail/{compagnie.campaign_id}" class="text-decoration-none text-primary">{compagnie.campaign_id}</a></td>
+                      <td><a href="/compagnes/detail/{compagnie.campaign_id}" class="text-decoration-none text-primary">{compagnie.campaign_id}</a></td>
                       <td>{compagnie.campaign_name}</td>
                       <td>
                         <span class={`badge ${compagnie.active === 'Y' ? 'bg-success' : 'bg-danger'}`}>

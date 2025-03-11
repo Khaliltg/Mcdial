@@ -1,11 +1,12 @@
 {
 	"/": [],
 	"/compagnes/add": [],
+	"/compagnes/detail/[campaign_id]": [],
 	"/compagnes/show": [],
-	"/dashboard": [],
 	"/liste/afficherlist": [],
 	"/liste/ajouterprospect": [],
 	"/liste/ajouter": [],
+	"/liste/details/[list_id]": [],
 	"/liste/dnc": [],
 	"/liste/list-details/[list_id]": [],
 	"/liste/prospects": [],
