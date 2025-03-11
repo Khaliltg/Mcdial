@@ -1,5 +1,4 @@
-const db = require('../../config/bd')
-
+const db = require('../../config/bd');
 
 exports.createList = async (req, res) => {
     const { list_id, list_name, list_description, campaign_id, active } = req.body;
@@ -21,11 +20,9 @@ exports.createList = async (req, res) => {
     }
 };
 
-// Récupérer toutes les listes// Récupérer toutes les listes
-// Récupérer toutes les listes
 exports.getLists = async (req, res) => {
     try {
-        const [results, fields] = await db.query('SELECT * FROM vicidial_lists');  // Using .query() with promises
+        const [results, fields] = await db.query('SELECT * FROM vicidial_lists');
         res.json(results);
     } catch (err) {
         console.error("Erreur lors de la récupération des listes : ", err);
@@ -33,8 +30,6 @@ exports.getLists = async (req, res) => {
     }
 };
 
-
-// Récupérer tous les prospects
 exports.getProspects = async (req, res) => {
     try {
         const [results, fields] = await db.query('SELECT * FROM prospects');
@@ -44,7 +39,6 @@ exports.getProspects = async (req, res) => {
     }
 };
 
-// Ajouter un prospect
 exports.createProspect = async (req, res) => {
     const { name, phone, listId } = req.body;
     try {
@@ -57,16 +51,12 @@ exports.createProspect = async (req, res) => {
         return res.status(500).json({ error: err.message });
     }
 };
-// get list by id 
-
-
 
 exports.getListById = async (req, res) => {
     const { id } = req.params;
-    console.log('Received list_id:', id); // Log the received list_id
+    console.log('Received list_id:', id);
 
     try {
-        // Query to get the list details
         const [listResult] = await db.query('SELECT * FROM vicidial_lists WHERE list_id = ?', [id]);
 
         if (!listResult.length) {
@@ -75,7 +65,6 @@ exports.getListById = async (req, res) => {
 
         const listDetails = listResult[0];
 
-        // Queries to gather additional data
         const gmtOffsetQuery = `
             SELECT gmt_offset_now, called_since_last_reset, COUNT(*) as count 
             FROM vicidial_list 
@@ -99,7 +88,6 @@ exports.getListById = async (req, res) => {
 
         const fieldsCountQuery = 'SELECT COUNT(*) as count FROM vicidial_lists_fields WHERE list_id = ?';
 
-        // Execute all queries in parallel
         const [gmtOffsetResult, statusResult, ownerResult, fieldsCountResult] = await Promise.all([
             db.query(gmtOffsetQuery, [id]),
             db.query(statusQuery, [id]),
@@ -107,23 +95,19 @@ exports.getListById = async (req, res) => {
             db.query(fieldsCountQuery, [id])
         ]).catch(err => {
             console.error('Error executing one of the queries:', err);
-            return [[], [], [], [{ count: 0 }]]; // Return empty arrays and a default count
+            return [[], [], [], [{ count: 0 }]];
         });
 
-        // Extract the actual data rows from each result
-        const gmtOffsets = gmtOffsetResult[0] || []; // Get the first element for actual data
+        const gmtOffsets = gmtOffsetResult[0] || [];
         const statuses = statusResult[0] || [];
         const owners = ownerResult[0] || [];
 
-        console.log('GMT Offset Result:', gmtOffsets); // Log the results for debugging
-
-        // Prepare the response
         const response = {
             listDetails,
             gmtOffsets,
             statuses,
             owners,
-            fieldsCount: fieldsCountResult[0].count // Access the count directly
+            fieldsCount: fieldsCountResult[0].count
         };
 
         res.json(response);
@@ -132,7 +116,6 @@ exports.getListById = async (req, res) => {
         res.status(500).json({ message: 'An error occurred, please try again later.' });
     }
 };
-
 
 exports.updateList = async (req, res) => {
     const { id } = req.params;
@@ -143,11 +126,9 @@ exports.updateList = async (req, res) => {
     }
 
     try {
-        // Construire dynamiquement la requête
         const updates = Object.keys(fields).map((key) => `${key} = ?`).join(", ");
-
         const values = Object.values(fields);
-        values.push(id); // Ajouter l'ID à la fin pour la clause WHERE
+        values.push(id);
 
         const query = `UPDATE vicidial_lists SET ${updates} WHERE list_id = ?`;
 
@@ -159,11 +140,9 @@ exports.updateList = async (req, res) => {
     }
 };
 
-
 exports.softDeleteList = async (req, res) => {
     const { id } = req.params;
     try {
-        // Marquer l'élément comme supprimé en mettant à jour la colonne deleted_at
         await db.query('UPDATE vicidial_lists SET deleted_at = NOW() WHERE list_id = ?', [id]);
         res.status(200).json({ message: 'Liste supprimée avec succès (soft delete)' });
     } catch (error) {
@@ -173,18 +152,18 @@ exports.softDeleteList = async (req, res) => {
 
 exports.getDeletedLists = async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM corbeille ');
+        const [rows] = await db.query('SELECT * FROM corbeille');
         res.json(rows);
     } catch (err) {
         console.error("Erreur lors de la récupération des listes supprimées :", err);
         res.status(500).json({ error: "Une erreur s'est produite." });
     }
 };
+
 exports.restoreList = async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Récupérer les détails de la liste depuis la corbeille
         const [deletedList] = await db.query('SELECT * FROM corbeille WHERE list_id = ?', [id]);
 
         if (!deletedList.length) {
@@ -193,14 +172,12 @@ exports.restoreList = async (req, res) => {
 
         const { list_id, list_name, list_description, campaign_id, active } = deletedList[0];
 
-        // Insérer la liste dans vicidial_lists
         const insertQuery = `
             INSERT INTO vicidial_lists (list_id, list_name, list_description, campaign_id, active)
             VALUES (?, ?, ?, ?, ?)
         `;
         await db.query(insertQuery, [list_id, list_name, list_description, campaign_id, active]);
 
-        // Supprimer la liste de la corbeille
         await db.query('DELETE FROM corbeille WHERE list_id = ?', [id]);
 
         res.json({ message: 'Liste restaurée avec succès.' });
@@ -212,13 +189,10 @@ exports.restoreList = async (req, res) => {
 
 exports.deleteList = async (req, res) => {
     const { id } = req.params;
-    const listDetails = req.body; // Récupérer les détails de la liste depuis le corps de la requête
+    const listDetails = req.body;
 
     try {
-        // Insérer les détails de la liste dans la table corbeille
         await db.query('INSERT INTO corbeille SET ?', listDetails);
-
-        // Supprimer la liste de vicidial_lists
         const [result] = await db.query('DELETE FROM vicidial_lists WHERE list_id = ?', [id]);
         
         if (result.affectedRows === 0) {
@@ -231,6 +205,7 @@ exports.deleteList = async (req, res) => {
         res.status(500).json({ error: "Une erreur s'est produite." });
     }
 };
+
 exports.getListDetails = async (req, res) => {
     const { id } = req.params;
 
@@ -241,7 +216,7 @@ exports.getListDetails = async (req, res) => {
             return res.status(404).json({ message: 'Liste non trouvée.' });
         }
 
-        res.json(result[0]); // Renvoie les détails de la liste
+        res.json(result[0]);
     } catch (err) {
         console.error('Erreur lors de la récupération des détails de la liste :', err);
         res.status(500).json({ message: 'Une erreur s\'est produite, veuillez réessayer plus tard.' });

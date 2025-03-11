@@ -17,5 +17,6 @@
 	"/users/copy": [],
 	"/users/detail": [],
 	"/users/list": [],
-	"/users/search": []
+	"/users/search": [],
+	"/users/stats": []
 }

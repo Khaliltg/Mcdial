@@ -1,6 +1,4 @@
-
 // this file is generated — do not edit it
-
 
 /// <reference types="@sveltejs/kit" />
 
@@ -27,10 +25,7 @@
  */
 declare module '$env/static/private' {
 	export const ALLUSERSPROFILE: string;
-	export const AMDRMSDKPATH: string;
 	export const APPDATA: string;
-	export const ChocolateyInstall: string;
-	export const ChocolateyLastPathUpdate: string;
 	export const CHROME_CRASHPAD_PIPE_NAME: string;
 	export const COLOR: string;
 	export const COLORTERM: string;
@@ -40,7 +35,7 @@ declare module '$env/static/private' {
 	export const ComSpec: string;
 	export const DriverData: string;
 	export const EDITOR: string;
-	export const EFC_12304: string;
+	export const EFC_12304: string; // or EFC_10204: string; choose one based on your requirement
 	export const FPS_BROWSER_APP_PROFILE_STRING: string;
 	export const FPS_BROWSER_USER_PROFILE_STRING: string;
 	export const GIT_ASKPASS: string;
@@ -51,25 +46,37 @@ declare module '$env/static/private' {
 	export const LANG: string;
 	export const LOCALAPPDATA: string;
 	export const LOGONSERVER: string;
+	export const TERM_PROGRAM: string; // Merged variable
 	export const NODE: string;
 	export const NODE_ENV: string;
 	export const npm_command: string;
 	export const npm_config_cache: string;
 	export const npm_config_globalconfig: string;
 	export const npm_config_global_prefix: string;
-	export const npm_config_init_module: string;
-	export const npm_config_local_prefix: string;
-	export const npm_config_node_gyp: string;
+	export const TERM_PROGRAM_VERSION: string;
+	export const ZDOTDIR: string;
+	export const ORIGINAL_XDG_CURRENT_DESKTOP: string;
+	export const MallocNanoZone: string;
 	export const npm_config_noproxy: string;
-	export const npm_config_npm_version: string;
-	export const npm_config_prefix: string;
-	export const npm_config_userconfig: string;
-	export const npm_config_user_agent: string;
+	export const npm_config_local_prefix: string;
+	export const USER: string;
+	export const COMMAND_MODE: string;
+	export const npm_config_globalconfig: string;
+	export const SSH_AUTH_SOCK: string;
+	export const __CF_USER_TEXT_ENCODING: string;
 	export const npm_execpath: string;
-	export const npm_lifecycle_event: string;
-	export const npm_lifecycle_script: string;
-	export const npm_node_execpath: string;
+	export const PATH: string;
 	export const npm_package_json: string;
+	export const _: string;
+	export const LaunchInstanceID: string;
+	export const npm_config_userconfig: string;
+	export const npm_config_init_module: string;
+	export const USER_ZDOTDIR: string;
+	export const __CFBundleIdentifier: string;
+	export const npm_command: string;
+	export const PWD: string;
+	export const npm_lifecycle_event: string;
+	export const EDITOR: string;
 	export const npm_package_name: string;
 	export const npm_package_version: string;
 	export const NUMBER_OF_PROCESSORS: string;
@@ -106,11 +113,26 @@ declare module '$env/static/private' {
 	export const VBOX_HWVIRTEX_IGNORE_SVM_IN_USE: string;
 	export const VBOX_MSI_INSTALL_PATH: string;
 	export const VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
-	export const VSCODE_GIT_ASKPASS_MAIN: string;
-	export const VSCODE_GIT_ASKPASS_NODE: string;
-	export const VSCODE_GIT_IPC_HANDLE: string;
+	export const XPC_FLAGS: string;
+	export const npm_config_node_gyp: string;
+	export const npm_package_version: string;
+	export const XPC_SERVICE_NAME: string;
 	export const VSCODE_INJECTION: string;
-	export const windir: string;
+	export const SHLVL: string;
+	export const VSCODE_GIT_ASKPASS_MAIN: string;
+	export const HOMEBREW_PREFIX: string;
+	export const npm_config_cache: string;
+	export const LOGNAME: string;
+	export const npm_lifecycle_script: string;
+	export const VSCODE_GIT_IPC_HANDLE: string;
+	export const npm_config_user_agent: string;
+	export const VSCODE_GIT_ASKPASS_NODE: string;
+	export const GIT_ASKPASS: string;
+	export const INFOPATH: string;
+	export const HOMEBREW_CELLAR: string;
+	export const SECURITYSESSIONID: string;
+	export const npm_node_execpath: string;
+	export const npm_config_prefix: string;
 }
 
 /**
@@ -123,7 +145,7 @@ declare module '$env/static/private' {
  * ```
  */
 declare module '$env/static/public' {
-	
+	// Define the public environment variables here
 }
 
 /**
@@ -155,8 +177,8 @@ declare module '$env/dynamic/private' {
 		COMPUTERNAME: string;
 		ComSpec: string;
 		DriverData: string;
-		EDITOR: string;
-		EFC_12304: string;
+		export const EDITOR: string;
+		export const EFC_12304: string; // or EFC_10204: string; choose one based on your requirement
 		FPS_BROWSER_APP_PROFILE_STRING: string;
 		FPS_BROWSER_USER_PROFILE_STRING: string;
 		GIT_ASKPASS: string;
@@ -167,25 +189,39 @@ declare module '$env/dynamic/private' {
 		LANG: string;
 		LOCALAPPDATA: string;
 		LOGONSERVER: string;
+		TERM_PROGRAM: string; // Merged variable
 		NODE: string;
-		NODE_ENV: string;
-		npm_command: string;
-		npm_config_cache: string;
-		npm_config_globalconfig: string;
+		INIT_CWD: string;
+		TERM: string;
+		SHELL: string;
+		HOMEBREW_REPOSITORY: string;
+		TMPDIR: string;
 		npm_config_global_prefix: string;
-		npm_config_init_module: string;
-		npm_config_local_prefix: string;
-		npm_config_node_gyp: string;
+		TERM_PROGRAM_VERSION: string;
+		ZDOTDIR: string;
+		ORIGINAL_XDG_CURRENT_DESKTOP: string;
+		MallocNanoZone: string;
+		COLOR: string;
 		npm_config_noproxy: string;
-		npm_config_npm_version: string;
-		npm_config_prefix: string;
-		npm_config_userconfig: string;
-		npm_config_user_agent: string;
+		npm_config_local_prefix: string;
+		USER: string;
+		COMMAND_MODE: string;
+		npm_config_globalconfig: string;
+		SSH_AUTH_SOCK: string;
+		__CF_USER_TEXT_ENCODING: string;
 		npm_execpath: string;
-		npm_lifecycle_event: string;
-		npm_lifecycle_script: string;
-		npm_node_execpath: string;
+		PATH: string;
 		npm_package_json: string;
+		_: string;
+		LaunchInstanceID: string;
+		npm_config_userconfig: string;
+		npm_config_init_module: string;
+		USER_ZDOTDIR: string;
+		__CFBundleIdentifier: string;
+		npm_command: string;
+		PWD: string;
+		npm_lifecycle_event: string;
+		EDITOR: string;
 		npm_package_name: string;
 		npm_package_version: string;
 		NUMBER_OF_PROCESSORS: string;
@@ -222,11 +258,29 @@ declare module '$env/dynamic/private' {
 		VBOX_HWVIRTEX_IGNORE_SVM_IN_USE: string;
 		VBOX_MSI_INSTALL_PATH: string;
 		VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
-		VSCODE_GIT_ASKPASS_MAIN: string;
-		VSCODE_GIT_ASKPASS_NODE: string;
-		VSCODE_GIT_IPC_HANDLE: string;
+		XPC_FLAGS: string;
+		npm_config_node_gyp: string;
+		npm_package_version: string;
+		XPC_SERVICE_NAME: string;
 		VSCODE_INJECTION: string;
-		windir: string;
+		SHLVL: string;
+		HOME: string;
+		VSCODE_GIT_ASKPASS_MAIN: string;
+		HOMEBREW_PREFIX: string;
+		npm_config_cache: string;
+		LOGNAME: string;
+		npm_lifecycle_script: string;
+		VSCODE_GIT_IPC_HANDLE: string;
+		npm_config_user_agent: string;
+		VSCODE_GIT_ASKPASS_NODE: string;
+		GIT_ASKPASS: string;
+		INFOPATH: string;
+		HOMEBREW_CELLAR: string;
+		SECURITYSESSIONID: string;
+		npm_node_execpath: string;
+		npm_config_prefix: string;
+		COLORTERM: string;
+		NODE_ENV: string;
 		[key: `PUBLIC_${string}`]: undefined;
 		[key: `${string}`]: string | undefined;
 	}

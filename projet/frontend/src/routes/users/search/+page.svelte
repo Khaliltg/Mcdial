@@ -14,12 +14,13 @@
         max-width: 100%;
         margin: 50px auto;
         padding: 20px;
-        border: 1px solid #ccc;
+        border: 1px solid #000000;
         border-radius: 5px;
-        background-color: #f9f9f9;
+        background-color: #ffffff;
+        color: #090de9;
     }
     .form-group {
-        margin-bottom: 15px;
+        margin-bottom: 20px;
     }
     label {
         display: block;
@@ -28,28 +29,41 @@
     }
     input, select {
         width: 100%;
-        padding: 8px;
+        padding: 10px;
         box-sizing: border-box;
-        border: 1px solid #ccc;
+        border: 1px solid #5341f5;
         border-radius: 4px;
         font-size: 16px;
     }
     .search-btn {
-        background-color: #4CAF50;
+        background-color: #291bf7;
         color: white;
-        padding: 10px 15px;
+        padding: 12px;
         border: none;
-        border-radius: 5px;
+        border-radius: 4px;
         cursor: pointer;
         font-size: 16px;
     }
     .search-btn:hover {
-        background-color: #45a049;
+        background-color: #0c4acf;
     }
-  </style>
-  
+    .error-message {
+        color: red;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+    .password-strength {
+        margin-top: 5px;
+        font-size: 14px;
+        color: #080818;
+    }
+    .password-strength span {
+        font-weight: bold;
+    }
+</style>
+<h2>𝐒𝐞𝐚𝐫𝐜𝐡 𝐅𝐨𝐫 𝐔𝐬𝐞𝐫</h2>
   <div class="container">
-    <h2>SEARCH FOR A USER</h2>
+  
     <div class="form-group">
         <label>User Number:</label>
         <input type="text" bind:value={userNumber} placeholder="Enter user number">

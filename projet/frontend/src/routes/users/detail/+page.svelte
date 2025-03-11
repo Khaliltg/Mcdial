@@ -120,7 +120,7 @@
         modify_voicemail: "0",
         mute_recordings: "DISABLED",
         next_dial_my_callbacks: "NOT_ACTIVE",
-        pass: "khalil",
+        pass: "",
         pass_hash: "",
         pause_code_approval: "0",
         phone_login: null,
@@ -139,7 +139,7 @@
         status_group_id: "",
         territory: "",
         two_factor_override: "NOT_ACTIVE",
-        user: "khalil",
+        user: "",
         user_admin_redirect_url: null,
         user_choose_language: "0",
         user_code: "",
@@ -157,7 +157,7 @@
         vicidial_transfers: "1",
         view_reports: "0",
         voicemail_id: null,
-        wrapup_seconds_override: -1
+        wrapup_seconds_override: -1,
     };
 
     let userId = null;
@@ -165,11 +165,13 @@
     // Fetch user details based on the userId
     async function fetchUserDetails(id) {
         try {
-            const response = await fetch(`http://localhost:8000/api/admin/user/getUserById/${id}`);
+            const response = await fetch(
+                `http://localhost:8000/api/admin/user/getUserById/${id}`,
+            );
             if (response.ok) {
                 const data = await response.json();
                 console.log(data[0]);
-                
+
                 if (data.length > 0) {
                     user = { ...user, ...data[0] }; // Merge fetched data into user object
                 }
@@ -185,15 +187,18 @@
     async function updateUser(event) {
         event.preventDefault(); // Prevent default form submission
 
-        console.log('Sending updated data:', user); // Log the data to ensure it is populated
+        console.log("Sending updated data:", user); // Log the data to ensure it is populated
         try {
-            const response = await fetch(`http://localhost:8000/api/admin/user/users/${userId}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",  // Make sure Content-Type is correct
+            const response = await fetch(
+                `http://localhost:8000/api/admin/user/users/${userId}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json", // Make sure Content-Type is correct
+                    },
+                    body: JSON.stringify(user), // Ensure data is correctly stringified
                 },
-                body: JSON.stringify(user),  // Ensure data is correctly stringified
-            });
+            );
 
             if (!response.ok) {
                 throw new Error("Failed to update user.");
@@ -212,12 +217,12 @@
     onMount(() => {
         const urlParams = new URLSearchParams(window.location.search);
         userId = urlParams.get("id");
-        
+
         if (!userId) {
             console.error("No user ID provided");
             goto("/users"); // Navigate back if no ID
         } else {
-            fetchUserDetails(userId);  // Fetch the user details using the id
+            fetchUserDetails(userId); // Fetch the user details using the id
         }
     });
 </script>
@@ -233,11 +238,18 @@
             <div style="flex: 1;">
                 <label>
                     User :
-                    <input bind:value={user.user} placeholder="Enter user number" />
+                    <input
+                        bind:value={user.user}
+                        placeholder="Enter user number"
+                    />
                 </label>
                 <label>
                     Password:
-                    <input type="text" bind:value={user.pass} placeholder="Enter password" />
+                    <input
+                        type="text"
+                        bind:value={user.pass}
+                        placeholder="Enter password"
+                    />
                 </label>
                 <label>
                     Force Change Password:
@@ -248,11 +260,17 @@
                 </label>
                 <label>
                     Phone Pass:
-                    <input bind:value={user.phone_pass} placeholder="Enter phone password" />
+                    <input
+                        bind:value={user.phone_pass}
+                        placeholder="Enter phone password"
+                    />
                 </label>
                 <label>
                     Phone Login:
-                    <input bind:value={user.phone_login} placeholder="Enter phone login" />
+                    <input
+                        bind:value={user.phone_login}
+                        placeholder="Enter phone login"
+                    />
                 </label>
                 <label>
                     Active:
@@ -263,225 +281,81 @@
                 </label>
                 <label>
                     User Level:
-                    <input type="number" bind:value={user.user_level} placeholder="Enter user level" />
+                    <input
+                        type="number"
+                        bind:value={user.user_level}
+                        placeholder="Enter user level"
+                    />
                 </label>
-                <label>
-                    User Group:
-                    <input bind:value={user.user_group} placeholder="Enter user group" />
-                </label>
-                <label>
-                    VERM Secondary User Group:
-                    <select bind:value={user.user_group_two}>
-                        <option value="UNDEFINED">UNDEFINED</option>
-                        <option value="ADMIN-VICIDAL ADMINISTRATORS">ADMIN-VICIDAL ADMINISTRATORS</option>
-                        <option value="Test-test">Test-test</option>
-                    </select>
-                </label>
+             
             </div>
             <!-- Column 2 -->
             <div style="flex: 1;">
                 <label>
                     Full Name:
-                    <input bind:value={user.full_name} placeholder="Enter full name" />
+                    <input
+                        bind:value={user.full_name}
+                        placeholder="Enter full name"
+                    />
                 </label>
                 <label>
                     User Code:
-                    <input bind:value={user.user_code} placeholder="Enter user code" />
+                    <input
+                        bind:value={user.user_code}
+                        placeholder="Enter user code"
+                    />
                 </label>
                 <label>
                     Email:
-                    <input type="email" bind:value={user.email} placeholder="Enter email" />
+                    <input
+                        type="email"
+                        bind:value={user.email}
+                        placeholder="Enter email"
+                    />
                 </label>
                 <label>
                     Mobile Number:
-                    <input type="tel" bind:value={user.mobile_number} placeholder="Enter mobile number" />
+                    <input
+                        type="tel"
+                        bind:value={user.mobile_number}
+                        placeholder="Enter mobile number"
+                    />
                 </label>
                 <label>
-                    User Nickname:
-                    <input bind:value={user.user_nickname} placeholder="Enter user nickname" />
+                    Agent-Only Callbacks:
+                    <input
+                        type="number"
+                        bind:value={user.agentonly_callbacks}
+                        placeholder="Enter value"
+                    />
                 </label>
                 <label>
-                    Last Login Info:
-                    <input bind:value={user.last_login_info} placeholder="Enter last login info" />
+                    Agent Call Manual:
+                    <input
+                        type="number"
+                        bind:value={user.agentcall_manual}
+                        placeholder="Enter value"
+                    />
                 </label>
                 <label>
-                    Voicemail ID:
-                    <input bind:value={user.voicemail_id} placeholder="Enter voicemail ID" />
-                </label>
-                <label>
-                    User Location:
-                    <select bind:value={user.user_location}>
-                        <option value="default">Default</option>
-                    </select>
-                </label>
-                <label>
-                    Main Territory:
-                    <input bind:value={user.main_territory} placeholder="Enter main territory" />
+                    User Group:
+                    <input
+                        bind:value={user.user_group}
+                        placeholder="Enter user group"
+                    />
                 </label>
             </div>
         </div>
     </div>
 
     <div class="form-section">
-        <h2>Agent Interface Options</h2>
-        <div style="display: flex; gap: 20px;">
-            <!-- Column 1 -->
-            <div style="flex: 1;">
-                <label>
-                    Agent Choose Ingroups:
-                    <input type="number" bind:value={user.agent_choose_ingroups} placeholder="Enter value" />
-                </label>
-                <label>
-                    Agent Choose Blended:
-                    <input type="number" bind:value={user.agent_choose_blended} placeholder="Enter value" />
-                </label>
-                <label>
-                    Hot Keys Active:
-                    <input type="number" bind:value={user.hotkeys_active} placeholder="Enter value" />
-                </label>
-                <label>
-                    Scheduled Callbacks:
-                    <input type="number" bind:value={user.scheduled_callbacks} placeholder="Enter value" />
-                </label>
-                <label>
-                    Agent-Only Callbacks:
-                    <input type="number" bind:value={user.agentonly_callbacks} placeholder="Enter value" />
-                </label>
-                <label>
-                    Next-Dial My Callbacks Override:
-                    <select bind:value={user.next_dial_my_callbacks}>
-                        <option value="NOT_ACTIVE">NOT-ACTIVE</option>
-                        <option value="ENABLED">ENABLED</option>
-                        <option value="DISABLED">DISABLED</option>
-                    </select>
-                </label>
-                <label>
-                    Agent Call Manual:
-                    <input type="number" bind:value={user.agentcall_manual} placeholder="Enter value" />
-                </label>
-                <label>
-                    Manual Dial Filter Override:
-                    <select bind:value={user.manual_dial_filter}>
-                        <option value="DISABLED">DISABLED</option>
-                        <option value="NONE">NONE</option>
-                        <option value="DNC_ONLY">DNC_ONLY</option>
-                        <option value="CAMPDNC_ONLY">CAMPDNC_ONLY</option>
-                        <option value="INTERNALDNC_ONLY">INTERNALDNC_ONLY</option>
-                        <option value="DNC_AND_CAMPDNC">DNC_AND_CAMPDNC</option>
-                        <option value="CAMPLISTS_ONLY">CAMPLISTS_ONLY</option>
-                        <option value="CAMPLISTS_ALL">CAMPLISTS_ALL</option>
-                        <option value="SYSTEM">SYSTEM</option>
-                        <option value="DNC_AND_CAMPLISTS">DNC_AND_CAMPLISTS</option>
-                    </select>
-                </label>
-                <label>
-                    Agent Recording:
-                    <input type="number" bind:value={user.vicidial_recording} placeholder="Enter value" />
-                </label>
-                <label>
-                    Agent Transfers:
-                    <input type="number" bind:value={user.vicidial_transfers} placeholder="Enter value" />
-                </label>
-            </div>
-            <!-- Column 2 -->
-            <div style="flex: 1;">
-                <label>
-                    Closer Default Blended:
-                    <input type="number" bind:value={user.closer_default_blended} placeholder="Enter value" />
-                </label>
-                <label>
-                    Agent Recording Override:
-                    <select bind:value={user.vicidial_recording_override}>
-                        <option value="DISABLED">DISABLED</option>
-                        <option value="NEVER">NEVER</option>
-                        <option value="ONDEMAND">ONDEMAND</option>
-                        <option value="ALLCALLS">ALL CALLS</option>
-                        <option value="ALLFORCE">ALL FORCE</option>
-                    </select>
-                </label>
-                <label>
-                    Agent Alter Customer Data Override:
-                    <select bind:value={user.alter_custdata_override}>
-                        <option value="NOT_ACTIVE">NOT_ACTIVE</option>
-                        <option value="ALLOWALTER">ALL_ALTER</option>
-                    </select>
-                </label>
-                <label>
-                    Agent Alter Customer Phone Override:
-                    <select bind:value={user.alter_custphone_override}>
-                        <option value="NOT_ACTIVE">NOT_ACTIVE</option>
-                        <option value="ALLOWALTER">ALL_ALTER</option>
-                    </select>
-                </label>
-                <label>
-                    Agent Shift Enforcement Override:
-                    <select bind:value={user.agent_shift_enforcement_override}>
-                        <option value="DISABLED">DISABLED</option>
-                        <option value="OFF">OFF</option>
-                        <option value="START">START</option>
-                        <option value="ALL">ALL</option>
-                    </select>
-                </label>
-                <label>
-                    Agent Call Log View Override:
-                    <select bind:value={user.agent_call_log_view_override}>
-                        <option value="DISABLED">DISABLED</option>
-                        <option value="Y">Y</option>
-                        <option value="N">N</option>
-                    </select>
-                </label>
-                <label>
-                    Campaign Hide Call Log Override:
-                    <select bind:value={user.hide_call_log_info}>
-                        <option value="DISABLED">DISABLED</option>
-                        <option value="Y">Y</option>
-                        <option value="N">N</option>
-                    </select>
-                </label>
-                <label>
-                    Agent Lead Search Override:
-                    <select bind:value={user.agent_lead_search_override}>
-                        <option value="DISABLED">DISABLED</option>
-                        <option value="ENABLED">ENABLED</option>
-                        <option value="LIVE_CALL_INBOUND">LIVE_CALL_INBOUND</option>
-                        <option value="LIVE_CALL_INBOUND_AND_MANUAL">LIVE_CALL_INBOUND_AND_MANUAL</option>
-                        <option value="NOT_ACTIVE">NOT_ACTIVE</option>
-                    </select>
-                </label>
-                <label>
-                    Lead Filter:
-                    <select bind:value={user.lead_filter_id}>
-                        <option value="NONE">NONE</option>
-                        <option value="DROP">DROP 72 HOUR-UK 72 DROP NO CALL</option>
-                    </select>
-                </label>
-                <label>
-                    Alert Enabled:
-                    <input type="number" bind:value={user.alert_enabled} placeholder="Enter value" />
-                </label>
-                <label>
-                    Allow Alerts:
-                    <input type="number" bind:value={user.allow_alerts} placeholder="Enter value" />
-                </label>
-                <label>
-                    Preset Contact Search:
-                    <select bind:value={user.preset_contact_search}>
-                        <option value="DISABLED">DISABLED</option>
-                        <option value="NOT_ACTIVE">NOT_ACTIVE</option>
-                    </select>
-                </label>
-            </div>
+        <!-- Submit Button -->
+        <div class="form-section">
+            <button type="submit" class="btn-primary">Update User</button>
         </div>
+    </div>
+</form>
 
-                
-             
-                    <!-- Submit Button -->
-                    <div class="form-section">
-                        <button type="submit" class="btn-primary">Update User</button>
-                    </div>
-                </form>
-                
-              
 <style>
     .user-form {
         max-width: 800px;
@@ -498,7 +372,7 @@
 
     h2 {
         margin-bottom: 10px;
-  color: darkblue;
+        color: rgb(29, 29, 240);
         font-weight: bold;
     }
 
@@ -530,7 +404,7 @@
     }
 
     button {
-        background-color: #007BFF;
+        background-color: #007bff;
         color: white;
         padding: 10px 20px;
         border: none;
@@ -544,4 +418,3 @@
         background-color: #0056b3;
     }
 </style>
-
