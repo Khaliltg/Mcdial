@@ -63,20 +63,78 @@ exports.createProspect = async (req, res) => {
 
 exports.getListById = async (req, res) => {
     const { id } = req.params;
+    console.log('Received list_id:', id); // Log the received list_id
 
     try {
-        const [result] = await db.query('SELECT * FROM vicidial_lists WHERE list_id = ?', [id]);
+        // Query to get the list details
+        const [listResult] = await db.query('SELECT * FROM vicidial_lists WHERE list_id = ?', [id]);
 
-        if (!result.length) {
+        if (!listResult.length) {
             return res.status(404).json({ message: 'List not found.' });
         }
 
-        res.json(result[0]);
+        const listDetails = listResult[0];
+
+        // Queries to gather additional data
+        const gmtOffsetQuery = `
+            SELECT gmt_offset_now, called_since_last_reset, COUNT(*) as count 
+            FROM vicidial_list 
+            WHERE list_id = ? 
+            GROUP BY gmt_offset_now, called_since_last_reset 
+            ORDER BY gmt_offset_now, called_since_last_reset`;
+
+        const statusQuery = `
+            SELECT status, called_since_last_reset, COUNT(*) as count 
+            FROM vicidial_list 
+            WHERE list_id = ? 
+            GROUP BY status, called_since_last_reset 
+            ORDER BY status, called_since_last_reset`;
+
+        const ownerQuery = `
+            SELECT owner, called_since_last_reset, COUNT(*) as count 
+            FROM vicidial_list 
+            WHERE list_id = ? 
+            GROUP BY owner, called_since_last_reset 
+            ORDER BY owner, called_since_last_reset`;
+
+        const fieldsCountQuery = 'SELECT COUNT(*) as count FROM vicidial_lists_fields WHERE list_id = ?';
+
+        // Execute all queries in parallel
+        const [gmtOffsetResult, statusResult, ownerResult, fieldsCountResult] = await Promise.all([
+            db.query(gmtOffsetQuery, [id]),
+            db.query(statusQuery, [id]),
+            db.query(ownerQuery, [id]),
+            db.query(fieldsCountQuery, [id])
+        ]).catch(err => {
+            console.error('Error executing one of the queries:', err);
+            return [[], [], [], [{ count: 0 }]]; // Return empty arrays and a default count
+        });
+
+        // Extract the actual data rows from each result
+        const gmtOffsets = gmtOffsetResult[0] || []; // Get the first element for actual data
+        const statuses = statusResult[0] || [];
+        const owners = ownerResult[0] || [];
+
+        console.log('GMT Offset Result:', gmtOffsets); // Log the results for debugging
+
+        // Prepare the response
+        const response = {
+            listDetails,
+            gmtOffsets,
+            statuses,
+            owners,
+            fieldsCount: fieldsCountResult[0].count // Access the count directly
+        };
+
+        res.json(response);
     } catch (err) {
         console.error('Error retrieving list by ID:', err);
         res.status(500).json({ message: 'An error occurred, please try again later.' });
     }
-};exports.updateList = async (req, res) => {
+};
+
+
+exports.updateList = async (req, res) => {
     const { id } = req.params;
     const fields = req.body;
 
@@ -171,5 +229,21 @@ exports.deleteList = async (req, res) => {
     } catch (error) {
         console.error("Erreur lors de la suppression :", error);
         res.status(500).json({ error: "Une erreur s'est produite." });
+    }
+};
+exports.getListDetails = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [result] = await db.query('SELECT status, timezone, owner, rank, call_account FROM vicidial_list WHERE list_id = ?', [id]);
+
+        if (!result.length) {
+            return res.status(404).json({ message: 'Liste non trouvée.' });
+        }
+
+        res.json(result[0]); // Renvoie les détails de la liste
+    } catch (err) {
+        console.error('Erreur lors de la récupération des détails de la liste :', err);
+        res.status(500).json({ message: 'Une erreur s\'est produite, veuillez réessayer plus tard.' });
     }
 };

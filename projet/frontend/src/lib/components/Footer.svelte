@@ -1,5 +1,6 @@
 <footer class="bg-white border-top py-3 mt-auto">
   <div class="container">
+     
     <div class="d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center">
         <i class="bi bi-graph-up-arrow me-2 text-primary"></i>
@@ -27,3 +28,18 @@
     </div>
   </div>
 </footer>
+
+
+<style>
+  footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #333;
+    color: white;
+    text-align: center;
+    padding: 10px;
+  }
+</style>
+

@@ -12,7 +12,7 @@ router.get('/', getLists);
 router.put('/modifier/:id', updateList);
 router.delete('/supprimer/:id', deleteList);
 router.get('/corbeille', getDeletedLists);
-router.post('/restaurer/:id', restoreList); 
+router.put('/restaurer/:id', restoreList); 
 router.put('/supprimer/:id', softDeleteList);
 //prospect
 router.get('/afficher_prospect', getProspects);

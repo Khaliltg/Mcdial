@@ -18,33 +18,39 @@ export const nodes = [
 	() => import('./nodes/14'),
 	() => import('./nodes/15'),
 	() => import('./nodes/16'),
-	() => import('./nodes/17')
+	() => import('./nodes/17'),
+	() => import('./nodes/18'),
+	() => import('./nodes/19'),
+	() => import('./nodes/20')
 ];
 
 export const server_loads = [];
 
 export const dictionary = {
-	"/": [2],
-	"/compagnes/add": [3],
-	"/compagnes/detail/[campaign_id]": [4],  // Merged from both versions
-	"/compagnes/show": [5],                   // Updated index to match
-	"/dashboard": [6],                         // New entry added
-	"/liste/afficherlist": [7],               // Updated index to match
-	"/liste/ajouterprospect": [9],            // Updated index to match
-	"/liste/ajouter": [8],
-	"/liste/dnc": [10],                       // Updated index to match
-	"/liste/list-details/[list_id]": [11],    // Updated index to match
-	"/liste/prospects": [12],                  // Updated index to match
-	"/liste/recherchelist": [13],              // Updated index to match
-	"/users/add": [14],
-	"/users/copy": [15],
-	"/users/detail": [16],
-	"/users/list": [17],
-	"/users/search": [18]                      // Added based on the second version
-};
+		"/": [2],
+		"/compagnes/add": [3],
+		"/compagnes/detail/[campaign_id]": [4],
+		"/compagnes/show": [5],
+		"/liste/afficherlist": [6],
+		"/liste/ajouterprospect": [8],
+		"/liste/ajouter": [7],
+		"/liste/corbeille": [9],
+		"/liste/details/[list_id]": [10],
+		"/liste/dnc": [11],
+		"/liste/list-details/[list_id]": [12],
+		"/liste/modifier/[id]": [13],
+		"/liste/prospects": [14],
+		"/liste/recherchelist": [15],
+		"/users/add": [16],
+		"/users/copy": [17],
+		"/users/detail": [18],
+		"/users/list": [19],
+		"/users/search": [20]
+	};
 
 export const hooks = {
-	handleError: (({ error }) => { console.error(error); }),
+	handleError: (({ error }) => { console.error(error) }),
+	
 	reroute: (() => {}),
 	transport: {}
 };
