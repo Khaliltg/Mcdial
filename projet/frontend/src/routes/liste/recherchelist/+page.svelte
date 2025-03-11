@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  
   let lists = [];
   let searchQuery = '';
   let filteredLists = [];
@@ -14,7 +15,7 @@
   let showAdditionalTables = false; // État pour afficher ou masquer les tableaux supplémentaires
   let selectedListDetails = null; // Détails de la liste sélectionnée
 
-  
+  import Corbeille from '../corbeille/+page.svelte';
 
   async function fetchListDetails(list_id) {
     const response = await fetch(`http://localhost:8000/api/lists/getListById/${list_id}`);
@@ -92,32 +93,7 @@
     }
   }
 
-  async function restoreList(list_id) {
-    if (confirm('Êtes-vous sûr de vouloir restaurer cette liste ?')) {
-      isLoading = true; // Afficher le chargement
-      try {
-        const response = await fetch(`http://localhost:8000/api/lists/restaurer/${list_id}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          await fetchCorbeille(); // Recharger les listes supprimées
-          await loadLists(); // Recharger les listes principales
-          alert('✅ Liste restaurée avec succès !');
-        } else {
-          throw new Error('Impossible de restaurer la liste.');
-        }
-      } catch (error) {
-        errorMessage = '⚠️ Problème lors de la restauration.';
-      } finally {
-        isLoading = false; // Cacher le chargement
-      }
-    }
-  }
-
+ 
   function filterLists() {
     filteredLists = searchQuery
       ? lists.filter(({ list_name, list_id }) =>
@@ -137,6 +113,8 @@
     id = list;
     editMode = true;
     editedList = { ...list };
+    goto(`/liste/modifier/${list.list_id}`);
+
   }
 
   async function saveEdit() {
@@ -172,6 +150,7 @@
 
   function viewAdditionalTables(list_id) {
   goto(`/liste/details/${list_id}`);
+  
 }
 </script>
 
@@ -192,7 +171,7 @@
       <button type="submit" class="search-button">
         Rechercher
       </button>
-      <button on:click={fetchCorbeille} class="btn btn-warning">
+      <button on:click={() => goto('/liste/corbeille')} class="btn btn-warning">
         Voir la Corbeille 🗑️
       </button>
     </form>
@@ -377,20 +356,7 @@
   </main>
 </div>
 
-{#if editMode}
-  <div class="edit-form">
-    <h3>Modifier la liste</h3>
-    <input type="text" bind:value={editedList.list_name} placeholder="Nom de la liste" />
-    <input type="text" bind:value={editedList.list_description} placeholder="Description" />
-    <input type="text" bind:value={editedList.campaign_id} placeholder="ID de la campagne" />
-    <select bind:value={editedList.active}>
-      <option value="Y">Active</option>
-      <option value="N">Inactive</option>
-    </select>
-    <button on:click={saveEdit} class="save-button">Enregistrer</button>
-    <button on:click={() => (editMode = false)} class="cancel-button">Annuler</button>
-  </div>
-{/if}
+
 
 <style>
   /* Full screen styles */

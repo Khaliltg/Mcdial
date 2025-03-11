@@ -19,35 +19,38 @@ export const nodes = [
 	() => import('./nodes/15'),
 	() => import('./nodes/16'),
 	() => import('./nodes/17'),
-	() => import('./nodes/18')
+	() => import('./nodes/18'),
+	() => import('./nodes/19'),
+	() => import('./nodes/20')
 ];
 
 export const server_loads = [];
 
 export const dictionary = {
-		"/": [[2]](http://stackoverflow.com/questions/9233936/),
-		"/compagnes/add": [[3]](https://github.com/topics/conflict-resolution?l=javascript),
-		"/compagnes/detail/[campaign_id]":,
-		"/compagnes/show":,
-		"/liste/afficherlist":,
-		"/liste/ajouterprospect":,
-		"/liste/ajouter":,
-		"/liste/dnc":,
-		"/liste/details/[list_id]":, // Merged route
-		"/liste/list-details/[list_id]":, // Merged route
-		"/liste/prospects":,
-		"/liste/recherchelist":,
-		"/users/add":,
-		"/users/copy":,
-		"/users/detail":,
-		"/users/list":,
-		"/users/search":
-	};
+	"/": [2],
+	"/compagnes/add": [3],
+	"/compagnes/detail/[campaign_id]": [4],
+	"/compagnes/show": [5],
+	"/liste/afficherlist": [6],
+	"/liste/ajouterprospect": [8],
+	"/liste/ajouter": [7],
+	"/liste/corbeille": [9],
+	"/liste/details/[list_id]": [10],
+	"/liste/dnc": [11],
+	"/liste/list-details/[list_id]": [12],
+	"/liste/modifier/[id]": [13],
+	"/liste/prospects": [14],
+	"/liste/recherchelist": [15],
+	"/users/add": [16],
+	"/users/copy": [17],
+	"/users/detail": [18],
+	"/users/list": [19],
+	"/users/search": [20]
+};
 
 export const hooks = {
-	handleError: (({ error }) => { console.error(error) }),
-	
-	reroute: (() => {}),
+	handleError: ({ error }) => { console.error(error); },
+	reroute: () => {},
 	transport: {}
 };
 

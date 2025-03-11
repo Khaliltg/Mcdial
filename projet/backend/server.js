@@ -23,7 +23,12 @@ app.use('/api/lists', listRoutes);
 app.use('/api/prospects', listRoutes);
 app.use('/api/admin/user', AdminRoute);
 app.use('/api/admin/compagnies', compagnieRoutes);
+app.use(express.static('public'));
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+});
+app.get('*', (req, res) => {
+  res.sendFile(path.resolve('public', 'index.html'));
 });
