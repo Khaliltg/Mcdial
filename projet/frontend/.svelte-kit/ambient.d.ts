@@ -1,6 +1,4 @@
-
 // this file is generated — do not edit it
-
 
 /// <reference types="@sveltejs/kit" />
 
@@ -26,7 +24,29 @@
  * ```
  */
 declare module '$env/static/private' {
-	export const TERM_PROGRAM: string;
+	export const ALLUSERSPROFILE: string;
+	export const APPDATA: string;
+	export const CHROME_CRASHPAD_PIPE_NAME: string;
+	export const COLOR: string;
+	export const COLORTERM: string;
+	export const CommonProgramFiles: string;
+	export const CommonProgramW6432: string;
+	export const COMPUTERNAME: string;
+	export const ComSpec: string;
+	export const DriverData: string;
+	export const EDITOR: string;
+	export const EFC_10204: string;
+	export const FPS_BROWSER_APP_PROFILE_STRING: string;
+	export const FPS_BROWSER_USER_PROFILE_STRING: string;
+	export const GIT_ASKPASS: string;
+	export const HOME: string;
+	export const HOMEDRIVE: string;
+	export const HOMEPATH: string;
+	export const INIT_CWD: string;
+	export const LANG: string;
+	export const LOCALAPPDATA: string;
+	export const LOGONSERVER: string;
+	export const TERM_PROGRAM: string; // Merged variable
 	export const NODE: string;
 	export const INIT_CWD: string;
 	export const TERM: string;
@@ -38,7 +58,6 @@ declare module '$env/static/private' {
 	export const ZDOTDIR: string;
 	export const ORIGINAL_XDG_CURRENT_DESKTOP: string;
 	export const MallocNanoZone: string;
-	export const COLOR: string;
 	export const npm_config_noproxy: string;
 	export const npm_config_local_prefix: string;
 	export const USER: string;
@@ -117,7 +136,29 @@ declare module '$env/static/public' {
  */
 declare module '$env/dynamic/private' {
 	export const env: {
-		TERM_PROGRAM: string;
+		ALLUSERSPROFILE: string;
+		APPDATA: string;
+		CHROME_CRASHPAD_PIPE_NAME: string;
+		COLOR: string;
+		COLORTERM: string;
+		CommonProgramFiles: string;
+		CommonProgramW6432: string;
+		COMPUTERNAME: string;
+		ComSpec: string;
+		DriverData: string;
+		EDITOR: string;
+		EFC_10204: string;
+		FPS_BROWSER_APP_PROFILE_STRING: string;
+		FPS_BROWSER_USER_PROFILE_STRING: string;
+		GIT_ASKPASS: string;
+		HOME: string;
+		HOMEDRIVE: string;
+		HOMEPATH: string;
+		INIT_CWD: string;
+		LANG: string;
+		LOCALAPPDATA: string;
+		LOGONSERVER: string;
+		TERM_PROGRAM: string; // Merged variable
 		NODE: string;
 		INIT_CWD: string;
 		TERM: string;

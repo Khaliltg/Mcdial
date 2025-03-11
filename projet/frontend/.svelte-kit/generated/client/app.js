@@ -25,23 +25,23 @@ export const nodes = [
 export const server_loads = [];
 
 export const dictionary = {
-		"/": [2],
-		"/compagnes/add": [3],
-		"/compagnes/detail/[campaign_id]": [4],
-		"/compagnes/show": [5],
-		"/liste/afficherlist": [6],
-		"/liste/ajouterprospect": [8],
-		"/liste/ajouter": [7],
-		"/liste/details/[list_id]": [9],
-		"/liste/dnc": [10],
-		"/liste/list-details/[list_id]": [11],
-		"/liste/prospects": [12],
-		"/liste/recherchelist": [13],
-		"/users/add": [14],
-		"/users/copy": [15],
-		"/users/detail": [16],
-		"/users/list": [17],
-		"/users/search": [18]
+		"/": [[2]](http://stackoverflow.com/questions/9233936/),
+		"/compagnes/add": [[3]](https://github.com/topics/conflict-resolution?l=javascript),
+		"/compagnes/detail/[campaign_id]":,
+		"/compagnes/show":,
+		"/liste/afficherlist":,
+		"/liste/ajouterprospect":,
+		"/liste/ajouter":,
+		"/liste/dnc":,
+		"/liste/details/[list_id]":, // Merged route
+		"/liste/list-details/[list_id]":, // Merged route
+		"/liste/prospects":,
+		"/liste/recherchelist":,
+		"/users/add":,
+		"/users/copy":,
+		"/users/detail":,
+		"/users/list":,
+		"/users/search":
 	};
 
 export const hooks = {
