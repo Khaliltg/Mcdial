@@ -10,11 +10,11 @@ const compagnieRoutes = require('./Routes/Admin/compagniesRoutes');
 const app = express();
 const PORT = process.env.PORT;
 
-// Middleware
+
 const corsOptions = {
-  origin: '*', // Spécifiez l'origine de votre frontend
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Autoriser les méthodes nécessaires
-  allowedHeaders: ['Content-Type', 'Authorization'], // Autoriser les en-têtes nécessaires
+  origin: '*', 
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], 
+  allowedHeaders: ['Content-Type', 'Authorization'], 
 };
 
 app.use(cors(corsOptions));

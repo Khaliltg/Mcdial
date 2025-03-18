@@ -21,36 +21,41 @@ export const nodes = [
 	() => import('./nodes/17'),
 	() => import('./nodes/18'),
 	() => import('./nodes/19'),
-	() => import('./nodes/20')
+	() => import('./nodes/20'),
+	() => import('./nodes/21'),
+	() => import('./nodes/22')
 ];
 
 export const server_loads = [];
 
 export const dictionary = {
-	"/": [2],
-	"/compagnes/add": [3],
-	"/compagnes/detail/[campaign_id]": [4],
-	"/compagnes/show": [5],
-	"/liste/afficherlist": [6],
-	"/liste/ajouterprospect": [8],
-	"/liste/ajouter": [7],
-	"/liste/corbeille": [9],
-	"/liste/details/[list_id]": [10],
-	"/liste/dnc": [11],
-	"/liste/list-details/[list_id]": [12],
-	"/liste/modifier/[id]": [13],
-	"/liste/prospects": [14],
-	"/liste/recherchelist": [15],
-	"/users/add": [16],
-	"/users/copy": [17],
-	"/users/detail": [18],
-	"/users/list": [19],
-	"/users/search": [20]
-};
+		"/": [2],
+		"/compagnes/add": [3],
+		"/compagnes/detail/[campaign_id]": [4],
+		"/compagnes/show": [5],
+		"/compagnes/statues": [6],
+		"/liste/afficherlist": [7],
+		"/liste/ajouterprospect": [9],
+		"/liste/ajouter": [8],
+		"/liste/corbeille": [10],
+		"/liste/details/[list_id]": [11],
+		"/liste/dnc": [12],
+		"/liste/list-details/[list_id]": [13],
+		"/liste/modifier/[id]": [14],
+		"/liste/prospects": [15],
+		"/liste/recherchelist": [16],
+		"/users/add": [17],
+		"/users/copy": [18],
+		"/users/detail": [19],
+		"/users/list": [20],
+		"/users/search": [21],
+		"/users/stats": [22]
+	};
 
 export const hooks = {
-	handleError: ({ error }) => { console.error(error); },
-	reroute: () => {},
+	handleError: (({ error }) => { console.error(error) }),
+	
+	reroute: (() => {}),
 	transport: {}
 };
 

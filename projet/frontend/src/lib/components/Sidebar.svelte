@@ -76,7 +76,7 @@
             },
             {
               name : 'statuts',
-              href: '/campaigns/statuses', 
+              href: '/compagnes/statues', 
               icon: 'stop-circle',
               description: 'Gérer les états des campagnes'
             },
