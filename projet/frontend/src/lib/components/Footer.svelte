@@ -32,7 +32,7 @@
 
 <style>
   footer {
-    position: fixed;
+    position:static;
     bottom: 0;
     left: 0;
     width: 100%;

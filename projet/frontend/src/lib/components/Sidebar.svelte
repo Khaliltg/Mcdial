@@ -137,35 +137,18 @@
             icon: 'list-ul',
             description: 'Liste des listes',
             },
-            {
-              name : 'Ajouter une nouvelle liste',
-              href: '/liste/ajouter', 
-              icon: 'plus-circle',
-              description: 'Créer une nouvelle liste',
-            
-            },
-            {
-              name : ' Rechercher une nouvelle liste',
-              href: '/liste/recherchelist', 
-              icon: 'search',
-              description: 'Rechercher une liste',
-            },
+           
+           
             { 
               name : ' Ajouter un nouveau prospect',
-            href: '/liste/ajouterprospect', 
+            href: '/liste/chargerprospect', 
             icon: 'plus-circle',
             description: 'Ajouter un nouveau lead',
             },
-            {
-            name : 'Ajouter-Supprimer un numéro DNC',
-            href: '/liste/dnc', 
-            icon :['plus-circle', 'trash'],
-            description: 'Ajouter ou supprimer un numéro DNC',
-            
-            },
+           
             {
               name : 'Charger de nouveaux prospects',
-              href: '/liste/prospects', 
+              href: '/liste/ajouterprospect', 
               icon: 'upload',
               description: 'Charger des nouveaux leads',
             },
