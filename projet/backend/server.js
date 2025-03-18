@@ -6,7 +6,7 @@ const db = require('./config/bd');
 const AdminRoute = require('./Routes/Admin/userRoute');
 const listRoutes = require('./Routes/Admin/listRoutes');
 const compagnieRoutes = require('./Routes/Admin/compagniesRoutes');
-
+const prospectRoute =require("./Routes/Admin/prospects")
 const app = express();
 const PORT = process.env.PORT;
 
@@ -20,7 +20,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/api/lists', listRoutes);
-app.use('/api/prospects', listRoutes);
+app.use('/api/prospects', prospectRoute);
 app.use('/api/admin/user', AdminRoute);
 app.use('/api/admin/compagnies', compagnieRoutes);
 app.use(express.static('public'));
