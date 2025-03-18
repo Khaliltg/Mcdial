@@ -1,1 +1,2 @@
-export { default as component } from "../../../../src/routes/liste/modifier/[id]/+page.svelte";
+export { default as modifierComponent } from "../../../../src/routes/liste/modifier/[id]/+page.svelte";
+export { default as fileListeComponent } from "../../../../src/routes/liste/fileliste/[id]/+page.svelte";

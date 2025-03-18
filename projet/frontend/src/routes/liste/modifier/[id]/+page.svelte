@@ -10,6 +10,7 @@
   };
   let isLoading = false;
   let errorMessage = '';
+  let list = {};
 
   // Fetch the listId from URL parameters
   $: listId = $page.params?.id;
@@ -25,18 +26,16 @@
     try {
       const response = await fetch(`http://localhost:8000/api/lists/getListById/${listId}`);
       if (response.ok) {
-        const data = await response.json();
+        list = await response.json();
+        console.log("List data:", list);
+
         editedList = {
-          list_name: data.listDetails.list_name,
-          list_description: data.listDetails.list_description,
-          campaign_id: data.listDetails.campaign_id
+          list_name: list.list_name,
+          list_description: list.list_description,
+          campaign_id: list.campaign_id
         };
 
         console.log("Loaded list for editing:", editedList);
-        
-        // Redirect to another page after loading the list
-        
-
       } else {
         alert('⚠️ Error fetching the list details.');
       }
@@ -49,6 +48,8 @@
   async function saveEdit() {
     isLoading = true;
     errorMessage = '';
+
+    console.log("Saving list with data:", editedList);
 
     try {
       const response = await fetch(`http://localhost:8000/api/lists/modifier/${listId}`, {
@@ -79,23 +80,23 @@
 <h2>Modifier la liste</h2>
 
 <!-- Form fields to modify the list -->
-<input 
-  type="text" 
-  bind:value={editedList.list_name} 
-  placeholder="Nom de la liste" 
-  aria-label="Nom de la liste" 
+<input
+  type="text"
+  bind:value={editedList.list_name}
+  placeholder="Nom de la liste"
+  aria-label="Nom de la liste"
 />
-<input 
-  type="text" 
-  bind:value={editedList.list_description} 
-  placeholder="Description" 
-  aria-label="Description de la liste" 
+<input
+  type="text"
+  bind:value={editedList.list_description}
+  placeholder="Description"
+  aria-label="Description de la liste"
 />
-<input 
-  type="text" 
-  bind:value={editedList.campaign_id} 
-  placeholder="ID de la campagne" 
-  aria-label="ID de la campagne" 
+<input
+  type="text"
+  bind:value={editedList.campaign_id}
+  placeholder="ID de la campagne"
+  aria-label="ID de la campagne"
 />
 
 <!-- Save and cancel buttons -->

@@ -1,56 +1,136 @@
 <script>
-// @ts-nocheck
-
   import { onMount } from 'svelte';
+  import axios from 'axios';
 
-  let name = '';
-  let phone = '';
-  let listId = '';
-  let lists = [];
+  let listIdOverride = '';
+  let fileLayout = 'standard';
+  let fileInput;
+  let selectedFile;
 
-  // Charger les listes disponibles
-  async function loadLists() {
-      try {
-          const res = await fetch('http://localhost:8000/api/lists/afficher');
-          if (!res.ok) throw new Error('Erreur lors de la récupération des listes');
-          
-          const data = await res.json();
-          console.log("Listes récupérées :", data);
+  async function uploadLeads() {
+    if (!selectedFile) {
+      alert('Veuillez sélectionner un fichier.');
+      return;
+    }
 
-          lists = data; // Mise à jour des listes
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('listIdOverride', listIdOverride);
+    formData.append('fileLayout', fileLayout);
 
-          if (lists.length > 0) {
-              listId = lists[0].id; // Sélectionner la première liste par défaut
+    try {
+      const res = await axios.post(
+        'http://localhost:8000/api/prospects/upload_leads',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
           }
-      } catch (error) {
-          console.error(error);
-          alert(error.message);
+        }
+      );
+
+      if (res.status === 200) {
+        alert('Leads chargés avec succès');
+      } else {
+        alert('Erreur : ' + (res.data.error || 'Une erreur est survenue.'));
       }
-
+    } catch (error) {
+      console.error('Erreur lors du chargement des leads :', error);
+      alert('Erreur lors du chargement des leads.');
+    }
   }
-
-  onMount(loadLists);
-  console.log(lists);
-
 </script>
 
+<div class="container">
+  <div class="card">
+    <h1 class="title">Charger de nouveaux prospects</h1>
 
-<h1>Ajouter un prospect</h1>
-<!-- svelte-ignore missing-declaration -->
-<form >
-  <label for="name">Nom du prospect</label>
-  <input type="text" id="name" bind:value={name} required />
+    <div class="form-section">
+      <label class="label">Fichier de leads</label>
+      <input type="file" bind:this={fileInput} on:change={() => selectedFile = fileInput.files[0]} class="input-field" />
 
-  <label for="phone">Numéro de téléphone</label>
-  <input type="text" id="phone" bind:value={phone} required />
+      <label class="label">List ID Override</label>
+      <input type="text" bind:value={listIdOverride} class="input-field" />
 
-  <label for="listId">Liste</label>
-  <select bind:value={listId} required>
-      <option value="" disabled selected hidden>Choisissez une liste</option>
-      {#each lists as list}
-          <option value={list.id}>{list.list_name}</option>
-      {/each}
-  </select>
+      <label class="label">File Layout</label>
+      <select bind:value={fileLayout} class="input-field">
+        <option value="standard">Standard</option>
+        <option value="custom_layout">Custom Layout</option>
+        <option value="custom_template">Custom Template</option>
+      </select>
 
-  <button type="submit">Ajouter Prospect</button>
-</form>
+      <button on:click={uploadLeads} class="button primary">
+        Charger les leads
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f0f4f8;
+    padding: 20px;
+  }
+
+  .card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .title {
+    color: #0056b3;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .form-section {
+    margin-bottom: 2rem;
+  }
+
+  .label {
+    color: #4a5568;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .input-field {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+
+  .input-field:focus {
+    border-color: #0056b3;
+    outline: none;
+  }
+
+  .button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+
+  .button.primary {
+    background-color: #0056b3;
+    color: white;
+  }
+
+  .button.primary:hover {
+    background-color: #003d80;
+  }
+</style>

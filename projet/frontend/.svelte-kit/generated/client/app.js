@@ -22,7 +22,9 @@ export const nodes = [
 	() => import('./nodes/18'),
 	() => import('./nodes/19'),
 	() => import('./nodes/20'),
-	() => import('./nodes/21')
+	() => import('./nodes/21'),
+	() => import('./nodes/22'),
+	() => import('./nodes/23')
 ];
 
 export const server_loads = [];
@@ -33,26 +35,27 @@ export const dictionary = {
 		"/compagnes/detail/[campaign_id]": [4],
 		"/compagnes/show": [5],
 		"/liste/afficherlist": [6],
-		"/liste/ajouterprospect": [8],
-		"/liste/ajouter": [7],
-		"/liste/corbeille": [9],
-		"/liste/details/[list_id]": [10],
-		"/liste/dnc": [11],
-		"/liste/list-details/[list_id]": [12],
-		"/liste/modifier/[id]": [13],
-		"/liste/prospects": [14],
-		"/liste/recherchelist": [15],
-		"/users/add": [16],
-		"/users/copy": [17],
-		"/users/detail": [18],
-		"/users/list": [19],
-		"/users/search": [20],
-		"/users/stats": [21]
-	};
+		"/liste/ajouterprospect": [7],
+		"/liste/ajouter": [8],
+		"/liste/chargerprospect": [9], // Chose this line
+		"/liste/corbeille": [10],
+		"/liste/details/[list_id]": [11],
+		"/liste/dnc": [12],
+		"/liste/fileliste/[id]": [13],
+		"/liste/list-details/[list_id]": [14],
+		"/liste/modifier/[id]": [15],
+		"/liste/prospects": [16],
+		"/liste/recherchelist": [17],
+		"/users/add": [18],
+		"/users/copy": [19],
+		"/users/detail": [20],
+		"/users/list": [21],
+		"/users/search": [22],
+		"/users/stats": [23]
+};
 
 export const hooks = {
 	handleError: (({ error }) => { console.error(error) }),
-	
 	reroute: (() => {}),
 	transport: {}
 };
