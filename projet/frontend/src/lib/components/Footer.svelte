@@ -1,22 +1,30 @@
 <style>
   footer {
-    background-color: #f8f9fa;
+    background-color: #f8f9fa; /* Original background color */
     padding: 20px;
     width: 100%;
     text-align: center;
     margin-top: 20px;
     border-top: 1px solid #ddd;
+    position: static; /* Ensure footer stays at the bottom */
+    color: #333; /* Text color for readability */
   }
 
   .social-links a {
-    color: #6c757d;
+    color: #6c757d; /* Original link color */
     margin: 0 10px;
     text-decoration: none;
     font-size: 20px;
   }
 
   .social-links a:hover {
-    color: #007bff;
+    color: #007bff; /* Original hover color */
+  }
+
+  /* Additional styles for dark background if needed */
+  footer.dark {
+    background: #333;
+    color: white;
   }
 </style>
 

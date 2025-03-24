@@ -1,22 +1,16 @@
 const express = require('express');
-const { getLists, createList,getProspects, createProspect,getListById, updateList, softDeleteList,restoreList, getDeletedLists,deleteList} = require('../../Controllers/Admin/listControllers');
 const router = express.Router();
+const listControllers = require('../../Controllers/Admin/listControllers');
 
-
-
-//list
-router.post('/ajouter', createList);
-router.get('/afficher', getLists);
-router.get('/getListById/:id',getListById)
-router.get('/', getLists);
-router.put('/modifier/:id', updateList);
-router.delete('/supprimer/:id', deleteList);
-router.get('/corbeille', getDeletedLists);
-router.put('/restaurer/:id', restoreList); 
-router.put('/supprimer/:id', softDeleteList);
-//prospect
-router.get('/afficher_prospect', getProspects);
-router.post('/ajouter_prospect', createProspect);
-
+// Routes pour les listes
+router.post('/ajouter', listControllers.createList);
+router.get('/afficher', listControllers.getLists);
+router.get('/campaigns', listControllers.getCampaigns);
+router.get('/corbeille', listControllers.getDeletedLists);
+router.get('/getListById/:id', listControllers.getListDetails);
+router.delete('/supprimer/:id', listControllers.deleteList);
+router.put('/restaurer/:id', listControllers.restoreList);
+router.put('/modifier/:id', listControllers.updateList);
+router.get('/files/:id', listControllers.getListFiles);
 
 module.exports = router;

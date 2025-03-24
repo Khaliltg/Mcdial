@@ -13,11 +13,7 @@ type OptionalUnion<U extends Record<string, any>, A extends keyof U = U extends 
 export type Snapshot<T = any> = Kit.Snapshot<T>;
 type PageParentData = EnsureDefined<LayoutData>;
 
-// Choose one version
-type LayoutRouteId = RouteId | "/" | "/compagnes/add" | "/compagnes/detail/[campaign_id]" | "/compagnes/show" | "/liste/afficherlist" | "/liste/ajouter" | "/liste/ajouterprospect" | "/liste/corbeille" | "/liste/details/[list_id]" | "/liste/dnc" | "/liste/list-details/[list_id]" | "/liste/modifier/[id]" | "/liste/prospects" | "/liste/recherchelist" | "/users/add" | "/users/copy" | "/users/detail" | "/users/list" | "/users/search" | "/users/stats" | null;
-
-// or keep the other version
-// type LayoutRouteId = RouteId | "/" | "/compagnes/add" | "/compagnes/detail/[campaign_id]" | "/compagnes/show" | "/compagnes/statues" | "/liste/afficherlist" | "/liste/ajouter" | "/liste/ajouterprospect" | "/liste/corbeille" | "/liste/details/[list_id]" | "/liste/dnc" | "/liste/list-details/[list_id]" | "/liste/modifier/[id]" | "/liste/prospects" | "/liste/recherchelist" | "/users/add" | "/users/copy" | "/users/detail" | "/users/list" | "/users/search" | "/users/stats" | null;
+type LayoutRouteId = RouteId | "/" | "/compagnes/add" | "/compagnes/detail/[campaign_id]" | "/compagnes/show" | "/liste/afficherlist" | "/liste/ajouter" | "/liste/ajouterprospect" | "/liste/chargerprospect" | "/liste/corbeille" | "/liste/details/[list_id]" | "/liste/dnc" | "/liste/fileliste/[id]" | "/liste/list-details/[list_id]" | "/liste/modifier/[id]" | "/liste/prospects" | "/liste/recherchelist" | "/users/add" | "/users/copy" | "/users/detail" | "/users/list" | "/users/search" | "/users/stats" | null;
 
 type LayoutParams = RouteParams & { campaign_id?: string; list_id?: string; id?: string };
 type LayoutParentData = EnsureDefined<{}>;
