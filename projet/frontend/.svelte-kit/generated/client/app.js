@@ -23,40 +23,40 @@ export const nodes = [
 	() => import('./nodes/19'),
 	() => import('./nodes/20'),
 	() => import('./nodes/21'),
-	() => import('./nodes/22'),
+	() => import('./nodes/22'), // Merged Node 22
 	() => import('./nodes/23')
 ];
 
 export const server_loads = [];
 
 export const dictionary = {
-		"/": [2],
-		"/compagnes/add": [3],
-		"/compagnes/detail/[campaign_id]": [4],
-		"/compagnes/show": [5],
-		"/liste/afficherlist": [6],
-		"/liste/ajouterprospect": [8],
-		"/liste/ajouter": [7],
-		"/liste/chargerprospect": [9],
-		"/liste/corbeille": [10],
-		"/liste/details/[list_id]": [11],
-		"/liste/dnc": [12],
-		"/liste/fileliste/[id]": [13],
-		"/liste/list-details/[list_id]": [14],
-		"/liste/modifier/[id]": [15],
-		"/liste/prospects": [16],
-		"/liste/recherchelist": [17],
-		"/users/add": [18],
-		"/users/copy": [19],
-		"/users/detail": [20],
-		"/users/list": [21],
-		"/users/search": [22],
-		"/users/stats": [23]
-	};
+	"/": [2],
+	"/compagnes/add": [3],
+	"/compagnes/detail/[campaign_id]": [4],
+	"/compagnes/show": [5],
+	"/compagnes/statues": [6], // Merged entry
+	"/liste/afficherlist": [7], // Adjusted index
+	"/liste/ajouterprospect": [9], // Adjusted index
+	"/liste/ajouter": [8],
+	"/liste/chargerprospect": [10],
+	"/liste/corbeille": [11], // Adjusted index
+	"/liste/details/[list_id]": [12], // Adjusted index
+	"/liste/dnc": [13], // Adjusted index
+	"/liste/fileliste/[id]": [14],
+	"/liste/list-details/[list_id]": [15], // Adjusted index
+	"/liste/modifier/[id]": [16], // Adjusted index
+	"/liste/prospects": [17], // Adjusted index
+	"/liste/recherchelist": [18], // Adjusted index
+	"/users/add": [19], // Adjusted index
+	"/users/copy": [20], // Adjusted index
+	"/users/detail": [21], // Adjusted index
+	"/users/list": [22], // Adjusted index
+	"/users/search": [23], // Adjusted index
+	"/users/stats": [24] // Adjusted index
+};
 
 export const hooks = {
-	handleError: (({ error }) => { console.error(error) }),
-	
+	handleError: (({ error }) => { console.error(error); }),
 	reroute: (() => {}),
 	transport: {}
 };

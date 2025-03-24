@@ -1,45 +1,54 @@
-<footer class="bg-white border-top py-3 mt-auto">
+<style>
+  footer {
+    background-color: #f8f9fa; /* Original background color */
+    padding: 20px;
+    width: 100%;
+    text-align: center;
+    margin-top: 20px;
+    border-top: 1px solid #ddd;
+    position: static; /* Ensure footer stays at the bottom */
+    color: #333; /* Text color for readability */
+  }
+
+  .social-links a {
+    color: #6c757d; /* Original link color */
+    margin: 0 10px;
+    text-decoration: none;
+    font-size: 20px;
+  }
+
+  .social-links a:hover {
+    color: #007bff; /* Original hover color */
+  }
+
+  /* Additional styles for dark background if needed */
+  footer.dark {
+    background: #333;
+    color: white;
+  }
+</style>
+
+<footer>
   <div class="container">
-     
     <div class="d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center">
         <i class="bi bi-graph-up-arrow me-2 text-primary"></i>
         <span class="text-muted">Mc_solutions</span>
       </div>
       <div class="text-muted small">
-        &copy; 2025 All Rights Reserved
+        &copy; 2025 Your Company. Tous droits réservés.
       </div>
-      <div class="d-flex">
-        {#each [
-          { icon: 'twitter', href: 'https://twitter.com' },
-          { icon: 'linkedin', href: 'https://linkedin.com' },
-          { icon: 'github', href: 'https://github.com' }
-        ] as social}
-          <a 
-            href={social.href} 
-            class="text-muted mx-2"
-            target="_blank" 
-            rel="noopener noreferrer"
-          >
-            <i class="bi bi-{social.icon}"></i>
-          </a>
-        {/each}
+      <div class="social-links">
+        <a href="https://twitter.com" target="_blank" rel="noopener noreferrer">
+          <i class="bi bi-twitter"></i>
+        </a>
+        <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer">
+          <i class="bi bi-linkedin"></i>
+        </a>
+        <a href="https://github.com" target="_blank" rel="noopener noreferrer">
+          <i class="bi bi-github"></i>
+        </a>
       </div>
     </div>
   </div>
 </footer>
-
-
-<style>
-  footer {
-    position:static;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: #333;
-    color: white;
-    text-align: center;
-    padding: 10px;
-  }
-</style>
-

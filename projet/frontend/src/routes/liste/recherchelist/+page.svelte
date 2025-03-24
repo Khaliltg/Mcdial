@@ -108,7 +108,7 @@
     fetchListDetails(list_id);
     fetchAdditionalData(list_id);
   }
-
+  
   function editList(list) {
     id = list;
     editMode = true;
