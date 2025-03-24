@@ -1,1 +1,2 @@
-export { default as component } from "../../../../src/routes/liste/corbeille/+page.svelte";
+export { default as corbeilleComponent } from "../../../../src/routes/liste/corbeille/+page.svelte";
+export { default as ajouterProspectComponent } from "../../../../src/routes/liste/ajouterprospect/+page.svelte";

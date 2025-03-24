@@ -10,11 +10,13 @@ const compagnieRoutes = require('./Routes/Admin/compagniesRoutes');
 const app = express();
 const PORT = process.env.PORT || 8000; // Default to 8000 if PORT is not set
 
-// Middleware
+
 const corsOptions = {
+
     origin: '*', // Specify your frontend's origin
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+
 };
 
 app.use(cors(corsOptions));

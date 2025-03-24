@@ -1,6 +1,92 @@
 <script>
+    import DashboardStats from '$lib/components/dashboard/DashboardStats.svelte';
+    import RecentActivity from '$lib/components/dashboard/RecentActivity.svelte';
     import { onMount } from 'svelte';
     import Chart from 'chart.js/auto';
+
+    let stats = {
+        totalCalls: 15234,
+        activeCampaigns: 8,
+        completedCalls: 12456,
+        successRate: 82
+    };
+
+    let campaigns = [
+        { id: 1, name: "Campagne A", status: "active", progress: 75 },
+        { id: 2, name: "Campagne B", status: "active", progress: 45 },
+        { id: 3, name: "Campagne C", status: "paused", progress: 30 },
+        { id: 4, name: "Campagne D", status: "completed", progress: 100 }
+    ];
+
+    let recentActivities = [
+        {
+            type: 'call',
+            icon: 'bi-telephone-outbound',
+            text: 'Appel réussi - Campagne Marketing Q1',
+            time: 'Il y a 5 minutes'
+        },
+        {
+            type: 'campaign',
+            icon: 'bi-graph-up',
+            text: 'Nouvelle campagne "Promotion Été" démarrée',
+            time: 'Il y a 1 heure'
+        },
+        {
+            type: 'alert',
+            icon: 'bi-exclamation-circle',
+            text: 'Seuil d\'appels atteint pour Campagne B',
+            time: 'Il y a 2 heures'
+        }
+    ];
+
+    let callsChart;
+
+    onMount(() => {
+        const ctx = document.getElementById('callsChart').getContext('2d');
+        callsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+                datasets: [{
+                    label: 'Appels',
+                    data: [1200, 1900, 1500, 2100, 1800, 1600, 2000],
+                    borderColor: '#0d6efd',
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            display: true,
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        return () => {
+            if (callsChart) {
+                callsChart.destroy();
+            }
+        };
+    });
   
     let lineChart, barChart, pieChart;
     let currentTime = '';
