@@ -1,20 +1,22 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const db = require('./config/bd'); 
+const db = require('./config/bd'); // Ensure this path is correct
 
 const AdminRoute = require('./Routes/Admin/userRoute');
 const listRoutes = require('./Routes/Admin/listRoutes');
 const compagnieRoutes = require('./Routes/Admin/compagniesRoutes');
 
 const app = express();
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 8000; // Default to 8000 if PORT is not set
 
 
 const corsOptions = {
-  origin: '*', 
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], 
-  allowedHeaders: ['Content-Type', 'Authorization'], 
+
+    origin: '*', // Specify your frontend's origin
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+
 };
 
 app.use(cors(corsOptions));
@@ -25,10 +27,8 @@ app.use('/api/admin/user', AdminRoute);
 app.use('/api/admin/compagnies', compagnieRoutes);
 app.use(express.static('public'));
 
-
+// Start the server
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
-app.get('*', (req, res) => {
-  res.sendFile(path.resolve('public', 'index.html'));
-});
+

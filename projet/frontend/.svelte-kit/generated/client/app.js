@@ -23,7 +23,7 @@ export const nodes = [
 	() => import('./nodes/19'),
 	() => import('./nodes/20'),
 	() => import('./nodes/21'),
-	() => import('./nodes/22')
+	() => import('./nodes/22') // Merged Node 22
 ];
 
 export const server_loads = [];
@@ -33,28 +33,27 @@ export const dictionary = {
 		"/compagnes/add": [3],
 		"/compagnes/detail/[campaign_id]": [4],
 		"/compagnes/show": [5],
-		"/compagnes/statues": [6],
-		"/liste/afficherlist": [7],
-		"/liste/ajouterprospect": [9],
+		"/compagnes/statues": [6], // Merged entry
+		"/liste/afficherlist": [7], // Adjusted index
+		"/liste/ajouterprospect": [9], // Adjusted index
 		"/liste/ajouter": [8],
-		"/liste/corbeille": [10],
-		"/liste/details/[list_id]": [11],
-		"/liste/dnc": [12],
-		"/liste/list-details/[list_id]": [13],
-		"/liste/modifier/[id]": [14],
-		"/liste/prospects": [15],
-		"/liste/recherchelist": [16],
-		"/users/add": [17],
-		"/users/copy": [18],
-		"/users/detail": [19],
-		"/users/list": [20],
-		"/users/search": [21],
-		"/users/stats": [22]
+		"/liste/corbeille": [10], // Adjusted index
+		"/liste/details/[list_id]": [11], // Adjusted index
+		"/liste/dnc": [12], // Adjusted index
+		"/liste/list-details/[list_id]": [13], // Adjusted index
+		"/liste/modifier/[id]": [14], // Adjusted index
+		"/liste/prospects": [15], // Adjusted index
+		"/liste/recherchelist": [16], // Adjusted index
+		"/users/add": [17], // Adjusted index
+		"/users/copy": [18], // Adjusted index
+		"/users/detail": [19], // Adjusted index
+		"/users/list": [20], // Adjusted index
+		"/users/search": [21], // Adjusted index
+		"/users/stats": [22] // Adjusted index
 	};
 
 export const hooks = {
-	handleError: (({ error }) => { console.error(error) }),
-	
+	handleError: (({ error }) => { console.error(error); }),
 	reroute: (() => {}),
 	transport: {}
 };

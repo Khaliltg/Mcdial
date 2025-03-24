@@ -349,3 +349,63 @@ phone_pass
     }
 };
 
+exports.getUserStats = async (req, res) => {
+    const { user, startDate, endDate, status } = req.body;
+
+    // Validate required date filters
+    if (!startDate || !endDate) {
+        return res.status(400).json({ message: 'startDate and endDate are required.' });
+    }
+
+    try {
+        console.log('Filters:', { user, startDate, endDate, status });
+
+        // Prepare dynamic WHERE clauses
+        let whereClauses = ['vl.entry_date BETWEEN ? AND ?'];
+        let queryParams = [startDate, endDate];
+
+        // Check user filter
+        if (user) {
+            // Check if user is a single letter
+            if (user.length === 1) {
+                whereClauses.push('vl.user LIKE ?');
+                queryParams.push(`${user}%`); // Filter for users that start with the letter
+            } else {
+                whereClauses.push('vl.user = ?');
+                queryParams.push(user); // Full user match if not a single letter
+            }
+        }
+
+        // Check status filter
+        if (status) {
+            // Check if status is a single letter
+            if (status.length === 1) {
+                whereClauses.push('val.status LIKE ?');
+                queryParams.push(`${status}%`); // Filter for statuses that start with the letter
+            } else {
+                whereClauses.push('val.status = ?');
+                queryParams.push(status); // Full status match if not a single letter
+            }
+        }
+
+        // Build final query
+        const query = `
+            SELECT vl.user, vl.entry_date, vl.list_id, vl.phone_number, vl.last_local_call_time,
+                   val.campaign_id, val.talk_sec, val.status, vl.lead_id
+            FROM vicidial_list vl
+            JOIN vicidial_agent_log val ON vl.lead_id = val.lead_id
+            WHERE ${whereClauses.join(' AND ')}
+        `;
+
+        const [results] = await db.query(query, queryParams);
+
+        if (!Array.isArray(results) || results.length === 0) {
+            return res.status(404).json({ message: 'No records found for the given criteria.' });
+        }
+
+        res.json(results);
+    } catch (error) {
+        console.error('Error retrieving user stats:', error);
+        res.status(500).json({ message: 'An error occurred, please try again later.' });
+    }
+};

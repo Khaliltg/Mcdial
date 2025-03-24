@@ -1,6 +1,4 @@
-
 // this file is generated — do not edit it
-
 
 /// <reference types="@sveltejs/kit" />
 
@@ -26,53 +24,56 @@
  * ```
  */
 declare module '$env/static/private' {
-	export const TERM_PROGRAM: string;
-	export const NODE: string;
-	export const INIT_CWD: string;
-	export const SHELL: string;
-	export const TERM: string;
-	export const HOMEBREW_REPOSITORY: string;
-	export const TMPDIR: string;
-	export const npm_config_global_prefix: string;
-	export const TERM_PROGRAM_VERSION: string;
+	export const ALLUSERSPROFILE: string;
+	export const APPDATA: string;
+	export const CHROME_CRASHPAD_PIPE_NAME: string;
 	export const COLOR: string;
-	export const TERM_SESSION_ID: string;
-	export const npm_config_noproxy: string;
-	export const npm_config_local_prefix: string;
-	export const USER: string;
-	export const npm_config_globalconfig: string;
-	export const SSH_AUTH_SOCK: string;
-	export const __CF_USER_TEXT_ENCODING: string;
-	export const npm_execpath: string;
-	export const PATH: string;
-	export const npm_package_json: string;
-	export const _: string;
-	export const npm_config_userconfig: string;
-	export const npm_config_init_module: string;
-	export const __CFBundleIdentifier: string;
-	export const npm_command: string;
-	export const PWD: string;
-	export const npm_lifecycle_event: string;
+	export const COLORTERM: string;
+	export const CommonProgramFiles: string;
+	export const CommonProgramW6432: string;
+	export const COMPUTERNAME: string;
+	export const ComSpec: string;
+	export const DriverData: string;
 	export const EDITOR: string;
-	export const npm_package_name: string;
-	export const LANG: string;
-	export const npm_config_npm_version: string;
-	export const XPC_FLAGS: string;
-	export const npm_config_node_gyp: string;
-	export const npm_package_version: string;
-	export const XPC_SERVICE_NAME: string;
-	export const SHLVL: string;
+	export const EFC_19692: string;
+	export const GIT_ASKPASS: string;
 	export const HOME: string;
-	export const HOMEBREW_PREFIX: string;
-	export const npm_config_cache: string;
-	export const LOGNAME: string;
-	export const npm_lifecycle_script: string;
-	export const npm_config_user_agent: string;
-	export const INFOPATH: string;
-	export const HOMEBREW_CELLAR: string;
-	export const npm_node_execpath: string;
-	export const npm_config_prefix: string;
+	export const HOMEDRIVE: string;
+	export const HOMEPATH: string;
+	export const INIT_CWD: string;
+	export const LANG: string;
+	export const LOCALAPPDATA: string;
+	export const LOGONSERVER: string;
+	export const NODE: string;
 	export const NODE_ENV: string;
+	export const npm_command: string;
+	export const npm_config_cache: string;
+	export const npm_config_globalconfig: string;
+	export const npm_config_global_prefix: string;
+	export const npm_config_init_module: string;
+	export const npm_config_local_prefix: string;
+	export const npm_config_node_gyp: string;
+	export const npm_config_noproxy: string;
+	export const npm_config_npm_version: string;
+	export const npm_config_prefix: string;
+	export const npm_config_userconfig: string;
+	export const npm_config_user_agent: string;
+	export const npm_execpath: string;
+	export const TERM_PROGRAM: string;
+	export const TERM_PROGRAM_VERSION: string;
+	export const npm_lifecycle_event: string;
+	export const npm_lifecycle_script: string;
+	export const npm_node_execpath: string;
+	export const npm_package_json: string;
+	export const npm_package_name: string;
+	export const npm_package_version: string;
+	export const PWD: string;
+	export const SHLVL: string;
+	export const USER: string;
+	export const USERNAME: string;
+	export const USERPROFILE: string;
+	export const PATH: string;
+	export const _: string;
 }
 
 /**
@@ -85,7 +86,7 @@ declare module '$env/static/private' {
  * ```
  */
 declare module '$env/static/public' {
-	
+	// Add definitions for public variables here if needed
 }
 
 /**
@@ -104,53 +105,51 @@ declare module '$env/static/public' {
  */
 declare module '$env/dynamic/private' {
 	export const env: {
-		TERM_PROGRAM: string;
-		NODE: string;
-		INIT_CWD: string;
-		SHELL: string;
-		TERM: string;
-		HOMEBREW_REPOSITORY: string;
-		TMPDIR: string;
-		npm_config_global_prefix: string;
-		TERM_PROGRAM_VERSION: string;
+		ALLUSERSPROFILE: string;
+		APPDATA: string;
+		CHROME_CRASHPAD_PIPE_NAME: string;
 		COLOR: string;
-		TERM_SESSION_ID: string;
-		npm_config_noproxy: string;
-		npm_config_local_prefix: string;
-		USER: string;
-		npm_config_globalconfig: string;
-		SSH_AUTH_SOCK: string;
-		__CF_USER_TEXT_ENCODING: string;
-		npm_execpath: string;
-		PATH: string;
-		npm_package_json: string;
-		_: string;
-		npm_config_userconfig: string;
-		npm_config_init_module: string;
-		__CFBundleIdentifier: string;
-		npm_command: string;
-		PWD: string;
-		npm_lifecycle_event: string;
+		COLORTERM: string;
+		CommonProgramFiles: string;
+		CommonProgramW6432: string;
+		COMPUTERNAME: string;
+		ComSpec: string;
+		DriverData: string;
 		EDITOR: string;
-		npm_package_name: string;
-		LANG: string;
-		npm_config_npm_version: string;
-		XPC_FLAGS: string;
-		npm_config_node_gyp: string;
-		npm_package_version: string;
-		XPC_SERVICE_NAME: string;
-		SHLVL: string;
+		EFC_19692: string;
+		GIT_ASKPASS: string;
 		HOME: string;
-		HOMEBREW_PREFIX: string;
-		npm_config_cache: string;
-		LOGNAME: string;
-		npm_lifecycle_script: string;
-		npm_config_user_agent: string;
-		INFOPATH: string;
-		HOMEBREW_CELLAR: string;
-		npm_node_execpath: string;
-		npm_config_prefix: string;
+		HOMEDRIVE: string;
+		HOMEPATH: string;
+		INIT_CWD: string;
+		LANG: string;
+		LOCALAPPDATA: string;
+		LOGONSERVER: string;
+		NODE: string;
 		NODE_ENV: string;
+		npm_command: string;
+		npm_config_cache: string;
+		npm_config_globalconfig: string;
+		npm_config_global_prefix: string;
+		npm_config_init_module: string;
+		npm_config_local_prefix: string;
+		npm_config_node_gyp: string;
+		npm_config_noproxy: string;
+		npm_config_npm_version: string;
+		npm_config_prefix: string;
+		npm_config_userconfig: string;
+		npm_config_user_agent: string;
+		npm_execpath: string;
+		TERM_PROGRAM: string;
+		TERM_PROGRAM_VERSION: string;
+		npm_lifecycle_event: string;
+		npm_lifecycle_script: string;
+		npm_node_execpath: string;
+		npm_package_json: string;
+		npm_package_name: string;
+		npm_package_version: string;
+		npm_lifecycle_event: string;
+		npm_lifecycle_script: string;
 		[key: `PUBLIC_${string}`]: undefined;
 		[key: `${string}`]: string | undefined;
 	}

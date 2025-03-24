@@ -43,26 +43,25 @@
               icon: 'search',
               description: 'Rechercher un compte utilisateur'
             },
-            {
-              name: 'Statistiques des utilisateurs',
-              href: '/users/stats', 
-              icon: 'clipboard',
-              description: 'Afficher les statistiques des utilisateurss'
-            },
+     
+        
+          ]
+        },
+        {
+          name :'statistiques des utilisateurs',
+          href: null,
+          icon: 'clipboard',
+          description: 'Afficher les statistiques des utilisateurs',
+          children: [
             {
               name : 'statut des utilisateurs',
-              href: '/users/status', 
+              href: '/users/stats', 
               icon: 'stop-circle',
               description: 'Afficher l etat des utilisateurs'
             },
-            {
-              name : 'feuille de temps',
-              href: '/users/timesheet', 
-              icon: 'calendar-week',
-              description: 'Gérer les temps de travail'
-            },
           ]
         },
+        
         { 
         name : ' campagnes',
           href: null,
