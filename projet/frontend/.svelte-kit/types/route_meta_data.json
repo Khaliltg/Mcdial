@@ -1,7 +1,10 @@
 {
 	"/": [],
 	"/compagnes/add": [],
+	"/compagnes/copy": [],
 	"/compagnes/detail/[campaign_id]": [],
+	"/compagnes/list_mix/show_list_mix": [],
+	"/compagnes/pause_code": [],
 	"/compagnes/show": [],
 	"/compagnes/statues": [],
 	"/liste/afficherlist": [],

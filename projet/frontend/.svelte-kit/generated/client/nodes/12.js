@@ -1,2 +1,1 @@
-export { default as listDetailsComponent } from "../../../../src/routes/liste/list-details/[list_id]/+page.svelte";
-export { default as dncComponent } from "../../../../src/routes/liste/dnc/+page.svelte";
+export { default as component } from "../../../../src/routes/liste/ajouterprospect/+page.svelte";

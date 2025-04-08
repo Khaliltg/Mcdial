@@ -12,6 +12,7 @@
 
     let activeTab = "general";
     let company = {};
+    let companyCopy = {}; // Copie pour éviter les boucles de réactivité
     let users = [];
     let displayedUsers = [];
     let loading = true;
@@ -19,6 +20,7 @@
     let saving = false;
     let itemsPerPage = 5;
     let currentPage = 1;
+    let advancedComponentLoaded = false;
 
     // Campaign Lists state
     let campaignLists = [];
@@ -42,7 +44,16 @@
                 throw new Error(`Error ${response.status}: Unable to fetch campaign details`);
             }
             const data = await response.json();
-            company = data || {};
+            if (data && data.success === false) {
+                throw new Error(data.message || 'Failed to fetch campaign details');
+            }
+            
+            // Utiliser data.data si disponible, sinon utiliser data directement
+            company = (data.data !== undefined) ? data.data : data;
+            
+            // Créer une copie profonde pour éviter les références partagées
+            companyCopy = JSON.parse(JSON.stringify(company));
+            
             if (company?.campaign_id) {
                 await fetchUserDetails(company.campaign_id);
             }
@@ -60,8 +71,10 @@
             if (!response.ok) {
                 throw new Error(`Error ${response.status}: Unable to fetch campaign agents`);
             }
-            users = await response.json();
-            console.log(users);
+            const data = await response.json();
+            
+            // Vérifier si data.data existe, sinon utiliser data directement
+            users = (data.data !== undefined) ? data.data : (Array.isArray(data) ? data : []);
             
             updateDisplayedUsers();
         } catch (err) {
@@ -74,7 +87,10 @@
             loadingLists = true;
             listsError = null;
             const response = await axios.get(`http://localhost:8000/api/admin/compagnies/getCampaignLists/${campaignId}`);
-            campaignLists = response.data;
+            
+            // Vérifier si response.data.data existe, sinon utiliser response.data directement
+            campaignLists = (response.data.data !== undefined) ? response.data.data : 
+                            (Array.isArray(response.data) ? response.data : []);
         } catch (err) {
             console.error('Error fetching campaign lists:', err);
             listsError = 'Failed to load campaign lists';
@@ -91,23 +107,41 @@
     }
 
     function updateDisplayedUsers() {
+        if (!Array.isArray(users)) {
+            displayedUsers = [];
+            return;
+        }
+        
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
         displayedUsers = users.slice(startIndex, endIndex);
     }
 
     function handleTabChange(tabId) {
+        // Éviter de recharger le même onglet
+        if (activeTab === tabId) return;
+        
         activeTab = tabId;
+        
+        // Si on passe à l'onglet avancé, marquer qu'il a été chargé
+        if (tabId === 'advanced') {
+            advancedComponentLoaded = true;
+        }
     }
 
     async function handleSave() {
         try {
+            saving = true;
+            
+            // Utiliser la version la plus récente des données
+            const dataToSave = activeTab === 'advanced' ? companyCopy : company;
+            
             const response = await fetch(`http://localhost:8000/api/admin/compagnies/update/${campaignId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(company)
+                body: JSON.stringify(dataToSave)
             });
 
             if (!response.ok) {
@@ -116,9 +150,20 @@
 
             const result = await response.json();
             console.log('Campaign updated successfully:', result);
+            
+            // Synchroniser les deux objets après la sauvegarde
+            if (activeTab === 'advanced') {
+                company = JSON.parse(JSON.stringify(companyCopy));
+            } else {
+                companyCopy = JSON.parse(JSON.stringify(company));
+            }
+            
+            // Optionally show success message here
         } catch (err) {
             console.error('Error updating campaign:', err);
             error = err.message;
+        } finally {
+            saving = false;
         }
     }
 
@@ -181,7 +226,7 @@
             <CampaignTabs 
                 {activeTab}
                 {tabs}
-                onTabChange={(tabId) => activeTab = tabId}
+                onTabChange={handleTabChange}
             />
 
             <div class="card custom-card hover-shadow mb-4">
@@ -189,7 +234,8 @@
                     {#if activeTab === 'general'}
                         <GeneralInformation bind:company={company} />
                     {:else if activeTab === 'advanced'}
-                        <AdvancedConfiguration bind:company={company} />
+                        <!-- Utiliser une copie distincte pour éviter les boucles de réactivité -->
+                        <AdvancedConfiguration bind:company={companyCopy} />
                     {/if}
                 </div>
             </div>
@@ -219,7 +265,7 @@
                                 <div>{listsError}</div>
                             </div>
                         </div>
-                    {:else if campaignLists.length === 0}
+                    {:else if !campaignLists || campaignLists.length === 0}
                         <div class="empty-state">
                             <i class="bi bi-inbox fs-1 text-muted mb-2"></i>
                             <p class="mb-3">Aucune liste disponible pour cette campagne</p>
@@ -307,11 +353,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {#if displayedUsers.length === 0}
+                                {#if !displayedUsers || displayedUsers.length === 0}
                                     <tr>
-                                        
                                         <td colspan="5" class="text-center py-4 text-muted">
-                                            
                                             Aucun utilisateur assigné à cette campagne
                                         </td>
                                     </tr>
@@ -348,7 +392,7 @@
                             </tbody>
                         </table>
                     </div>
-                    {#if users.length > itemsPerPage}
+                    {#if users && users.length > itemsPerPage}
                         <div class="d-flex justify-content-center py-3 border-top">
                             <nav aria-label="Pagination des utilisateurs">
                                 <ul class="pagination pagination-sm mb-0">
@@ -379,7 +423,7 @@
             <FooterActions 
                 onCancel={handleCancel}
                 onSave={handleSave}
-                disabled={loading}
+                disabled={loading || saving}
             />
         </div>
     {/if}
