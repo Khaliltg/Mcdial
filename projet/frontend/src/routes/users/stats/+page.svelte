@@ -1,5 +1,6 @@
 <script>
   import axios from 'axios';
+  import { goto } from '$app/navigation';
 
   let startDate = '';
   let endDate = '';
@@ -226,10 +227,10 @@
           <td>{stat.lead_id}</td>
           <td>{stat.phone_number}</td>
           <td>{stat.campaign_id}</td>
-          <td>{new Date(stat.last_local_call_time).toLocaleString()}</td>
+          <td>{new Date(stat.entry_date).toLocaleString()}</td>
           <td>{stat.status}</td>
           <td>{stat.user}</td>
-          <td>{stat.list_id}</td>
+          <td on:click={() => goto(`/liste/fileliste/${stat.list_id}`)}>{stat.list_id}</td>
           <td>{stat.talk_sec}</td>
         </tr>
       {/each}
