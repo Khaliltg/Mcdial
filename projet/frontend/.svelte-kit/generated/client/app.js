@@ -27,43 +27,44 @@ export const nodes = [
 	() => import('./nodes/23'),
 	() => import('./nodes/24'),
 	() => import('./nodes/25'),
-	() => import('./nodes/26')
+	() => import('./nodes/26'),
+	() => import('./nodes/27') // Merged node import
 ];
 
 export const server_loads = [];
 
 export const dictionary = {
-		"/": [2],
-		"/compagnes/add": [3],
-		"/compagnes/detail/[campaign_id]": [4],
-		"/compagnes/show": [5],
-		"/compagnes/statues": [6],
-		"/liste/Filedata": [15],
-		"/liste/afficherlist": [7],
-		"/liste/ajouterListe": [9],
-		"/liste/ajouterprospect": [10],
-		"/liste/ajouter": [8],
-		"/liste/chargerprospect": [11],
-		"/liste/corbeille": [12],
-		"/liste/details/[list_id]": [13],
-		"/liste/dnc": [14],
-		"/liste/fileliste/[id]": [16],
-		"/liste/list-details/[list_id]": [17],
-		"/liste/modifier/[id]": [18],
-		"/liste/prospects": [19],
-		"/liste/recherchelist": [20],
-		"/users/add": [21],
-		"/users/copy": [22],
-		"/users/detail": [23],
-		"/users/list": [24],
-		"/users/search": [25],
-		"/users/stats": [26]
-	};
+	"/": [2],
+	"/compagnes/add": [3],
+	"/compagnes/copy": [4], // Merged path entry
+	"/compagnes/detail/[campaign_id]": [5],
+	"/compagnes/list_mix/show_list_mix": [6], // Merged path entry
+	"/compagnes/pause_code": [7], // Merged path entry
+	"/compagnes/show": [8],
+	"/compagnes/statues": [9], // Merged path entry
+	"/liste/afficherlist": [10],
+	"/liste/ajouterprospect": [12], // Merged path entry
+	"/liste/ajouter": [11], // Merged path entry
+	"/liste/chargerprospect": [13], // Merged path entry
+	"/liste/corbeille": [14],
+	"/liste/details/[list_id]": [15],
+	"/liste/dnc": [16],
+	"/liste/fileliste/[id]": [17],
+	"/liste/list-details/[list_id]": [18],
+	"/liste/modifier/[id]": [19], // Merged path entry
+	"/liste/prospects": [20],
+	"/liste/recherchelist": [21],
+	"/users/add": [22],
+	"/users/copy": [23], // Merged path entry
+	"/users/detail": [24],
+	"/users/list": [25],
+	"/users/search": [26],
+	"/users/stats": [27] // Merged path entry
+};
 
 export const hooks = {
-	handleError: (({ error }) => { console.error(error) }),
-	
-	reroute: (() => {}),
+	handleError: ({ error }) => { console.error(error); },
+	reroute: () => {},
 	transport: {}
 };
 

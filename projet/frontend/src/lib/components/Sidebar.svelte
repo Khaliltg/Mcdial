@@ -99,13 +99,13 @@
             },
             {
               name : ' List Mix',
-              href: '/campaigns/list-mix', 
+              href: '/compagnes/list_mix/show_list_mix', 
               icon: 'card-list',
               description: 'Gérer la liste mix'
             },
             {
               name : ' pause codes ',
-              href: '/campaigns/pause-codes', 
+              href: '/compagnes/pause_code', 
               icon: 'pause',
               description: 'Gérer les codes de pause'
             },
