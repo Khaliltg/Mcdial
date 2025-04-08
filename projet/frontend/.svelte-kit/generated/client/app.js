@@ -28,43 +28,54 @@ export const nodes = [
 	() => import('./nodes/24'),
 	() => import('./nodes/25'),
 	() => import('./nodes/26'),
-	() => import('./nodes/27') // Merged node import
+	() => import('./nodes/27'),
+	() => import('./nodes/28'),
+	() => import('./nodes/29'),
+	() => import('./nodes/30'),
+	() => import('./nodes/31'),
+	() => import('./nodes/32')
 ];
 
 export const server_loads = [];
 
 export const dictionary = {
-	"/": [2],
-	"/compagnes/add": [3],
-	"/compagnes/copy": [4], // Merged path entry
-	"/compagnes/detail/[campaign_id]": [5],
-	"/compagnes/list_mix/show_list_mix": [6], // Merged path entry
-	"/compagnes/pause_code": [7], // Merged path entry
-	"/compagnes/show": [8],
-	"/compagnes/statues": [9], // Merged path entry
-	"/liste/afficherlist": [10],
-	"/liste/ajouterprospect": [12], // Merged path entry
-	"/liste/ajouter": [11], // Merged path entry
-	"/liste/chargerprospect": [13], // Merged path entry
-	"/liste/corbeille": [14],
-	"/liste/details/[list_id]": [15],
-	"/liste/dnc": [16],
-	"/liste/fileliste/[id]": [17],
-	"/liste/list-details/[list_id]": [18],
-	"/liste/modifier/[id]": [19], // Merged path entry
-	"/liste/prospects": [20],
-	"/liste/recherchelist": [21],
-	"/users/add": [22],
-	"/users/copy": [23], // Merged path entry
-	"/users/detail": [24],
-	"/users/list": [25],
-	"/users/search": [26],
-	"/users/stats": [27] // Merged path entry
-};
+		"/": [2],
+		"/compagnes/add": [3],
+		"/compagnes/copy": [4],
+		"/compagnes/detail/[campaign_id]": [5],
+		"/compagnes/list_mix/show_list_mix": [6],
+		"/compagnes/pause_code": [7],
+		"/compagnes/show": [8],
+		"/compagnes/statues": [9],
+		"/liste/Filedata": [10],
+		"/liste/afficherlist": [11],
+		"/liste/ajouterListe": [13],
+		"/liste/ajouterprospect": [14],
+		"/liste/ajouter": [12],
+		"/liste/chargerprospect": [15],
+		"/liste/corbeille": [16],
+		"/liste/details/[list_id]": [17],
+		"/liste/dnc": [18],
+		"/liste/fileliste/[id]": [19],
+		"/liste/list-details/[list_id]": [20],
+		"/liste/modifier/[id]": [21],
+		"/liste/prospects": [22],
+		"/liste/recherchelist": [23],
+		"/phone/afficher": [24],
+		"/phone/ajouter": [25],
+		"/phone/copy": [26],
+		"/users/add": [27],
+		"/users/copy": [28],
+		"/users/detail": [29],
+		"/users/list": [30],
+		"/users/search": [31],
+		"/users/stats": [32]
+	};
 
 export const hooks = {
-	handleError: ({ error }) => { console.error(error); },
-	reroute: () => {},
+	handleError: (({ error }) => { console.error(error) }),
+	
+	reroute: (() => {}),
 	transport: {}
 };
 

@@ -20,6 +20,13 @@
   let activeTab = 'lists'; // 'lists' or 'trash'
   let showInactiveLists = false;
 
+  // Confirmation dialog state
+  let showConfirmDialog = false;
+  let confirmAction = null;
+  let confirmMessage = '';
+  let confirmTitle = '';
+  let listToDelete = null;
+
   async function loadLists() {
     isLoading = true;
     try {
@@ -51,7 +58,6 @@
     }
   }
 
-
   async function addList() {
     isLoading = true;
     try {
@@ -78,16 +84,20 @@
     }
   }
 
-  async function deleteList(list) {
+  function confirmDelete(list) {
     if (!list) {
       showNotification("Erreur : Impossible de supprimer, list_id invalide !", 'error');
       return;
     }
 
-    if (!confirm(`Êtes-vous sûr de vouloir déplacer la liste ${list.list_id} vers la corbeille ?`)) {
-      return;
-    }
+    listToDelete = list;
+    confirmTitle = "Confirmer la suppression";
+    confirmMessage = `Êtes-vous sûr de vouloir déplacer la liste "${list.list_name}" (ID: ${list.list_id}) vers la corbeille ?`;
+    confirmAction = () => deleteList(list);
+    showConfirmDialog = true;
+  }
 
+  async function deleteList(list) {
     isLoading = true;
     try {
       const response = await fetch(`http://localhost:8000/api/lists/supprimer/${list.list_id}`, {
@@ -114,56 +124,38 @@
       showNotification(`Problème lors de la suppression : ${error.message}`, 'error');
     } finally {
       isLoading = false;
+      showConfirmDialog = false;
     }
+  }
+
+  function confirmRestore(list_id) {
+    confirmTitle = "Confirmer la restauration";
+    confirmMessage = `Êtes-vous sûr de vouloir restaurer cette liste ?`;
+    confirmAction = () => restoreList(list_id);
+    showConfirmDialog = true;
   }
 
   async function restoreList(list_id) {
-    if (confirm('Êtes-vous sûr de vouloir restaurer cette liste ?')) {
-      isLoading = true;
-      try {
-        const response = await fetch(`http://localhost:8000/api/lists/restaurer/${list_id}`, {
-          method: 'PUT',
-        });
-        if (response.ok) {
-          deletedLists = deletedLists.filter(list => list.list_id !== list_id);
-          showNotification('Liste restaurée avec succès !', 'success');
-          loadLists();
-        } else {
-          throw new Error('Impossible de restaurer la liste.');
-        }
-      } catch (error) {
-        errorMessage = 'Problème lors de la restauration de la liste.';
-        console.error('Error during restoration:', error);
-      } finally {
-        isLoading = false;
+    isLoading = true;
+    try {
+      const response = await fetch(`http://localhost:8000/api/lists/restaurer/${list_id}`, {
+        method: 'PUT',
+      });
+      if (response.ok) {
+        deletedLists = deletedLists.filter(list => list.list_id !== list_id);
+        showNotification('Liste restaurée avec succès !', 'success');
+        loadLists();
+      } else {
+        throw new Error('Impossible de restaurer la liste.');
       }
+    } catch (error) {
+      errorMessage = 'Problème lors de la restauration de la liste.';
+      console.error('Error during restoration:', error);
+    } finally {
+      isLoading = false;
+      showConfirmDialog = false;
     }
   }
-  async function deletePermanently(list_id) {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette liste définitivement ?')) {
-        isLoading = true;
-        try {
-            const response = await fetch(`http://localhost:8000/api/lists/supprimer/${list_id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (response.ok) {
-                deletedLists = deletedLists.filter(list => list.list_id !== list_id);
-                alert('✅ Liste supprimée définitivement !');
-            } else {
-                throw new Error('Impossible de supprimer la liste définitivement.');
-            }
-        } catch (error) {
-            errorMessage = `⚠️ Problème lors de la suppression définitive de la liste: ${error.message}`;
-        } finally {
-            isLoading = false;
-        }
-    }
-}
-
 
   function filterLists() {
     const filtered = searchQuery
@@ -249,8 +241,6 @@
     }
   }
 
-  function navigateToUploadLeads() {
-    goto('/charger-prospects'); // Assurez-vous que cette route est correcte
   // Notification system
   let notification = { message: '', type: '', visible: false };
   
@@ -276,15 +266,33 @@
     </div>
   {/if}
 
+  <!-- Confirmation Dialog -->
+  {#if showConfirmDialog}
+    <div class="modal-overlay">
+      <div class="modal-content confirm-dialog">
+        <div class="modal-header">
+          <h2>{confirmTitle}</h2>
+          <button class="close-button" on:click={() => showConfirmDialog = false}>×</button>
+        </div>
+        <div class="confirm-body">
+          <div class="confirm-icon">
+            <span>⚠️</span>
+          </div>
+          <p>{confirmMessage}</p>
+        </div>
+        <div class="confirm-actions">
+          <button class="btn btn-secondary" on:click={() => showConfirmDialog = false}>Annuler</button>
+          <button class="btn btn-danger" on:click={confirmAction}>Confirmer</button>
+        </div>
+      </div>
+    </div>
+  {/if}
+
   <header class="header">
     <h1 class="header-title">Gestion des Listes</h1>
     <p class="header-subtitle">Créez, modifiez et gérez vos listes d'appels</p>
   </header>
 
-  <main class="main-content">
-    <!-- Add New List Button -->
-    <button class="add-list-button" on:click={() => goto(`/liste/ajouterListe`)}>
-      Ajouter une nouvelle liste
   <div class="actions-bar">
     <button class="btn btn-primary" on:click={() => showAddListForm = true}>
       <span class="icon">+</span> Nouvelle liste
@@ -304,19 +312,6 @@
     </div>
   </div>
 
-    <!-- Charger les leads Button -->
-    <button class="add-list-button" on:click={() => goto(`/liste/ajouterprospect`)}>
-      Charger les leads
-    </button>
-
-    <!-- Search List Form -->
-    <div class="search-section">
-      <h2>Rechercher une liste</h2>
-      <form class="search-form" on:submit|preventDefault={filterLists}>
-        <input type="text" class="search-input" bind:value={searchQuery} placeholder="Rechercher par nom ou ID..." aria-label="Search" />
-        <button type="submit" class="search-button">Rechercher</button>
-      </form>
-      <button on:click={() => goto('/liste/corbeille')} class="btn btn-warning">Voir la Corbeille 🗑️</button>
   <!-- Add New List Form Modal -->
   {#if showAddListForm}
     <div class="modal-overlay">
@@ -509,8 +504,6 @@
                   <td>{list.campaign_id || 'N/A'}</td>
                   <td class="description-cell">{list.list_description || 'Aucune description'}</td>
                   <td>
-                    <button class="action-button view-button" on:click={() => goto(`/liste/fileliste/${list.list_id}`)}>Voir les fichiers</button>
-                    <button class="action-button delete-button" on:click={() => deleteList(list)}>Supprimer</button>
                     <span class="status-badge active">Active</span>
                   </td>
                   <td class="actions-cell">
@@ -524,7 +517,7 @@
                       <button class="btn btn-icon btn-status" title="Désactiver" on:click={() => toggleListStatus(list)}>
                         <span class="icon">🔄</span>
                       </button>
-                      <button class="btn btn-icon btn-delete" title="Supprimer" on:click={() => deleteList(list)}>
+                      <button class="btn btn-icon btn-delete" title="Supprimer" on:click={() => confirmDelete(list)}>
                         <span class="icon">🗑️</span>
                       </button>
                     </div>
@@ -553,7 +546,7 @@
                         <button class="btn btn-icon btn-status" title="Activer" on:click={() => toggleListStatus(list)}>
                           <span class="icon">🔄</span>
                         </button>
-                        <button class="btn btn-icon btn-delete" title="Supprimer" on:click={() => deleteList(list)}>
+                        <button class="btn btn-icon btn-delete" title="Supprimer" on:click={() => confirmDelete(list)}>
                           <span class="icon">🗑️</span>
                         </button>
                       </div>
@@ -602,7 +595,7 @@
                   <td>{list.campaign_id || 'N/A'}</td>
                   <td class="description-cell">{list.list_description || 'Aucune description'}</td>
                   <td class="actions-cell">
-                    <button class="btn btn-restore" on:click={() => restoreList(list.list_id)}>
+                    <button class="btn btn-restore" on:click={() => confirmRestore(list.list_id)}>
                       Restaurer
                     </button>
                   </td>
@@ -610,34 +603,6 @@
               {/each}
             </tbody>
           </table>
-        {:else}
-          <p class="no-list">Aucune liste inactive trouvée.</p>
-        {/if}
-      </div>
-    </div>
-
-    <!-- Edit List Form -->
-    {#if listId}
-      <div class="form-section">
-        <h2>Modifier la liste</h2>
-        <input type="text" bind:value={editedList.list_name} placeholder="Nom de la liste" aria-label="Nom de la liste" class="form-input" />
-        <input type="text" bind:value={editedList.list_description} placeholder="Description" aria-label="Description de la liste" class="form-input" />
-        <select bind:value={editedList.campaign_id} class="form-input">
-          <option value="" disabled selected>Sélectionner une campagne</option>
-          {#each campaigns as campaign}
-            <option value={campaign.campaign_id}>{campaign.campaign_name}</option>
-          {/each}
-        </select>
-        <button on:click={saveEdit} disabled={isLoading} class="form-button">Enregistrer</button>
-        <button on:click={() => listId = null} class="form-button cancel-button">Annuler</button>
-        {#if errorMessage}
-          <p style="color: red;">{errorMessage}</p>
-        {/if}
-      </div>
-    {/if}
-
-    <!-- Deleted Lists -->
-
         </div>
       {:else}
         <div class="empty-state">
@@ -829,6 +794,15 @@
 
   .btn-secondary:hover {
     background-color: #d1d5db;
+  }
+
+  .btn-danger {
+    background-color: #ef4444;
+    color: white;
+  }
+
+  .btn-danger:hover {
+    background-color: #dc2626;
   }
 
   .btn-icon {
@@ -1054,6 +1028,38 @@
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Confirmation Dialog */
+  .confirm-dialog {
+    max-width: 450px;
+  }
+
+  .confirm-body {
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .confirm-icon {
+    font-size: 2rem;
+    color: #f59e0b;
+  }
+
+  .confirm-body p {
+    margin: 0;
+    color: #4b5563;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e5e7eb;
   }
 
   .modal-header {

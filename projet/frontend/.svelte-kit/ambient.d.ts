@@ -1,4 +1,6 @@
+
 // this file is generated — do not edit it
+
 
 /// <reference types="@sveltejs/kit" />
 
@@ -24,36 +26,16 @@
  * ```
  */
 declare module '$env/static/private' {
-	export const ALLUSERSPROFILE: string;
-	export const AMDRMSDKPATH: string;
-	export const APPDATA: string;
-	export const ChocolateyInstall: string;
-	export const ChocolateyLastPathUpdate: string;
-	export const CHROME_CRASHPAD_PIPE_NAME: string;
-	export const COLOR: string;
-	export const COLORTERM: string;
-	export const CommonProgramFiles: string;
-	export const CommonProgramW6432: string;
-	export const COMPUTERNAME: string;
-	export const ComSpec: string;
-	export const DriverData: string;
-	export const EDITOR: string;
-	export const EFC_10632_1592913036: string; // Updated to keep the new value
-	export const GIT_ASKPASS: string;
-	export const HOME: string;
-	export const HOMEDRIVE: string;
-	export const HOMEPATH: string;
-	export const INIT_CWD: string;
-	export const LANG: string;
-	export const LOCALAPPDATA: string;
-	export const LOGONSERVER: string;
+	export const TERM_PROGRAM: string;
 	export const NODE: string;
+	export const INIT_CWD: string;
 	export const SHELL: string;
 	export const TERM: string;
 	export const HOMEBREW_REPOSITORY: string;
 	export const TMPDIR: string;
 	export const npm_config_global_prefix: string;
 	export const TERM_PROGRAM_VERSION: string;
+	export const COLOR: string;
 	export const TERM_SESSION_ID: string;
 	export const npm_config_noproxy: string;
 	export const npm_config_local_prefix: string;
@@ -71,45 +53,26 @@ declare module '$env/static/private' {
 	export const npm_command: string;
 	export const PWD: string;
 	export const npm_lifecycle_event: string;
+	export const EDITOR: string;
 	export const npm_package_name: string;
+	export const LANG: string;
 	export const npm_config_npm_version: string;
 	export const XPC_FLAGS: string;
 	export const npm_config_node_gyp: string;
 	export const npm_package_version: string;
-	export const NUMBER_OF_PROCESSORS: string;
-	export const OneDrive: string;
-	export const OneDriveConsumer: string;
-	export const ORIGINAL_XDG_CURRENT_DESKTOP: string;
-	export const OS: string;
-	export const Path: string;
-	export const PATHEXT: string;
-	export const PROCESSOR_ARCHITECTURE: string;
-	export const PROCESSOR_IDENTIFIER: string;
-	export const PROCESSOR_LEVEL: string;
-	export const PROCESSOR_REVISION: string;
-	export const ProgramData: string;
-	export const ProgramFiles: string;
-	export const ProgramW6432: string;
-	export const PROMPT: string;
-	export const PSModulePath: string;
-	export const PUBLIC: string;
-	export const SESSIONNAME: string;
-	export const SystemDrive: string;
-	export const SystemRoot: string;
-	export const TEMP: string;
-	export const TMP: string;
-	export const USERDOMAIN: string;
-	export const USERDOMAIN_ROAMINGPROFILE: string;
-	export const USERNAME: string;
-	export const USERPROFILE: string;
-	export const VBOX_HWVIRTEX_IGNORE_SVM_IN_USE: string;
-	export const VBOX_MSI_INSTALL_PATH: string;
-	export const VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
-	export const VSCODE_GIT_ASKPASS_MAIN: string;
-	export const VSCODE_GIT_ASKPASS_NODE: string;
-	export const VSCODE_GIT_IPC_HANDLE: string;
-	export const VSCODE_INJECTION: string;
-	export const windir: string;
+	export const XPC_SERVICE_NAME: string;
+	export const SHLVL: string;
+	export const HOME: string;
+	export const HOMEBREW_PREFIX: string;
+	export const npm_config_cache: string;
+	export const LOGNAME: string;
+	export const npm_lifecycle_script: string;
+	export const npm_config_user_agent: string;
+	export const INFOPATH: string;
+	export const HOMEBREW_CELLAR: string;
+	export const npm_node_execpath: string;
+	export const npm_config_prefix: string;
+	export const NODE_ENV: string;
 }
 
 /**
@@ -122,9 +85,7 @@ declare module '$env/static/private' {
  * ```
  */
 declare module '$env/static/public' {
-	export const env: {
-		[key: `PUBLIC_${string}`]: string | undefined;
-	}
+	
 }
 
 /**
@@ -143,33 +104,16 @@ declare module '$env/static/public' {
  */
 declare module '$env/dynamic/private' {
 	export const env: {
-		ALLUSERSPROFILE: string;
-		APPDATA: string;
-		CHROME_CRASHPAD_PIPE_NAME: string;
-		COLOR: string;
-		COLORTERM: string;
-		CommonProgramFiles: string;
-		CommonProgramW6432: string;
-		COMPUTERNAME: string;
-		ComSpec: string;
-		DriverData: string;
-		EDITOR: string;
-		EFC_10632_1592913036: string;  // Ensure consistency with static module
-		GIT_ASKPASS: string;
-		HOME: string;
-		HOMEDRIVE: string;
-		HOMEPATH: string;
-		INIT_CWD: string;
-		LANG: string;
-		LOCALAPPDATA: string;
-		LOGONSERVER: string;
+		TERM_PROGRAM: string;
 		NODE: string;
+		INIT_CWD: string;
 		SHELL: string;
 		TERM: string;
 		HOMEBREW_REPOSITORY: string;
 		TMPDIR: string;
 		npm_config_global_prefix: string;
 		TERM_PROGRAM_VERSION: string;
+		COLOR: string;
 		TERM_SESSION_ID: string;
 		npm_config_noproxy: string;
 		npm_config_local_prefix: string;
@@ -187,11 +131,45 @@ declare module '$env/dynamic/private' {
 		npm_command: string;
 		PWD: string;
 		npm_lifecycle_event: string;
+		EDITOR: string;
 		npm_package_name: string;
+		LANG: string;
 		npm_config_npm_version: string;
 		XPC_FLAGS: string;
 		npm_config_node_gyp: string;
 		npm_package_version: string;
-		[key: string]: string | undefined;  // Allow for additional dynamic environment variables
+		XPC_SERVICE_NAME: string;
+		SHLVL: string;
+		HOME: string;
+		HOMEBREW_PREFIX: string;
+		npm_config_cache: string;
+		LOGNAME: string;
+		npm_lifecycle_script: string;
+		npm_config_user_agent: string;
+		INFOPATH: string;
+		HOMEBREW_CELLAR: string;
+		npm_node_execpath: string;
+		npm_config_prefix: string;
+		NODE_ENV: string;
+		[key: `PUBLIC_${string}`]: undefined;
+		[key: `${string}`]: string | undefined;
+	}
+}
+
+/**
+ * Similar to [`$env/dynamic/private`](https://svelte.dev/docs/kit/$env-dynamic-private), but only includes variables that begin with [`config.kit.env.publicPrefix`](https://svelte.dev/docs/kit/configuration#env) (which defaults to `PUBLIC_`), and can therefore safely be exposed to client-side code.
+ * 
+ * Note that public dynamic environment variables must all be sent from the server to the client, causing larger network requests — when possible, use `$env/static/public` instead.
+ * 
+ * Dynamic environment variables cannot be used during prerendering.
+ * 
+ * ```ts
+ * import { env } from '$env/dynamic/public';
+ * console.log(env.PUBLIC_DEPLOYMENT_SPECIFIC_VARIABLE);
+ * ```
+ */
+declare module '$env/dynamic/public' {
+	export const env: {
+		[key: `PUBLIC_${string}`]: string | undefined;
 	}
 }
