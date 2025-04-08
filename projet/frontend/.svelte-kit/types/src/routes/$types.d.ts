@@ -13,7 +13,7 @@ type OptionalUnion<U extends Record<string, any>, A extends keyof U = U extends 
 export type Snapshot<T = any> = Kit.Snapshot<T>;
 type PageParentData = EnsureDefined<LayoutData>;
 
-// Updated LayoutRouteId to include both versions
+// Merged LayoutRouteId
 type LayoutRouteId = RouteId | "/" | 
 	"/compagnes/add" | 
 	"/compagnes/copy" | 

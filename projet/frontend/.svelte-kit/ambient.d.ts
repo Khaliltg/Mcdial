@@ -25,7 +25,10 @@
  */
 declare module '$env/static/private' {
 	export const ALLUSERSPROFILE: string;
+	export const AMDRMSDKPATH: string;
 	export const APPDATA: string;
+	export const ChocolateyInstall: string;
+	export const ChocolateyLastPathUpdate: string;
 	export const CHROME_CRASHPAD_PIPE_NAME: string;
 	export const COLOR: string;
 	export const COLORTERM: string;
@@ -35,7 +38,7 @@ declare module '$env/static/private' {
 	export const ComSpec: string;
 	export const DriverData: string;
 	export const EDITOR: string;
-	export const EFC_10632_1592913036: string;
+	export const EFC_10632_1592913036: string; // Updated to keep the new value
 	export const GIT_ASKPASS: string;
 	export const HOME: string;
 	export const HOMEDRIVE: string;
@@ -51,7 +54,6 @@ declare module '$env/static/private' {
 	export const TMPDIR: string;
 	export const npm_config_global_prefix: string;
 	export const TERM_PROGRAM_VERSION: string;
-	export const TERM_PROGRAM: string;
 	export const TERM_SESSION_ID: string;
 	export const npm_config_noproxy: string;
 	export const npm_config_local_prefix: string;
@@ -69,9 +71,7 @@ declare module '$env/static/private' {
 	export const npm_command: string;
 	export const PWD: string;
 	export const npm_lifecycle_event: string;
-	export const EDITOR: string;
 	export const npm_package_name: string;
-	export const LANG: string;
 	export const npm_config_npm_version: string;
 	export const XPC_FLAGS: string;
 	export const npm_config_node_gyp: string;
@@ -154,7 +154,7 @@ declare module '$env/dynamic/private' {
 		ComSpec: string;
 		DriverData: string;
 		EDITOR: string;
-		EFC_10632_1592913036: string;
+		EFC_10632_1592913036: string;  // Ensure consistency with static module
 		GIT_ASKPASS: string;
 		HOME: string;
 		HOMEDRIVE: string;
@@ -164,14 +164,12 @@ declare module '$env/dynamic/private' {
 		LOCALAPPDATA: string;
 		LOGONSERVER: string;
 		NODE: string;
-		INIT_CWD: string;
 		SHELL: string;
 		TERM: string;
 		HOMEBREW_REPOSITORY: string;
 		TMPDIR: string;
 		npm_config_global_prefix: string;
 		TERM_PROGRAM_VERSION: string;
-		COLOR: string;
 		TERM_SESSION_ID: string;
 		npm_config_noproxy: string;
 		npm_config_local_prefix: string;
@@ -189,14 +187,11 @@ declare module '$env/dynamic/private' {
 		npm_command: string;
 		PWD: string;
 		npm_lifecycle_event: string;
-		EDITOR: string;
 		npm_package_name: string;
-		LANG: string;
 		npm_config_npm_version: string;
 		XPC_FLAGS: string;
 		npm_config_node_gyp: string;
 		npm_package_version: string;
-		[key: `PUBLIC_${string}`]: undefined;
-		[key: `${string}`]: string | undefined;
+		[key: string]: string | undefined;  // Allow for additional dynamic environment variables
 	}
 }

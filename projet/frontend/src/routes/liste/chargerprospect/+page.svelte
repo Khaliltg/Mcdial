@@ -66,21 +66,22 @@
     // Additional validations can be added here
 
     const formData = {
-      name, phone, email, address1, address2, address3, city, state,
+      name, phone, email, address1: address1 || '' , address2: address2 || '', address3: address3 || '', city, state,
       postalCode, province, country, dateOfBirth, show, vendorId,
       rank, owner, comments, listId, phone_code: selectedPhoneCode
+      ,status: "new"
     };
 
     try {
       const res = await axios.post(
-        'http://localhost:8000/api/prospects/ajouter_prospect',
+        'http://localhost:8000/api/lists/upload_leads',
         formData
       );
 
       if (res.status === 200) {
         alert('Prospect ajouté avec succès');
         // Clear form fields
-        name = ''; phone = ''; email = ''; address1 = ''; address2 = '';
+       name = ''; phone = ''; email = ''; address1 = ''; address2 = '';
         address3 = ''; city = ''; state = ''; postalCode = ''; province = '';
         country = ''; dateOfBirth = ''; show = ''; vendorId = ''; rank = '';
         owner = ''; comments = ''; listId = '';
@@ -227,8 +228,7 @@
         {/each}
       </select>
 
-      <label class="label">Fichier</label>
-      <input type="file" bind:this={fileInput} class="input-field" />
+      
 
       <button on:click={addProspect} class="button primary">
         Ajouter

@@ -1,2 +1,3 @@
-export { default as prospects } from "../../../../src/routes/liste/prospects/+page.svelte";
-export { default as fileliste } from "../../../../src/routes/liste/fileliste/[id]/+page.svelte";
+export { default as filelisteComponent } from "../../../../src/routes/liste/fileliste/[id]/+page.svelte";
+export { default as dncComponent } from "../../../../src/routes/liste/dnc/+page.svelte";
+export { default as modifier } from "../../../../src/routes/liste/modifier/[id]/+page.svelte";

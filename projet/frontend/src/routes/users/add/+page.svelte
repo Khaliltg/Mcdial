@@ -1,211 +1,87 @@
+<!-- src/routes/ajouter-liste.svelte -->
 <script>
-// @ts-nocheck
+  import { onMount } from 'svelte';
+  import { goto } from '$app/navigation'; // Pour la redirection après l'ajout de la liste
 
-    import { onMount } from 'svelte';
+  let newList = { list_id: '', list_name: '', list_description: '', campaign_id: '', active: 'Y' };
+  let campaigns = [];
 
-  let formData = {
-    user: '',
-    full_name: '',
-    pass: '',
-    user_level: 1,
-    user_group: 'test',
-    status: 'Active' // Added status to match the form
-  };
-
-
-
-  /**
-     * @type {never[]}
-     */
-  let userGrp = [];
-
-
-  
-  async function handleSubmit() {
+  // Fonction pour charger les campagnes
+  async function loadCampaigns() {
     try {
-      const response = await fetch('http://localhost:8000/api/admin/user/create-users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
+      const res = await fetch('http://localhost:8000/api/lists/campaigns');
+      if (res.ok) {
+        campaigns = await res.json();
+      } else {
+        throw new Error('Erreur lors de la récupération des campagnes');
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  }
 
+  // Fonction pour ajouter une nouvelle liste
+  async function addList() {
+    try {
+      const response = await fetch('http://localhost:8000/api/lists/ajouter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newList),
+      });
       if (response.ok) {
-        alert('User created successfully!');
-        resetForm(); // Reset the form after successful submission
+        alert('Liste ajoutée avec succès !');
+        goto('/'); // Redirection vers la page principale après ajout
       } else {
         const errorData = await response.json();
-        alert(`Error: ${errorData.message}`);
+        alert(`Erreur: ${errorData.error}`);
       }
     } catch (error) {
-      console.error('Error submitting form:', error);
-      alert('An error occurred while submitting the form.');
+      alert('Une erreur est survenue.');
     }
   }
 
-  onMount(async () => {
-    try {
-      const response = await fetch('http://localhost:8000/api/admin/user/users-group'); // Replace with your API URL
-      if (response.ok) {
-        userGrp = await response.json();
-        console.log(userGrp);
-        
-      } else {
-        console.error('Failed to fetch users');
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  });
-
-
-  function handleCancel() {
-    resetForm();
-    alert('Form has been reset');
-  }
-
-  function handleReset() {
-    const confirmReset = confirm("Are you sure you want to reset the form?");
-    if (confirmReset) {
-      resetForm();
-    }
-  }
-
-  function resetForm() {
-    formData = {
-      user: '',
-      full_name: '',
-      pass: '',
-      user_level: 1,
-      user_group: 'test',
-      status: 'Active'
-    };
-  }
- 
-  console.log(userGrp);
-  
+  // Charger les campagnes au montage du composant
+  onMount(loadCampaigns());
+  console.log(campaigns)
 </script>
 
+<h2>Ajouter une nouvelle liste</h2>
+<form on:submit|preventDefault={addList}>
+  <input type="text" bind:value={newList.list_id} placeholder="ID de la liste" required class="form-input" />
+  <input type="text" bind:value={newList.list_name} placeholder="Nom de la liste" required class="form-input" />
+  <input type="text" bind:value={newList.list_description} placeholder="Description de la liste" class="form-input" />
+  <select bind:value={newList.campaign_id} class="form-input">
+    <option value="" disabled selected>Sélectionner une campagne</option>
+    {#each campaigns as campaign}
+      <option value={campaign.campaign_id}>{campaign.campaign_name}</option>
+    {/each}
+  </select>
+  <select bind:value={newList.active} class="form-input">
+    <option value="Y">Active</option>
+    <option value="N">Inactive</option>
+  </select>
+  <button type="submit" class="form-button">Ajouter</button>
+</form>
+
 <style>
-  .form-label {
-    font-weight: bold;
+  .form-input {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    border: 1px solid #ddd;
   }
-  .form-control {
-    border-radius: 0.25rem;
-  }
-  .btn {
-    transition: background-color 0.3s, transform 0.2s;
-  }
-  .btn:hover {
-    background-color: #0056b3;
-    transform: translateY(-2px);
-  }
-  .btn-cancel {
-    background-color: #dc3545; /* Bootstrap danger color */
+  
+  .form-button {
+    background-color: #4CAF50;
     color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
   }
-  .btn-cancel:hover {
-    background-color: #c82333; /* Darker red on hover */
+
+  .form-button:hover {
+    background-color: #45a049;
   }
 </style>
-
-<div class="container-fluid py-4">
-  <div class="row">
-    <div class="col-md-8 offset-md-2">
-      <h1 class="mb-4 text-center">Add New User</h1>
-      
-      <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white text-center">
-          <h5 class="mb-0">User Registration</h5>
-        </div>
-        <div class="card-body">
-          <form on:submit|preventDefault={handleSubmit}>
-            <div class="mb-3">
-              <label for="number" class="form-label">User</label>
-              <input 
-                type="text" 
-                class="form-control" 
-                id="user" 
-                bind:value={formData.user} 
-                placeholder="Enter user number" 
-                required
-              >
-            </div>
-            <div class="mb-3">
-              <label for="name" class="form-label">Full Name</label>
-              <input 
-                type="text" 
-                class="form-control" 
-                id="full_name" 
-                bind:value={formData.full_name} 
-                placeholder="Enter full name" 
-                required
-              >
-            </div>
-            <div class="mb-3">
-              <label for="password" class="form-label">Password</label>
-              <input 
-                type="password" 
-                class="form-control" 
-                id="pass" 
-                bind:value={formData.pass} 
-                placeholder="Enter password" 
-                required
-              >
-            </div>
-            <div class="mb-3">
-              <label for="role" class="form-label">User Level</label>
-              <select 
-                class="form-select" 
-                id="user_level" 
-                bind:value={formData.user_level}
-              >
-                <option value="9">9: Admin </option>
-                <option value="8">8: Manager</option>
-                <option value="1">1: Test</option>
-              </select>
-            </div>
-
-            <div class="mb-3">
-              <label for="group" class="form-label">User Group</label>
-              <select 
-                class="form-select" 
-                id="user_group" 
-                bind:value={formData.user_group}
-              >
-                <option value="" disabled>Select a user group</option>
-                {#each userGrp as group}
-                  <option value={group.user_group}>{group.user_group}</option>
-                {/each}
-              </select>
-            </div>
-
-            <div class="mb-3">
-              <label for="status" class="form-label">Account Status</label>
-              <select 
-                class="form-select" 
-                id="status" 
-                bind:value={formData.status}
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-            </div>
-            <div class="d-flex justify-content-between">
-              <button type="submit" class="btn btn-primary">
-                <i class="bi bi-person-plus me-2"></i>Submit 
-              </button>
-              <button type="button" class="btn btn-secondary" on:click={handleReset}>
-                <i class="bi bi-arrow-counterclockwise me-2"></i>Reset
-              </button>
-              <a href="/users/list"><button type="button" class="btn btn-cancel" on:click={handleCancel}>
-                <i class="bi bi-x-circle me-2"></i>Cancel
-              </button></a>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>

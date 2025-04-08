@@ -51,6 +51,7 @@
     }
   }
 
+
   async function addList() {
     isLoading = true;
     try {
@@ -138,6 +139,31 @@
       }
     }
   }
+  async function deletePermanently(list_id) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette liste définitivement ?')) {
+        isLoading = true;
+        try {
+            const response = await fetch(`http://localhost:8000/api/lists/supprimer/${list_id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (response.ok) {
+                deletedLists = deletedLists.filter(list => list.list_id !== list_id);
+                alert('✅ Liste supprimée définitivement !');
+            } else {
+                throw new Error('Impossible de supprimer la liste définitivement.');
+            }
+        } catch (error) {
+            errorMessage = `⚠️ Problème lors de la suppression définitive de la liste: ${error.message}`;
+        } finally {
+            isLoading = false;
+        }
+    }
+}
+
 
   function filterLists() {
     const filtered = searchQuery
@@ -223,6 +249,8 @@
     }
   }
 
+  function navigateToUploadLeads() {
+    goto('/charger-prospects'); // Assurez-vous que cette route est correcte
   // Notification system
   let notification = { message: '', type: '', visible: false };
   
@@ -253,6 +281,10 @@
     <p class="header-subtitle">Créez, modifiez et gérez vos listes d'appels</p>
   </header>
 
+  <main class="main-content">
+    <!-- Add New List Button -->
+    <button class="add-list-button" on:click={() => goto(`/liste/ajouterListe`)}>
+      Ajouter une nouvelle liste
   <div class="actions-bar">
     <button class="btn btn-primary" on:click={() => showAddListForm = true}>
       <span class="icon">+</span> Nouvelle liste
@@ -272,6 +304,19 @@
     </div>
   </div>
 
+    <!-- Charger les leads Button -->
+    <button class="add-list-button" on:click={() => goto(`/liste/ajouterprospect`)}>
+      Charger les leads
+    </button>
+
+    <!-- Search List Form -->
+    <div class="search-section">
+      <h2>Rechercher une liste</h2>
+      <form class="search-form" on:submit|preventDefault={filterLists}>
+        <input type="text" class="search-input" bind:value={searchQuery} placeholder="Rechercher par nom ou ID..." aria-label="Search" />
+        <button type="submit" class="search-button">Rechercher</button>
+      </form>
+      <button on:click={() => goto('/liste/corbeille')} class="btn btn-warning">Voir la Corbeille 🗑️</button>
   <!-- Add New List Form Modal -->
   {#if showAddListForm}
     <div class="modal-overlay">
@@ -464,6 +509,8 @@
                   <td>{list.campaign_id || 'N/A'}</td>
                   <td class="description-cell">{list.list_description || 'Aucune description'}</td>
                   <td>
+                    <button class="action-button view-button" on:click={() => goto(`/liste/fileliste/${list.list_id}`)}>Voir les fichiers</button>
+                    <button class="action-button delete-button" on:click={() => deleteList(list)}>Supprimer</button>
                     <span class="status-badge active">Active</span>
                   </td>
                   <td class="actions-cell">
@@ -563,6 +610,34 @@
               {/each}
             </tbody>
           </table>
+        {:else}
+          <p class="no-list">Aucune liste inactive trouvée.</p>
+        {/if}
+      </div>
+    </div>
+
+    <!-- Edit List Form -->
+    {#if listId}
+      <div class="form-section">
+        <h2>Modifier la liste</h2>
+        <input type="text" bind:value={editedList.list_name} placeholder="Nom de la liste" aria-label="Nom de la liste" class="form-input" />
+        <input type="text" bind:value={editedList.list_description} placeholder="Description" aria-label="Description de la liste" class="form-input" />
+        <select bind:value={editedList.campaign_id} class="form-input">
+          <option value="" disabled selected>Sélectionner une campagne</option>
+          {#each campaigns as campaign}
+            <option value={campaign.campaign_id}>{campaign.campaign_name}</option>
+          {/each}
+        </select>
+        <button on:click={saveEdit} disabled={isLoading} class="form-button">Enregistrer</button>
+        <button on:click={() => listId = null} class="form-button cancel-button">Annuler</button>
+        {#if errorMessage}
+          <p style="color: red;">{errorMessage}</p>
+        {/if}
+      </div>
+    {/if}
+
+    <!-- Deleted Lists -->
+
         </div>
       {:else}
         <div class="empty-state">

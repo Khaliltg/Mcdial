@@ -2,10 +2,10 @@ const db = require('../../config/bd');
 
 exports.createList = async (req, res) => {
     const { list_id, list_name, list_description, campaign_id, active } = req.body;
-
-    if (!list_id || !list_name || !campaign_id || active === undefined) {
+    if (!list_id || !list_name || !campaign_id || !active) {
         return res.status(400).json({ error: "Tous les champs requis ne sont pas fournis." });
     }
+
 
     try {
         const query = `
@@ -16,6 +16,7 @@ exports.createList = async (req, res) => {
 
         res.json({ id: list_id, list_name, list_description, campaign_id, active });
     } catch (err) {
+        
         return res.status(500).json({ error: err.message });
     }
 };
@@ -129,8 +130,28 @@ exports.restoreList = async (req, res) => {
         res.status(500).json({ error: "Une erreur s'est produite lors de la restauration de la liste." });
     }
 };
+exports.deleteListPermanently = async (req, res) => {
+    
+    const { id } = req.params;
+
+    try {
+        const [result] = await db.query('DELETE FROM corbeille WHERE list_id = ?', [id]);
+
+        if (result.affectedRows === 0) {
+           
+            
+            return res.status(500).json({ message: 'Liste non trouvée dans la corbeille.' });
+        }
+
+        res.status(200).json({ message: 'Liste supprimée définitivement avec succès.' });
+    } catch (error) {
+        res.status(500).json({ error: "Une erreur s'est produite lors de la suppression définitive de la liste." });
+    }
+};
+
 
 exports.updateList = async (req, res) => {
+    
     const { list_id, list_name, list_description, campaign_id, active } = req.body;
 
     if (!list_id || !list_name || !campaign_id || active === undefined) {
