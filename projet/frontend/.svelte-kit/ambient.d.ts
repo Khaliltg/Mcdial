@@ -1,6 +1,4 @@
-
 // this file is generated — do not edit it
-
 
 /// <reference types="@sveltejs/kit" />
 
@@ -47,25 +45,36 @@ declare module '$env/static/private' {
 	export const LOCALAPPDATA: string;
 	export const LOGONSERVER: string;
 	export const NODE: string;
-	export const NODE_ENV: string;
-	export const npm_command: string;
-	export const npm_config_cache: string;
-	export const npm_config_globalconfig: string;
+	export const SHELL: string;
+	export const TERM: string;
+	export const HOMEBREW_REPOSITORY: string;
+	export const TMPDIR: string;
 	export const npm_config_global_prefix: string;
-	export const npm_config_init_module: string;
-	export const npm_config_local_prefix: string;
-	export const npm_config_node_gyp: string;
+	export const TERM_PROGRAM_VERSION: string;
+	export const TERM_PROGRAM: string;
+	export const TERM_SESSION_ID: string;
 	export const npm_config_noproxy: string;
-	export const npm_config_npm_version: string;
-	export const npm_config_prefix: string;
-	export const npm_config_userconfig: string;
-	export const npm_config_user_agent: string;
+	export const npm_config_local_prefix: string;
+	export const USER: string;
+	export const npm_config_globalconfig: string;
+	export const SSH_AUTH_SOCK: string;
+	export const __CF_USER_TEXT_ENCODING: string;
 	export const npm_execpath: string;
-	export const npm_lifecycle_event: string;
-	export const npm_lifecycle_script: string;
-	export const npm_node_execpath: string;
+	export const PATH: string;
 	export const npm_package_json: string;
+	export const _: string;
+	export const npm_config_userconfig: string;
+	export const npm_config_init_module: string;
+	export const __CFBundleIdentifier: string;
+	export const npm_command: string;
+	export const PWD: string;
+	export const npm_lifecycle_event: string;
+	export const EDITOR: string;
 	export const npm_package_name: string;
+	export const LANG: string;
+	export const npm_config_npm_version: string;
+	export const XPC_FLAGS: string;
+	export const npm_config_node_gyp: string;
 	export const npm_package_version: string;
 	export const NUMBER_OF_PROCESSORS: string;
 	export const OneDrive: string;
@@ -88,8 +97,6 @@ declare module '$env/static/private' {
 	export const SystemDrive: string;
 	export const SystemRoot: string;
 	export const TEMP: string;
-	export const TERM_PROGRAM: string;
-	export const TERM_PROGRAM_VERSION: string;
 	export const TMP: string;
 	export const USERDOMAIN: string;
 	export const USERDOMAIN_ROAMINGPROFILE: string;
@@ -115,7 +122,9 @@ declare module '$env/static/private' {
  * ```
  */
 declare module '$env/static/public' {
-	
+	export const env: {
+		[key: `PUBLIC_${string}`]: string | undefined;
+	}
 }
 
 /**
@@ -155,81 +164,39 @@ declare module '$env/dynamic/private' {
 		LOCALAPPDATA: string;
 		LOGONSERVER: string;
 		NODE: string;
-		NODE_ENV: string;
-		npm_command: string;
-		npm_config_cache: string;
-		npm_config_globalconfig: string;
+		INIT_CWD: string;
+		SHELL: string;
+		TERM: string;
+		HOMEBREW_REPOSITORY: string;
+		TMPDIR: string;
 		npm_config_global_prefix: string;
-		npm_config_init_module: string;
-		npm_config_local_prefix: string;
-		npm_config_node_gyp: string;
-		npm_config_noproxy: string;
-		npm_config_npm_version: string;
-		npm_config_prefix: string;
-		npm_config_userconfig: string;
-		npm_config_user_agent: string;
-		npm_execpath: string;
-		npm_lifecycle_event: string;
-		npm_lifecycle_script: string;
-		npm_node_execpath: string;
-		npm_package_json: string;
-		npm_package_name: string;
-		npm_package_version: string;
-		NUMBER_OF_PROCESSORS: string;
-		OneDrive: string;
-		OneDriveConsumer: string;
-		ORIGINAL_XDG_CURRENT_DESKTOP: string;
-		OS: string;
-		Path: string;
-		PATHEXT: string;
-		PROCESSOR_ARCHITECTURE: string;
-		PROCESSOR_IDENTIFIER: string;
-		PROCESSOR_LEVEL: string;
-		PROCESSOR_REVISION: string;
-		ProgramData: string;
-		ProgramFiles: string;
-		ProgramW6432: string;
-		PROMPT: string;
-		PSModulePath: string;
-		PUBLIC: string;
-		SESSIONNAME: string;
-		SystemDrive: string;
-		SystemRoot: string;
-		TEMP: string;
-		TERM_PROGRAM: string;
 		TERM_PROGRAM_VERSION: string;
-		TMP: string;
-		USERDOMAIN: string;
-		USERDOMAIN_ROAMINGPROFILE: string;
-		USERNAME: string;
-		USERPROFILE: string;
-		VBOX_HWVIRTEX_IGNORE_SVM_IN_USE: string;
-		VBOX_MSI_INSTALL_PATH: string;
-		VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
-		VSCODE_GIT_ASKPASS_MAIN: string;
-		VSCODE_GIT_ASKPASS_NODE: string;
-		VSCODE_GIT_IPC_HANDLE: string;
-		VSCODE_INJECTION: string;
-		windir: string;
+		COLOR: string;
+		TERM_SESSION_ID: string;
+		npm_config_noproxy: string;
+		npm_config_local_prefix: string;
+		USER: string;
+		npm_config_globalconfig: string;
+		SSH_AUTH_SOCK: string;
+		__CF_USER_TEXT_ENCODING: string;
+		npm_execpath: string;
+		PATH: string;
+		npm_package_json: string;
+		_: string;
+		npm_config_userconfig: string;
+		npm_config_init_module: string;
+		__CFBundleIdentifier: string;
+		npm_command: string;
+		PWD: string;
+		npm_lifecycle_event: string;
+		EDITOR: string;
+		npm_package_name: string;
+		LANG: string;
+		npm_config_npm_version: string;
+		XPC_FLAGS: string;
+		npm_config_node_gyp: string;
+		npm_package_version: string;
 		[key: `PUBLIC_${string}`]: undefined;
 		[key: `${string}`]: string | undefined;
-	}
-}
-
-/**
- * Similar to [`$env/dynamic/private`](https://svelte.dev/docs/kit/$env-dynamic-private), but only includes variables that begin with [`config.kit.env.publicPrefix`](https://svelte.dev/docs/kit/configuration#env) (which defaults to `PUBLIC_`), and can therefore safely be exposed to client-side code.
- * 
- * Note that public dynamic environment variables must all be sent from the server to the client, causing larger network requests — when possible, use `$env/static/public` instead.
- * 
- * Dynamic environment variables cannot be used during prerendering.
- * 
- * ```ts
- * import { env } from '$env/dynamic/public';
- * console.log(env.PUBLIC_DEPLOYMENT_SPECIFIC_VARIABLE);
- * ```
- */
-declare module '$env/dynamic/public' {
-	export const env: {
-		[key: `PUBLIC_${string}`]: string | undefined;
 	}
 }
