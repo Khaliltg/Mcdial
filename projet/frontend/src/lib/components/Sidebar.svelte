@@ -145,12 +145,7 @@
             description: 'Ajouter un nouveau lead',
             },
            
-            {
-              name : 'Charger de nouveaux prospects',
-              href: '/liste/ajouterprospect', 
-              icon: 'upload',
-              description: 'Charger des nouveaux leads',
-            },
+         
             
           ]
         },

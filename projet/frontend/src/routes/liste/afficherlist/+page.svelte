@@ -46,27 +46,6 @@
     }
   }
 
-  async function addList() {
-    try {
-      const response = await fetch('http://localhost:8000/api/lists/ajouter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newList),
-      });
-      if (response.ok) {
-        alert('Liste ajoutée avec succès !');
-        loadLists();
-        showAddListForm = false; // Hide the form after adding
-      } else {
-        const errorData = await response.json();
-        alert(`Erreur: ${errorData.error}`);
-      }
-    } catch (error) {
-      console.error('Erreur lors de l\'ajout:', error);
-      alert('Une erreur est survenue.');
-    }
-  }
-
   async function deleteList(list) {
     if (!list) {
       console.error("❌ Erreur : list ou list_id est indéfini !");
@@ -128,6 +107,31 @@
       }
     }
   }
+  async function deletePermanently(list_id) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette liste définitivement ?')) {
+        isLoading = true;
+        try {
+            const response = await fetch(`http://localhost:8000/api/lists/supprimer/${list_id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (response.ok) {
+                deletedLists = deletedLists.filter(list => list.list_id !== list_id);
+                alert('✅ Liste supprimée définitivement !');
+            } else {
+                throw new Error('Impossible de supprimer la liste définitivement.');
+            }
+        } catch (error) {
+            errorMessage = `⚠️ Problème lors de la suppression définitive de la liste: ${error.message}`;
+        } finally {
+            isLoading = false;
+        }
+    }
+}
+
 
   function filterLists() {
     const filtered = searchQuery
@@ -176,6 +180,10 @@
     }
   }
 
+  function navigateToUploadLeads() {
+    goto('/charger-prospects'); // Assurez-vous que cette route est correcte
+  }
+
   onMount(() => {
     loadLists();
     fetchDeletedLists();
@@ -190,33 +198,14 @@
 
   <main class="main-content">
     <!-- Add New List Button -->
-    <button class="add-list-button" on:click={() => showAddListForm = true}>
+    <button class="add-list-button" on:click={() => goto(`/liste/ajouterListe`)}>
       Ajouter une nouvelle liste
     </button>
 
-    <!-- Add New List Form -->
-    {#if showAddListForm}
-      <div class="form-section add-list-form">
-        <h2>Ajouter une nouvelle liste</h2>
-        <form on:submit|preventDefault={addList}>
-          <input type="text" bind:value={newList.list_id} placeholder="ID de la liste" required class="form-input" />
-          <input type="text" bind:value={newList.list_name} placeholder="Nom de la liste" required class="form-input" />
-          <input type="text" bind:value={newList.list_description} placeholder="Description de la liste" class="form-input" />
-          <select bind:value={newList.campaign_id} class="form-input">
-            <option value="" disabled selected>Sélectionner une campagne</option>
-            {#each campaigns as campaign}
-              <option value={campaign.campaign_id}>{campaign.campaign_name}</option>
-            {/each}
-          </select>
-          <select bind:value={newList.active} class="form-input">
-            <option value="Y">Active</option>
-            <option value="N">Inactive</option>
-          </select>
-          <button type="submit" class="form-button">Ajouter</button>
-          <button type="button" class="form-button cancel-button" on:click={() => showAddListForm = false}>Annuler</button>
-        </form>
-      </div>
-    {/if}
+    <!-- Charger les leads Button -->
+    <button class="add-list-button" on:click={() => goto(`/liste/ajouterprospect`)}>
+      Charger les leads
+    </button>
 
     <!-- Search List Form -->
     <div class="search-section">
@@ -253,7 +242,6 @@
                   <td>✅</td>
                   <td>
                     <button class="action-button view-button" on:click={() => goto(`/liste/fileliste/${list.list_id}`)}>Voir les fichiers</button>
-                    <button class="action-button edit-button" on:click={() => editList(list.list_id)}>Modifier</button>
                     <button class="action-button delete-button" on:click={() => deleteList(list)}>Supprimer</button>
                   </td>
                 </tr>
@@ -322,15 +310,7 @@
     {/if}
 
     <!-- Deleted Lists -->
-    {#if deletedLists.length > 0}
-      {#each deletedLists as list}
-        <div>
-          <p>{list.list_name}</p>
-        </div>
-      {/each}
-    {:else}
-      <p>Aucune liste supprimée.</p>
-    {/if}
+    
   </main>
 </div>
 

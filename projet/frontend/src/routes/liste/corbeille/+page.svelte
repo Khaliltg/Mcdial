@@ -49,6 +49,31 @@
     }
   }
 
+  async function deletePermanently(list_id) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette liste définitivement ?')) {
+      isLoading = true;
+      try {
+        const response = await fetch(`http://localhost:8000/api/lists/supprimer-definitivement/${list_id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          deletedLists = deletedLists.filter(list => list.list_id !== list_id);
+          alert('✅ Liste supprimée définitivement !');
+        } else {
+          throw new Error('Impossible de supprimer la liste définitivement.');
+        }
+      } catch (error) {
+        errorMessage = `⚠️ Problème lors de la suppression définitive de la liste: ${error.message}`;
+      } finally {
+        isLoading = false;
+      }
+    }
+  }
+
   function handleBack() {
     goto('/liste/afficherlist'); // Remplacez par l'URL correcte
   }
@@ -130,7 +155,11 @@
   {:else}
     <ul>
       {#each deletedLists as list}
-        <li>{list.list_name} <button on:click={() => restoreList(list.list_id)}>Restaurer</button></li>
+        <li>
+          {list.list_name}
+          <button on:click={() => restoreList(list.list_id)}>Restaurer</button>
+          <button on:click={() => deletePermanently(list.list_id)}>Supprimer définitivement</button>
+        </li>
       {/each}
     </ul>
   {/if}

@@ -1,130 +1,95 @@
 <script>
-  import { onMount } from "svelte";
-  let list_id = "";
-  let list_name = "";
-  let list_description = "";
-  let campaign_id = "";
-  let active = "Y"; // Valeur par défaut
+  import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
 
-  let lists = [];
+  let users = [];
+  let showAll = false;
 
-  async function handleSubmit() {
+  // Fetch the list of users when the component mounts
+  onMount(async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/lists/ajouter", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          list_id,
-          list_name,
-          list_description,
-          campaign_id,
-          active
-        }),
-      });
-
+      const response = await fetch('http://localhost:8000/api/admin/user/allUsers'); // Replace with your API URL
       if (response.ok) {
-        alert("Liste ajoutée avec succès !");
-        fetchLists(); // Rafraîchir la liste après ajout
+        users = await response.json();
       } else {
-        const errorData = await response.json();
-        alert(`Erreur: ${errorData.error}`);
+        console.error('Failed to fetch users');
       }
     } catch (error) {
-      console.error("Erreur lors de l'ajout:", error);
-      alert("Une erreur est survenue.");
+      console.error('Error fetching users:', error);
     }
+  });
+
+  // Function to toggle between showing all users or just active ones
+  function showAllUsers() {
+    showAll = !showAll;
   }
 
-  async function fetchLists() {
-    try {
-      const response = await fetch("http://localhost:8000/api/lists/afficher");
-      lists = await response.json();
-    } catch (error) {
-      console.error("Erreur lors du chargement des listes:", error);
-    }
+  // Function to navigate to the detail page with the userId as a query parameter
+  function navigateToUserDetail(userId) {
+    goto(`/users/detail?id=${userId}`); // Navigate to the detail page
   }
 
-  onMount(fetchLists);
+  // Function to navigate to the add user page
+  function navigateToAddUser() {
+    goto('/users/add'); // Navigate to the add user page without reloading
+  }
 </script>
 
-<style>
-  /* Centrage complet du formulaire au milieu de la page */
-  body {
-    font-family: 'Arial', sans-serif;
-    background-color: #f4f7fc;
-    margin: 0 ;
-    padding: 0;
-    display: flex;
-    justify-content: center; /* Centrer horizontalement */
-    align-items: center; /* Centrer verticalement */
-    height: 100vh; /* Prendre toute la hauteur de la fenêtre */
-  }
-
-  h1 {
-    color: #007bff;
-    text-align: center;
-    margin-bottom: 20px;
-  }
-
-  form {
-    background-color: white;
-    padding: 30px;
-    border-radius: 18px;
-    width: 400px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-  }
-
-  form:hover {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  }
-
-  input, select, button {
-    width: 100%;
-    padding: 12px;
-    margin: 10px 0;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    font-size: 16px;
-  }
-
-  input:focus, select:focus, button:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.4);
-  }
-
-  button {
-    background-color: #007bff;
-    color: white;
-    cursor: pointer;
-    border: none;
-    transition: background-color 0.3s ease;
-  }
-
-  button:hover {
-    background-color: #0056b3;
-  }
-
-  select {
-    background-color: #f4f7fc;
-  }
-</style>
-
-<form on:submit|preventDefault={handleSubmit}>
-  <h1>Ajouter une nouvelle liste</h1>
-  
-  <input type="text" bind:value={list_id} placeholder="ID de la liste" required />
-  <input type="text" bind:value={list_name} placeholder="Nom de la liste" required />
-  <input type="text" bind:value={list_description} placeholder="Description de la liste" />
-  <input type="text" bind:value={campaign_id} placeholder="ID de la campagne" required />
-  
-  <select bind:value={active}>
-    <option value="Y">Active</option>
-    <option value="N">Inactive</option>
-  </select>
-
-  <button type="submit">Ajouter</button>
-</form>
+<div class="container-fluid py-4">
+  <div class="row">
+    <div class="col-12">
+      <h1 class="mb-4 font-semibold">Show Users</h1>
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <!-- Updated button with on:click event -->
+          <button class="btn btn-light btn-sm" on:click={navigateToAddUser}>
+            <i class="bi bi-person-plus me-2"></i> Add New User
+          </button>
+          <button class="btn btn-light btn-sm" on:click={showAllUsers}>
+            {#if showAll}
+              Show Active Users
+            {:else}
+              Show All Users
+            {/if}
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>User Name</th>
+                  <th>Full Name</th>
+                  <th>User Level</th>
+                  <th>Status</th>
+                  <th>User Group</th>
+                  <th>Phone Login</th>
+                  <th>Phone Pass</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each users as user}
+                  {#if showAll || user.active === 'Y'}
+                    <tr>
+                      <td>
+                        <a href="javascript:void(0)" on:click={() => navigateToUserDetail(user.user_id)}>
+                          {user.user}
+                        </a>
+                      </td>
+                      <td>{user.full_name}</td>
+                      <td>{user.user_level}</td>
+                      <td>{user.active}</td>
+                      <td>{user.user_group}</td>
+                      <td>{user.phone_login}</td>
+                      <td>{user.phone_pass}</td>
+                    </tr>
+                  {/if}
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

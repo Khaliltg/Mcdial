@@ -23,40 +23,46 @@ export const nodes = [
 	() => import('./nodes/19'),
 	() => import('./nodes/20'),
 	() => import('./nodes/21'),
-	() => import('./nodes/22'), // Merged Node 22
-	() => import('./nodes/23')
+	() => import('./nodes/22'),
+	() => import('./nodes/23'),
+	() => import('./nodes/24'),
+	() => import('./nodes/25'),
+	() => import('./nodes/26')
 ];
 
 export const server_loads = [];
 
 export const dictionary = {
-	"/": [2],
-	"/compagnes/add": [3],
-	"/compagnes/detail/[campaign_id]": [4],
-	"/compagnes/show": [5],
-	"/compagnes/statues": [6], // Merged entry
-	"/liste/afficherlist": [7], // Adjusted index
-	"/liste/ajouterprospect": [9], // Adjusted index
-	"/liste/ajouter": [8],
-	"/liste/chargerprospect": [10],
-	"/liste/corbeille": [11], // Adjusted index
-	"/liste/details/[list_id]": [12], // Adjusted index
-	"/liste/dnc": [13], // Adjusted index
-	"/liste/fileliste/[id]": [14],
-	"/liste/list-details/[list_id]": [15], // Adjusted index
-	"/liste/modifier/[id]": [16], // Adjusted index
-	"/liste/prospects": [17], // Adjusted index
-	"/liste/recherchelist": [18], // Adjusted index
-	"/users/add": [19], // Adjusted index
-	"/users/copy": [20], // Adjusted index
-	"/users/detail": [21], // Adjusted index
-	"/users/list": [22], // Adjusted index
-	"/users/search": [23], // Adjusted index
-	"/users/stats": [24] // Adjusted index
-};
+		"/": [2],
+		"/compagnes/add": [3],
+		"/compagnes/detail/[campaign_id]": [4],
+		"/compagnes/show": [5],
+		"/compagnes/statues": [6],
+		"/liste/Filedata": [15],
+		"/liste/afficherlist": [7],
+		"/liste/ajouterListe": [9],
+		"/liste/ajouterprospect": [10],
+		"/liste/ajouter": [8],
+		"/liste/chargerprospect": [11],
+		"/liste/corbeille": [12],
+		"/liste/details/[list_id]": [13],
+		"/liste/dnc": [14],
+		"/liste/fileliste/[id]": [16],
+		"/liste/list-details/[list_id]": [17],
+		"/liste/modifier/[id]": [18],
+		"/liste/prospects": [19],
+		"/liste/recherchelist": [20],
+		"/users/add": [21],
+		"/users/copy": [22],
+		"/users/detail": [23],
+		"/users/list": [24],
+		"/users/search": [25],
+		"/users/stats": [26]
+	};
 
 export const hooks = {
-	handleError: (({ error }) => { console.error(error); }),
+	handleError: (({ error }) => { console.error(error) }),
+	
 	reroute: (() => {}),
 	transport: {}
 };
