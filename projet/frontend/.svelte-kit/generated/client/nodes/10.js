@@ -1,2 +1,1 @@
-export { default as detailsComponent } from "../../../../src/routes/liste/details/[list_id]/+page.svelte";
-export { default as corbeilleComponent } from "../../../../src/routes/liste/corbeille/+page.svelte";
+export { default as component } from "../../../../src/routes/liste/chargerprospect/+page.svelte";

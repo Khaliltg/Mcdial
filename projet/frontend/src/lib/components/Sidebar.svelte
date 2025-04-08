@@ -191,7 +191,25 @@
       href: null,
       icon: 'telephone 1',
       description: 'Phone settings',
-      
+      children: [
+        {name : 'Afficher les téléphone',
+        href: '/phone/afficher', 
+        icon: 'phone',
+        description: 'List of phones',
+        },
+        { name : 'Ajouter un nouveau téléphone',
+        href: '/phone/ajouter', 
+        icon: 'phone',
+        description: 'Add a new phone',
+      },
+      {
+        name :'copier un téléphone existant',
+        href : '/phone/copy',
+        icon : 'phone',
+        description : 'Copy an existing phone',
+      },
+    ]
+ 
     },
   
     {

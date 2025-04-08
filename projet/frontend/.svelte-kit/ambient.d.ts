@@ -1,4 +1,6 @@
+
 // this file is generated — do not edit it
+
 
 /// <reference types="@sveltejs/kit" />
 
@@ -25,10 +27,7 @@
  */
 declare module '$env/static/private' {
 	export const ALLUSERSPROFILE: string;
-	export const AMDRMSDKPATH: string;
 	export const APPDATA: string;
-	export const ChocolateyInstall: string;
-	export const ChocolateyLastPathUpdate: string;
 	export const CHROME_CRASHPAD_PIPE_NAME: string;
 	export const COLOR: string;
 	export const COLORTERM: string;
@@ -38,7 +37,7 @@ declare module '$env/static/private' {
 	export const ComSpec: string;
 	export const DriverData: string;
 	export const EDITOR: string;
-	export const EFC_10856: string; // Keeping this version
+	export const EFC_10632_1592913036: string;
 	export const GIT_ASKPASS: string;
 	export const HOME: string;
 	export const HOMEDRIVE: string;
@@ -68,9 +67,32 @@ declare module '$env/static/private' {
 	export const npm_package_json: string;
 	export const npm_package_name: string;
 	export const npm_package_version: string;
-	export const PWD: string;
-	export const SHLVL: string;
-	export const USER: string;
+	export const NUMBER_OF_PROCESSORS: string;
+	export const OneDrive: string;
+	export const OneDriveConsumer: string;
+	export const ORIGINAL_XDG_CURRENT_DESKTOP: string;
+	export const OS: string;
+	export const Path: string;
+	export const PATHEXT: string;
+	export const PROCESSOR_ARCHITECTURE: string;
+	export const PROCESSOR_IDENTIFIER: string;
+	export const PROCESSOR_LEVEL: string;
+	export const PROCESSOR_REVISION: string;
+	export const ProgramData: string;
+	export const ProgramFiles: string;
+	export const ProgramW6432: string;
+	export const PROMPT: string;
+	export const PSModulePath: string;
+	export const PUBLIC: string;
+	export const SESSIONNAME: string;
+	export const SystemDrive: string;
+	export const SystemRoot: string;
+	export const TEMP: string;
+	export const TERM_PROGRAM: string;
+	export const TERM_PROGRAM_VERSION: string;
+	export const TMP: string;
+	export const USERDOMAIN: string;
+	export const USERDOMAIN_ROAMINGPROFILE: string;
 	export const USERNAME: string;
 	export const USERPROFILE: string;
 	export const VBOX_HWVIRTEX_IGNORE_SVM_IN_USE: string;
@@ -93,13 +115,11 @@ declare module '$env/static/private' {
  * ```
  */
 declare module '$env/static/public' {
-	// Add definitions for public variables here if needed
+	
 }
 
 /**
- * This module provides access to runtime environment variables, as defined by the platform you're running on. For example if you're using [`adapter-node`](https://github.com/sveltejs/kit/tree/main/packages/adapter-node) (or running [`vite preview`](https://svelte.dev/docs/kit/cli)), this is equivalent to `process.env`.
- * 
- * This module only includes variables that _do not_ begin with [`config.kit.env.publicPrefix`](https://svelte.dev/docs/kit/configuration#env) _and do_ start with [`config.kit.env.privatePrefix`](https://svelte.dev/docs/kit/configuration#env) (if configured).
+ * This module provides access to runtime environment variables, as defined by the platform you're running on. For example if you're using [`adapter-node`](https://github.com/sveltejs/kit/tree/main/packages/adapter-node) (or running [`vite preview`](https://svelte.dev/docs/kit/cli)), this is equivalent to `process.env`. This module only includes variables that _do not_ begin with [`config.kit.env.publicPrefix`](https://svelte.dev/docs/kit/configuration#env) _and do_ start with [`config.kit.env.privatePrefix`](https://svelte.dev/docs/kit/configuration#env) (if configured).
  * 
  * This module cannot be imported into client-side code.
  * 
@@ -125,7 +145,7 @@ declare module '$env/dynamic/private' {
 		ComSpec: string;
 		DriverData: string;
 		EDITOR: string;
-		EFC_10856: string; // Keeping this version
+		EFC_10632_1592913036: string;
 		GIT_ASKPASS: string;
 		HOME: string;
 		HOMEDRIVE: string;
@@ -155,6 +175,42 @@ declare module '$env/dynamic/private' {
 		npm_package_json: string;
 		npm_package_name: string;
 		npm_package_version: string;
+		NUMBER_OF_PROCESSORS: string;
+		OneDrive: string;
+		OneDriveConsumer: string;
+		ORIGINAL_XDG_CURRENT_DESKTOP: string;
+		OS: string;
+		Path: string;
+		PATHEXT: string;
+		PROCESSOR_ARCHITECTURE: string;
+		PROCESSOR_IDENTIFIER: string;
+		PROCESSOR_LEVEL: string;
+		PROCESSOR_REVISION: string;
+		ProgramData: string;
+		ProgramFiles: string;
+		ProgramW6432: string;
+		PROMPT: string;
+		PSModulePath: string;
+		PUBLIC: string;
+		SESSIONNAME: string;
+		SystemDrive: string;
+		SystemRoot: string;
+		TEMP: string;
+		TERM_PROGRAM: string;
+		TERM_PROGRAM_VERSION: string;
+		TMP: string;
+		USERDOMAIN: string;
+		USERDOMAIN_ROAMINGPROFILE: string;
+		USERNAME: string;
+		USERPROFILE: string;
+		VBOX_HWVIRTEX_IGNORE_SVM_IN_USE: string;
+		VBOX_MSI_INSTALL_PATH: string;
+		VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
+		VSCODE_GIT_ASKPASS_MAIN: string;
+		VSCODE_GIT_ASKPASS_NODE: string;
+		VSCODE_GIT_IPC_HANDLE: string;
+		VSCODE_INJECTION: string;
+		windir: string;
 		[key: `PUBLIC_${string}`]: undefined;
 		[key: `${string}`]: string | undefined;
 	}
