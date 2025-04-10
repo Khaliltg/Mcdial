@@ -1,6 +1,7 @@
 {
 	"/": [],
 	"/compagnes/add": [],
+	"/compagnes/auto_dial": [],
 	"/compagnes/copy": [],
 	"/compagnes/detail/[campaign_id]": [],
 	"/compagnes/list_mix/show_list_mix": [],

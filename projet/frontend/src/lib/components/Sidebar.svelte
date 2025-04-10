@@ -93,7 +93,7 @@
             },
             {
               name :'Cadran automatique',
-              href: '/campaigns/auto-alt-dial', 
+              href: '/compagnes/auto_dial', 
               icon: 'telephone',
               description: 'Gérer le cadran automatique',
             },

@@ -1362,3 +1362,27 @@ exports.updateCampaign = async (req, res) => {
         res.status(500).json(formatErrorResponse(err, 'Erreur lors de la mise à jour de la campagne'));
     }
 };
+
+//get pause code of campaign
+exports.getCampaignPauseCodes = async (req, res) => {
+    try {
+        const { campaign_id } = req.params;
+        if (!campaign_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'ID de campagne requis'
+            });
+        }
+        const [rows] = await connection.execute(
+            'SELECT pause_code,pause_code_name,billable,campaign_id FROM vicidial_pause_codes WHERE campaign_id = ?', 
+            [campaign_id]
+        );
+        res.json({
+            success: true,
+            data: rows,
+            message: rows.length === 0 ? 'Aucun code de pause trouvé pour cette campagne' : null
+        });
+    } catch (err) { 
+        res.status(500).json(formatErrorResponse(err, 'Erreur lors de la récupération des codes de pause'));
+    }
+};  

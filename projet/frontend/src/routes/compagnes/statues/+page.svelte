@@ -2,7 +2,6 @@
     import { onMount } from 'svelte';
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
-    import StatusStats from '$lib/components/status/StatusStats.svelte';
     import StatusEditModal from '$lib/components/status/StatusEditModal.svelte';
     import StatusDeleteModal from '$lib/components/status/StatusDeleteModal.svelte';
     import CampaignTable from '$lib/components/campaign/CampaignTable.svelte';
@@ -426,7 +425,6 @@
             </div>
         {:else}
             <div transition:fade>
-                <StatusStats statuses={campaignStatuses} />
                 
                 <VoiceMetricsPanel statuses={campaignStatuses} />
                 

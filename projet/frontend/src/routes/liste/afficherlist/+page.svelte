@@ -157,6 +157,34 @@
     }
   }
 
+  function confirmPermanentDelete(list) {
+    confirmTitle = "Supprimer définitivement";
+    confirmMessage = `Êtes-vous sûr de vouloir supprimer définitivement la liste "${list.list_name}" (ID: ${list.list_id}) ? Cette action est irréversible.`;
+    confirmAction = () => permanentDeleteList(list.list_id);
+    showConfirmDialog = true;
+  }
+
+  async function permanentDeleteList(list_id) {
+    isLoading = true;
+    try {
+      const response = await fetch(`http://localhost:8000/api/lists/supprimerdefinitivement/${list_id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        deletedLists = deletedLists.filter(list => list.list_id !== list_id);
+        showNotification('Liste supprimée définitivement !', 'success');
+      } else {
+        throw new Error('Impossible de supprimer définitivement la liste.');
+      }
+    } catch (error) {
+      errorMessage = 'Problème lors de la suppression définitive de la liste.';
+      console.error('Error during permanent deletion:', error);
+    } finally {
+      isLoading = false;
+      showConfirmDialog = false;
+    }
+  }
+
   function filterLists() {
     const filtered = searchQuery
       ? lists.filter(({ list_name, list_id }) =>
@@ -595,9 +623,14 @@
                   <td>{list.campaign_id || 'N/A'}</td>
                   <td class="description-cell">{list.list_description || 'Aucune description'}</td>
                   <td class="actions-cell">
-                    <button class="btn btn-restore" on:click={() => confirmRestore(list.list_id)}>
-                      Restaurer
-                    </button>
+                    <div class="trash-actions">
+                      <button class="btn btn-restore" on:click={() => confirmRestore(list.list_id)}>
+                        <span class="icon">↩️</span> Restaurer
+                      </button>
+                      <button class="btn btn-delete-permanent" on:click={() => confirmPermanentDelete(list)}>
+                        <span class="icon">⚠️</span> Supprimer définitivement
+                      </button>
+                    </div>
                   </td>
                 </tr>
               {/each}
@@ -846,17 +879,43 @@
   .btn-restore {
     background-color: #059669;
     color: white;
-    padding: 0.375rem 0.75rem;
+    padding: 0.5rem 0.75rem;
     border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
   }
 
   .btn-restore:hover {
     background-color: #047857;
   }
 
+  .btn-delete-permanent {
+    background-color: #dc2626;
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+
+  .btn-delete-permanent:hover {
+    background-color: #b91c1c;
+  }
+
   .action-buttons {
     display: flex;
     gap: 0.5rem;
+  }
+
+  .trash-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
   }
 
   /* Actions Bar */
@@ -1323,6 +1382,28 @@
       flex-direction: column;
       align-items: flex-start;
       gap: 0.5rem;
+    }
+    
+    .trash-actions {
+      flex-direction: row;
+      width: 100%;
+    }
+    
+    .actions-cell {
+      width: auto;
+      min-width: 220px;
+    }
+  }
+
+  /* Ajouter cette règle pour les écrans très petits */
+  @media (max-width: 480px) {
+    .trash-actions {
+      flex-direction: column;
+    }
+    
+    .btn-restore, .btn-delete-permanent {
+      width: 100%;
+      justify-content: center;
     }
   }
 </style>

@@ -18,7 +18,8 @@ const {
     updateListMix,
     deleteListMix,
     reorderListMix,
-    updateCampaign
+    updateCampaign,
+    getCampaignPauseCodes
 } = require('../../Controllers/Admin/Compagnes');
 
 const express = require('express');
@@ -68,6 +69,8 @@ router.post('/copier/:campaign_id', copyCampaign);
 
 // mettre à jour une campagne
 router.put('/update/:id', updateCampaign);
+// recuperer les pause codes d'une campaign
+router.get('/getPauseCodesDetails/:campaign_id', getCampaignPauseCodes);
 
 // ===== ROUTES POUR LIST MIX =====
 
