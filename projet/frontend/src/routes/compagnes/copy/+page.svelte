@@ -1,5 +1,6 @@
 <script>
     import { onMount } from 'svelte';
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
     let campaigns = [];
     let selectedCampaignId = '';
@@ -15,7 +16,7 @@
     // Fetch all campaigns on component mount
     onMount(async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/admin/compagnies/recuperer');
+            const response = await fetchWithAuth('http://localhost:8000/api/admin/compagnies/recuperer');
             if (response.ok) {
                 campaigns = await response.json();
                 campaigns.sort((a, b) => a.campaign_name.localeCompare(b.campaign_name));
@@ -69,7 +70,7 @@
         isCopying = true;
 
         try {
-            const response = await fetch(`http://localhost:8000/api/admin/compagnies/copier/${selectedCampaignId}`, {
+            const response = await fetchWithAuth(`http://localhost:8000/api/admin/compagnies/copier/${selectedCampaignId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -88,7 +89,7 @@
                 showSuccessDetails = true;
                 
                 // Refresh the campaign list
-                const campaignsResponse = await fetch('http://localhost:8000/api/admin/compagnies/recuperer');
+                const campaignsResponse = await fetchWithAuth('http://localhost:8000/api/admin/compagnies/recuperer');
                 if (campaignsResponse.ok) {
                     campaigns = await campaignsResponse.json();
                     campaigns.sort((a, b) => a.campaign_name.localeCompare(b.campaign_name));

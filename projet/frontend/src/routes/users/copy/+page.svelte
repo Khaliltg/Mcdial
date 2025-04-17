@@ -1,4 +1,5 @@
 <script>
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
     let NewUserNumber = '';
     let password = '';
     let fullName = '';
@@ -36,11 +37,8 @@
         };
 
         try {
-            const response = await fetch('http://localhost:8000/api/admin/user/copyUser', {
+            const response = await fetchWithAuth('http://localhost:8000/api/admin/user/copyUser', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify(userData),
             });
 
@@ -73,7 +71,7 @@
     const getUser = async () => {
         try {
             loading = true;
-            const response = await fetch('http://localhost:8000/api/admin/user/allUsers');
+            const response = await fetchWithAuth('http://localhost:8000/api/admin/user/allUsers');
             loading = false;
             
             if (!response.ok) {

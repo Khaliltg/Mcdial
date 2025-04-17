@@ -1,5 +1,6 @@
 <script>
     import { onMount } from 'svelte';
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
   
     // Props
     export let campaignId = null;
@@ -49,7 +50,7 @@
   error = null;
   
   try {
-    const response = await fetch(`${API_BASE_URL}/listMix/${campaignId}`);
+    const response = await fetchWithAuth(`${API_BASE_URL}/listMix/${campaignId}`);
     
     if (!response.ok) {
       throw new Error(`Erreur HTTP: ${response.status}`);
@@ -102,7 +103,7 @@
     // Récupérer les listes disponibles pour cette campagne
     async function fetchAvailableLists() {
       try {
-        const response = await fetch(`${API_BASE_URL}/getCampaignLists/${campaignId}`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/getCampaignLists/${campaignId}`);
         
         if (!response.ok) {
           throw new Error(`Erreur HTTP: ${response.status}`);
@@ -151,10 +152,10 @@
           list_id: selectedLists[0], // Utiliser le premier ID de liste comme list_id principal
           list_mix_container: formatListContainer(selectedLists),
           mix_method: newListMix.mix_method,
-          status: newListMix.UI_status === 'ACTIVE' ? 'Y' : 'N' // Convertir UI_status en status (Y/N)
+          status: newListMix.UI_status // Envoyer directement 'ACTIVE' ou 'INACTIVE' sans conversion
         };
         
-        const response = await fetch(`${API_BASE_URL}/listMix/${campaignId}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/listMix/${campaignId}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -201,7 +202,7 @@
       error = null;
       
       try {
-        const response = await fetch(`${API_BASE_URL}/listMix/${campaignId}/${vclId}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/listMix/${campaignId}/${vclId}`, {
           method: 'DELETE'
         });
         
@@ -243,7 +244,7 @@
       try {
         console.log('Sending update data:', data);
         
-        const response = await fetch(`${API_BASE_URL}/listMix/${campaignId}/${vclId}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/listMix/${campaignId}/${vclId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'

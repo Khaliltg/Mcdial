@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import Papa from 'papaparse';
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
   let listIdOverride = '';
   let fileLayout = 'standard';
@@ -15,7 +16,12 @@
   async function loadLists() {
     try {
       isLoading = true;
-      const response = await fetch('http://localhost:8000/api/lists/afficher');
+      let response;
+      if (typeof fetchWithAuth === 'function') {
+        response = await fetchWithAuth('http://localhost:8000/api/lists/afficher');
+      } else {
+        response = await fetch('http://localhost:8000/api/lists/afficher');
+      }
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       lists = await response.json();
     } catch (error) {
@@ -75,20 +81,59 @@
     formData.append('fileLayout', fileLayout);
 
     try {
-      const response = await fetch('http://localhost:8000/api/lists/upload_leads', {
-        method: 'POST',
-        body: formData
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        successMessage = data.message || 'Leads chargés avec succès.';
-        selectedFile = null;
-        csvPreview = [];
-        if (fileInput) fileInput.value = '';
+      let response;
+      if (typeof axios !== 'undefined') {
+        // Use axios if available
+        response = await axios.post(
+          'http://localhost:8000/api/lists/upload_leads',
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          }
+        );
+        // Axios puts response data in response.data
+        if (response.status >= 200 && response.status < 300) {
+          successMessage = response.data.message || 'Leads chargés avec succès';
+          selectedFile = null;
+          csvPreview = [];
+          if (fileInput) fileInput.value = '';
+        } else {
+          errorMessage = response.data.error || 'Une erreur est survenue.';
+        }
+      } else if (typeof fetchWithAuth === 'function') {
+        // Use fetchWithAuth if available
+        response = await fetchWithAuth('http://localhost:8000/api/lists/upload_leads', {
+          method: 'POST',
+          body: formData,
+          headers: {}
+        });
+        const data = await response.json();
+        if (response.ok) {
+          successMessage = data.message || 'Leads chargés avec succès';
+          selectedFile = null;
+          csvPreview = [];
+          if (fileInput) fileInput.value = '';
+        } else {
+          errorMessage = data.error || 'Une erreur est survenue.';
+        }
       } else {
-        console.error('Erreur de l\'API :', data);
-        errorMessage = data.error || 'Erreur inconnue.';
+        // Fallback to fetch
+        response = await fetch('http://localhost:8000/api/lists/upload_leads', {
+          method: 'POST',
+          body: formData,
+          headers: {}
+        });
+        const data = await response.json();
+        if (response.ok) {
+          successMessage = data.message || 'Leads chargés avec succès';
+          selectedFile = null;
+          csvPreview = [];
+          if (fileInput) fileInput.value = '';
+        } else {
+          errorMessage = data.error || 'Une erreur est survenue.';
+        }
       }
     } catch (error) {
       console.error('Erreur lors du chargement des leads:', error);

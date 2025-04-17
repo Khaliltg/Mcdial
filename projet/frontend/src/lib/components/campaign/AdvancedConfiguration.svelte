@@ -1,14 +1,22 @@
 <script>
-    import axios from 'axios';
-    import { onMount } from 'svelte';
+    import { onMount, createEventDispatcher } from 'svelte';
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
+    import { errorStore } from '$lib/stores/errorStore';
+    
+    const dispatch = createEventDispatcher();
     
     export let company;
+    
+    // UI state
+    let saving = false;
+    let hasChanges = false;
     
     // Split the dial_statuses string into an array
     $: dialStatuses = company.dial_statuses ? company.dial_statuses.split(' ') : [];
     
     // For adding new dial status
     let newDialStatus = "";
+    let originalDialStatuses = company.dial_statuses || '';
     let statusCounts = {};
     let loadingCounts = false;
     let error = null;
@@ -22,11 +30,18 @@
         try {
             loadingCounts = true;
             error = null;
-            const response = await axios.get(`http://localhost:8000/api/admin/compagnies/getStatusCountsByList/${company.list_id}`);
-            statusCounts = response.data;
+            const response = await fetchWithAuth(`http://localhost:8000/api/admin/compagnies/getStatusCountsByList/${company.list_id}`);
+            
+            if (!response.ok) {
+                throw new Error(`Erreur ${response.status}: Impossible de récupérer les statistiques de statut`);
+            }
+            
+            statusCounts = await response.json();
         } catch (err) {
             console.error('Error fetching status counts:', err);
-            error = 'Failed to load status counts';
+            error = err.message || 'Échec du chargement des statistiques de statut';
+            errorStore.set(error);
+            setTimeout(() => errorStore.set(""), 3000);
         } finally {
             loadingCounts = false;
         }
@@ -35,12 +50,23 @@
     async function fetchCampaignLists() {
         try {
             loadingLists = true;
-            listsError = null;
-            const response = await axios.get(`http://localhost:8000/api/admin/compagnies/getCampaignLists/${company.campaign_id}`);
-            campaignLists = response.data;
+            listsError = "";
+            const response = await fetchWithAuth(`http://localhost:8000/api/admin/compagnies/getCampaignLists/${company.campaign_id}`);
+            
+            if (!response.ok) {
+                throw new Error(`Erreur ${response.status}: Impossible de récupérer les listes de la campagne`);
+            }
+            
+            const data = await response.json();
+            
+            // Check if data.data exists, otherwise use data directly
+            campaignLists = (data.data !== undefined) ? data.data : 
+                           (Array.isArray(data) ? data : []);
         } catch (err) {
             console.error('Error fetching campaign lists:', err);
-            listsError = 'Failed to load campaign lists';
+            listsError = err.message || 'Échec du chargement des listes de campagne';
+            errorStore.set(listsError);
+            setTimeout(() => errorStore.set(""), 3000);
         } finally {
             loadingLists = false;
         }
@@ -48,15 +74,24 @@
     
     function addDialStatus() {
         if (newDialStatus.trim()) {
+            // Check if status already exists
+            if (dialStatuses.includes(newDialStatus.trim())) {
+                errorStore.set(`Le statut "${newDialStatus.trim()}" existe déjà`);
+                setTimeout(() => errorStore.set(''), 3000);
+                return;
+            }
+            
             dialStatuses = [...dialStatuses, newDialStatus.trim()];
             company.dial_statuses = dialStatuses.join(' ');
             newDialStatus = "";
+            hasChanges = true;
         }
     }
     
     function removeDialStatus(index) {
         dialStatuses = dialStatuses.filter((_, i) => i !== index);
         company.dial_statuses = dialStatuses.join(' ');
+        hasChanges = true;
     }
 
     // Format date for display
@@ -64,6 +99,64 @@
         if (!dateString) return 'Never';
         const date = new Date(dateString);
         return date.toLocaleString();
+    }
+
+    async function saveDialStatuses() {
+        try {
+            saving = true;
+            
+            // Only save if there are changes
+            if (!hasChanges) {
+                errorStore.set('Aucun changement à enregistrer');
+                setTimeout(() => errorStore.set(''), 3000);
+                saving = false;
+                return;
+            }
+            
+            // Prepare data for update
+            const updateData = {
+                dial_statuses: company.dial_statuses
+            };
+            
+            // Call API to update campaign
+            const response = await fetchWithAuth(`http://localhost:8000/api/admin/compagnies/update/${company.campaign_id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updateData)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Erreur ${response.status}: Impossible de mettre à jour les statuts`);
+            }
+            
+            // Update original value to track future changes
+            originalDialStatuses = company.dial_statuses;
+            hasChanges = false;
+            
+            // Show success message
+            errorStore.set('Statuts d\'appel mis à jour avec succès');
+            setTimeout(() => errorStore.set(''), 3000);
+            
+            // Notify parent component
+            dispatch('saved');
+            
+        } catch (err) {
+            console.error('Error saving dial statuses:', err);
+            const errorMessage = err && typeof err === 'object' && 'message' in err ? err.message : 'Erreur lors de la mise à jour des statuts';
+            errorStore.set(errorMessage);
+            setTimeout(() => errorStore.set(''), 5000);
+        } finally {
+            saving = false;
+        }
+    }
+    
+    // Handle key press in input field
+    function handleKeyDown(event) {
+        if (event.key === 'Enter') {
+            addDialStatus();
+        }
     }
 
     // Fetch data when component mounts
@@ -77,26 +170,20 @@
     });
 </script>
 
-<div class="card border-0 rounded-4 bg-white">
-    <div class="card-header bg-light border-0 py-3">
-        <div class="d-flex align-items-center gap-2">
-            <div class="bg-primary bg-opacity-10 p-2 rounded-3">
-                <i class="bi bi-sliders text-primary"></i>
-            </div>
-            <h5 class="mb-0 fw-semibold">Advanced Configuration</h5>
-        </div>
-    </div>
-
-    <div class="card-body p-4">
-        <div class="row g-4">
+<div class="container-fluid p-0">
+    <div class="row g-4">
         
-            <!-- Dialing Configuration -->
-            <div class="col-12">
-                <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
-                    <i class="bi bi-telephone text-primary"></i>
-                    Dialing Configuration
-                </h6>
-                <div class="row g-3">
+        <!-- Advanced Parameters Section -->
+        <div class="col-12">
+            <div class="card border shadow-sm rounded-3">
+                <div class="card-header bg-primary bg-opacity-10 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-sliders text-primary fs-5"></i>
+                        <h5 class="mb-0 fw-semibold">Paramètres Avancés</h5>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="list_order" class="form-label">List Order</label>
@@ -152,16 +239,38 @@
                             >
                         </div>
                     </div>
+                    </div>
                 </div>
             </div>
-
-            <!-- Additional Settings -->
-            <div class="col-12">
-                <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
-                    <i class="bi bi-gear text-primary"></i>
-                    Additional Settings
-                </h6>
-                <div class="row g-3">
+        </div>
+        
+        <!-- Dial Status Configuration -->
+        <div class="col-12">
+            <div class="card border shadow-sm rounded-3">
+                <div class="card-header bg-primary bg-opacity-10 py-3 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-telephone-x text-primary fs-5"></i>
+                        <h5 class="mb-0 fw-semibold">Statuts d'Appel</h5>
+                    </div>
+                    
+                    <button 
+                        on:click={saveDialStatuses}
+                        disabled={saving || !hasChanges}
+                        class="btn btn-sm btn-primary d-flex align-items-center gap-1"
+                    >
+                        {#if saving}
+                            <div class="spinner-border spinner-border-sm me-1" role="status">
+                                <span class="visually-hidden">Chargement...</span>
+                            </div>
+                            Enregistrement...
+                        {:else}
+                            <i class="bi bi-save"></i>
+                            Sauvegarder les statuts
+                        {/if}
+                    </button>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="hopper_level" class="form-label">Hopper Level</label>
@@ -217,16 +326,7 @@
                             </select>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Dial Statuses -->
-            <div class="col-12">
-                <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
-                    <i class="bi bi-activity text-primary"></i>
-                    Dial Statuses
-                </h6>
-                <div class="row g-3">
+                    </div>
                     <div class="col-12">
                         <!-- Status Counts -->
                         <div class="mb-4">

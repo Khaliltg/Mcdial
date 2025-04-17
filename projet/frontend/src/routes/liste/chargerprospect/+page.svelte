@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import axios from "axios";
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
   let name = '';
   let phone = '';
@@ -32,7 +33,7 @@
   let fileInput;
 
   async function loadLists() {
-    const res = await fetch('http://localhost:8000/api/lists/afficher');
+    const res = await fetchWithAuth('http://localhost:8000/api/lists/afficher');
     if (res.ok) {
       lists = await res.json();
     } else {
@@ -41,7 +42,7 @@
   }
 
   async function loadCampaigns() {
-    const res = await fetch('http://localhost:8000/api/lists/campaigns');
+    const res = await fetchWithAuth('http://localhost:8000/api/lists/campaigns');
     if (res.ok) {
       campaigns = await res.json();
     } else {

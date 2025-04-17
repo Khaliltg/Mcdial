@@ -1,396 +1,536 @@
-<script>
-    import DashboardStats from '$lib/components/dashboard/DashboardStats.svelte';
-    import RecentActivity from '$lib/components/dashboard/RecentActivity.svelte';
-    import { onMount } from 'svelte';
-    import Chart from 'chart.js/auto';
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import Chart from 'chart.js/auto';
+  import type { Chart as ChartType } from 'chart.js/auto';
 
-    let stats = {
-        totalCalls: 15234,
-        activeCampaigns: 8,
-        completedCalls: 12456,
-        successRate: 82
-    };
+  // Simulated data (replace with actual API calls later)
+  let stats = {
+    totalCalls: 1250,
+    activeCampaigns: 5,
+    completedCalls: 875,
+    successRate: 70
+  };
 
-    let campaigns = [
-        { id: 1, name: "Campagne A", status: "active", progress: 75 },
-        { id: 2, name: "Campagne B", status: "active", progress: 45 },
-        { id: 3, name: "Campagne C", status: "paused", progress: 30 },
-        { id: 4, name: "Campagne D", status: "completed", progress: 100 }
-    ];
+  type ActivityItem = {
+    id: string;
+    type: 'call' | 'campaign' | 'system';
+    description: string;
+    target: string;
+    timestamp: Date;
+    status: 'success' | 'warning' | 'error' | 'info';
+  };
 
-    let recentActivities = [
-        {
-            type: 'call',
-            icon: 'bi-telephone-outbound',
-            text: 'Appel réussi - Campagne Marketing Q1',
-            time: 'Il y a 5 minutes'
-        },
-        {
-            type: 'campaign',
-            icon: 'bi-graph-up',
-            text: 'Nouvelle campagne "Promotion Été" démarrée',
-            time: 'Il y a 1 heure'
-        },
-        {
-            type: 'alert',
-            icon: 'bi-exclamation-circle',
-            text: 'Seuil d\'appels atteint pour Campagne B',
-            time: 'Il y a 2 heures'
-        }
-    ];
+  let activities: ActivityItem[] = [
+    {
+      id: '1',
+      type: 'call',
+      description: 'Appel terminé avec succès',
+      target: 'Jean Dupont',
+      timestamp: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
+      status: 'success'
+    },
+    {
+      id: '2',
+      type: 'campaign',
+      description: 'Nouvelle campagne créée',
+      target: 'Prospection Q2',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
+      status: 'info'
+    },
+    {
+      id: '3',
+      type: 'call',
+      description: 'Appel sans réponse',
+      target: 'Marie Martin',
+      timestamp: new Date(Date.now() - 1000 * 60 * 90), // 1.5 hours ago
+      status: 'warning'
+    },
+    {
+      id: '4',
+      type: 'system',
+      description: 'Mise à jour du système',
+      target: 'v1.2.5',
+      timestamp: new Date(Date.now() - 1000 * 60 * 120), // 2 hours ago
+      status: 'info'
+    },
+    {
+      id: '5',
+      type: 'call',
+      description: 'Appel échoué',
+      target: 'Pierre Dubois',
+      timestamp: new Date(Date.now() - 1000 * 60 * 240), // 4 hours ago
+      status: 'error'
+    }
+  ];
 
-    let callsChart;
+  let campaigns = [
+    {
+      id: 'c1',
+      name: 'Prospection Clients',
+      status: 'active',
+      progress: 65,
+      callsToday: 125,
+      successRate: 72
+    },
+    {
+      id: 'c2',
+      name: 'Suivi Prospects',
+      status: 'active',
+      progress: 42,
+      callsToday: 87,
+      successRate: 58
+    },
+    {
+      id: 'c3',
+      name: 'Enquête Satisfaction',
+      status: 'paused',
+      progress: 30,
+      callsToday: 0,
+      successRate: 65
+    },
+    {
+      id: 'c4',
+      name: 'Relance Impayés',
+      status: 'completed',
+      progress: 100,
+      callsToday: 0,
+      successRate: 82
+    },
+    {
+      id: 'c5',
+      name: 'Présentation Nouveau Produit',
+      status: 'scheduled',
+      progress: 0,
+      callsToday: 0,
+      successRate: 0
+    }
+  ];
 
-    onMount(() => {
-        const ctx = document.getElementById('callsChart').getContext('2d');
-        callsChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
-                datasets: [{
-                    label: 'Appels',
-                    data: [1200, 1900, 1500, 2100, 1800, 1600, 2000],
-                    borderColor: '#0d6efd',
-                    tension: 0.4,
-                    fill: true,
-                    backgroundColor: 'rgba(13, 110, 253, 0.1)'
-                }]
+  // Chart data
+  let performanceChart: ChartType;
+  let performanceData = {
+    labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+    datasets: [
+      {
+        label: 'Appels',
+        data: [65, 78, 52, 91, 43, 23, 36],
+        borderColor: '#0d6efd',
+        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+        tension: 0.3,
+        fill: true
+      },
+      {
+        label: 'Succès',
+        data: [42, 55, 40, 70, 32, 18, 29],
+        borderColor: '#198754',
+        backgroundColor: 'rgba(25, 135, 84, 0.1)',
+        tension: 0.3,
+        fill: true
+      }
+    ]
+  };
+
+  function getStatusBadgeClass(status: string) {
+    switch (status) {
+      case 'active': return 'bg-primary';
+      case 'paused': return 'bg-warning text-dark';
+      case 'completed': return 'bg-success';
+      case 'scheduled': return 'bg-secondary';
+      default: return 'bg-light text-dark';
+    }
+  }
+
+  function getActivityIcon(type: string) {
+    switch (type) {
+      case 'call': return 'bi-telephone';
+      case 'campaign': return 'bi-megaphone';
+      case 'system': return 'bi-gear';
+      default: return 'bi-info-circle';
+    }
+  }
+
+  function getActivityStatusClass(status: string) {
+    switch (status) {
+      case 'success': return 'text-success';
+      case 'warning': return 'text-warning';
+      case 'error': return 'text-danger';
+      case 'info': return 'text-info';
+      default: return 'text-secondary';
+    }
+  }
+
+  function formatDate(date: Date) {
+    const now = new Date();
+    const diffMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffMinutes < 60) {
+      return `il y a ${diffMinutes} min`;
+    } else if (diffMinutes < 24 * 60) {
+      const hours = Math.floor(diffMinutes / 60);
+      return `il y a ${hours} h`;
+    } else {
+      const days = Math.floor(diffMinutes / (24 * 60));
+      return `il y a ${days} j`;
+    }
+  }
+
+  onMount(() => {
+    const ctx = document.getElementById('performanceChart') as HTMLCanvasElement;
+    if (ctx) {
+      performanceChart = new Chart(ctx, {
+        type: 'line',
+        data: performanceData,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top'
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            display: true,
-                            color: 'rgba(0, 0, 0, 0.05)'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
+            tooltip: {
+              mode: 'index',
+              intersect: false
             }
-        });
-
-        return () => {
-            if (callsChart) {
-                callsChart.destroy();
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                display: true
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              }
             }
-        };
-    });
-  
-    let lineChart, barChart, pieChart;
-    let currentTime = '';
-    let messages = [];
-    let newMessage = '';
-  
-    // Données fictives pour les membres et utilisateurs
-    const teamMembers = [
-      { name: 'seddik', role: 'Developer', avatar: '👩‍💻' },
-      { name: 'zeineb', role: 'Designer', avatar: '🎨' },
-      { name: 'khalil', role: 'Project Manager', avatar: '🗂️' }
-    ];
-  
-    const users = [
-      { name: 'David', avatar: '👤' },
-      { name: 'Eve', avatar: '👤' },
-      { name: 'Frank', avatar: '👤' },
-      { name: 'Grace', avatar: '👤' }
-    ];
-  
-    // Simulated chatbot response
-    async function getChatbotResponse(userMessage) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve(`Chatbot: You said "${userMessage}"`);
-        }, 1000);
+          }
+        }
       });
     }
-  
-    onMount(() => {
-      const ctx1 = document.getElementById('lineChart');
-      if (ctx1 instanceof HTMLCanvasElement) {
-        lineChart = new Chart(ctx1, {
-          type: 'line',
-          data: {
-            labels: ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'],
-            datasets: [{
-              label: 'Total Spent',
-              data: [20, 25, 80, 60, 70, 90],
-              borderColor: 'rgba(0, 123, 255, 1)',
-              backgroundColor: 'rgba(0, 123, 255, 0.2)',
-              fill: true,
-            }]
-          }
-        });
+  });
+  import { goto } from '$app/navigation';
+
+  async function handleLogout() {
+    try {
+      const res = await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      if (res.ok) {
+        goto('/login');
+      } else {
+        alert('Erreur lors de la déconnexion.');
       }
-  
-      const ctx2 = document.getElementById('barChart');
-      if (ctx2 instanceof HTMLCanvasElement) {
-        barChart = new Chart(ctx2, {
-          type: 'bar',
-          data: {
-            labels: ['17', '18', '19', '20', '21', '22', '23'],
-            datasets: [{
-              label: 'Weekly Revenue',
-              data: [40, 60, 50, 80, 70, 90, 100],
-              backgroundColor: 'rgba(255, 99, 132, 0.8)'
-            }]
-          }
-        });
-      }
-  
-      const ctx3 = document.getElementById('pieChart');
-      if (ctx3 instanceof HTMLCanvasElement) {
-        pieChart = new Chart(ctx3, {
-          type: 'pie',
-          data: {
-            labels: ['Your Files', 'System'],
-            datasets: [{
-              data: [65, 35],
-              backgroundColor: ['rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)']
-            }]
-          }
-        });
-      }
-  
-      // Mettre à jour l'heure toutes les secondes
-      setInterval(() => {
-        const now = new Date();
-        currentTime = now.toLocaleTimeString();
-      }, 1000);
-    });
-  
-    async function sendMessage() {
-      if (newMessage.trim()) {
-        const userMessage = newMessage;
-        messages = [...messages, { text: userMessage, sender: 'User' }];
-        newMessage = '';
-  
-        // Get chatbot response
-        const chatbotResponse = await getChatbotResponse(userMessage);
-        messages = [...messages, { text: chatbotResponse, sender: 'Chatbot' }];
-      }
+    } catch (e) {
+      alert('Erreur lors de la déconnexion.');
     }
-  </script>
-  
-  <div class="d-flex">
-      <!-- Horloge -->
-      <div class="row mt-4">
-        <div class="col-md-12 text-center">
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title">Current Time</h5>
-              <h2>{currentTime}</h2>
-            </div>
-          </div>
-        </div>
+  }
+</script>
+
+<!-- Bootstrap Dashboard -->
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row bg-primary text-white py-3 mb-4">
+    <div class="col-md-6">
+      <h1 class="h3 mb-0">McDial Dashboard</h1>
+      <p class="mb-0">Gestion des campagnes d'appels</p>
+    </div>
+    <div class="col-md-6 text-md-end">
+      <div class="d-inline-block me-3">
+        <span class="text-white-50">Aujourd'hui:</span>
+        <span>{new Date().toLocaleDateString('fr-FR')}</span>
       </div>
-   
-  
-    <!-- Main Content -->
-    <div class="container mt-4">
-      <div class="row mb-4">
-        <div class="col-md-4">
-          <div class="card border-info shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title text-info">Earnings</h5>
-              <p class="card-text">$</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card border-warning shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title text-warning">Spend This Month</h5>
-              <p class="card-text">$</p>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card border-success shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title text-success">Sales</h5>
-              <p class="card-text">$</p>
-            </div>
-          </div>
-        </div>
+      <div class="d-inline-block dropdown">
+        <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-person-circle me-1"></i>
+          Admin
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+          <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Paramètres</a></li>
+          <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profil</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><button class="dropdown-item" type="button" on:click|preventDefault={handleLogout}><i class="bi bi-box-arrow-right me-2"></i>Déconnexion</button></li>
+        </ul>
       </div>
-  
-      <div class="row mb-4">
-        <div class="col-md-6">
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title">Total Spent Over Time</h5>
-              <canvas id="lineChart"></canvas>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title">Weekly Revenue</h5>
-              <canvas id="barChart"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-  
-      <div class="row">
-        <div class="col-md-12">
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title">File Distribution</h5>
-              <canvas id="pieChart" style="max-height: 300px;"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-  
-    
-  
-      <!-- Chatbot Interface -->
-      <div class="row mt-4">
-        <div class="col-md-12">
-          <div class="card shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title">Chatbot</h5>
-              <div class="chat-box" style="max-height: 300px; overflow-y: auto; padding: 10px; border-radius: 5px; background-color: #f8f9fa;">
-                {#each messages as message}
-                  <div class="message {message.sender}">
-                    <strong class="{message.sender === 'User' ? 'text-primary' : 'text-success'}">{message.sender}:</strong>
-                    <span>{message.text}</span>
-                  </div>
-                {/each}
-              </div>
-              <div class="input-group mt-3">
-                <input 
-                  type="text" 
-                  class="form-control" 
-                  bind:value={newMessage} 
-                  placeholder="Type a message..." 
-                  on:keypress={event => event.key === 'Enter' && sendMessage()} 
-                />
-                <button class="btn btn-primary" on:click={sendMessage}>Send</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-  
-      <!-- Team Members Section -->
-      <div class="row mt-4">
-        <div class="col-md-6">
-          <div class="card h-100 shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title">Team Members</h5>
-              <div class="list-group">
-                {#each teamMembers as member}
-                  <div class="list-group-item d-flex align-items-center">
-                    <span class="avatar me-2">{member.avatar}</span>
-                    <div>
-                      <strong>{member.name}</strong><br />
-                      <small class="text-muted">{member.role}</small>
-                    </div>
-                  </div>
-                {/each}
-              </div>
-            </div>
-          </div>
-        </div>
-  
-        <!-- Users Section -->
-        <div class="col-md-6">
-          <div class="card h-100 shadow-sm">
-            <div class="card-body">
-              <h5 class="card-title">Users</h5>
-              <div class="list-group">
-                {#each users as user}
-                  <div class="list-group-item d-flex align-items-center">
-                    <span class="avatar me-2">{user.avatar}</span>
-                    <strong>{user.name}</strong>
-                  </div>
-                {/each}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-  
     </div>
   </div>
-  
-  <style>
-    body {
-      background-color: #f4f7fa;
-      font-family: 'Arial', sans-serif;
-    }
-  
-    .card {
-      border-radius: 0.5rem;
-      border: none;
-    }
-  
-    .nav-link {
-      transition: background-color 0.3s;
-    }
-  
-    .nav-link:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-  
-    canvas {
-      max-height: 300px;
-    }
-  
-    .chat-box {
-      margin-bottom: 10px;
-      border-radius: 0.5rem;
-      border: 1px solid #ddd;
-    }
-  
-    .message {
-      margin: 5px 0;
-      padding: 5px 10px;
-      border-radius: 0.5rem;
-    }
-  
-    .User {
-      text-align: right;
-      background-color: rgba(0, 123, 255, 0.1);
-    }
-  
-    .Chatbot {
-      text-align: left;
-      background-color: rgba(40, 167, 69, 0.1);
-    }
-  
-    .list-group-item {
-      border: none;
-      display: flex;
-      align-items: center;
-      padding: 10px;
-      transition: background-color 0.3s;
-    }
-  
-    .list-group-item:hover {
-      background-color: rgba(0, 123, 255, 0.1);
-    }
-  
-    .avatar {
-      font-size: 1.5rem; /* Adjust avatar size */
-    }
-  
-    .h-100 {
-      height: 100%; /* Ensure cards take full height */
-    }
-  </style>
+
+  <!-- Stats Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3 mb-3 mb-md-0">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Total Appels</h6>
+              <h3 class="mb-0">{stats.totalCalls}</h3>
+            </div>
+            <div class="bg-primary bg-opacity-10 p-3 rounded">
+              <i class="bi bi-telephone text-primary fs-4"></i>
+            </div>
+          </div>
+          <div class="progress mt-3" style="height: 5px;">
+            <div class="progress-bar bg-primary" role="progressbar" style="width: 75%;" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3 mb-md-0">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Campagnes Actives</h6>
+              <h3 class="mb-0">{stats.activeCampaigns}</h3>
+            </div>
+            <div class="bg-success bg-opacity-10 p-3 rounded">
+              <i class="bi bi-megaphone text-success fs-4"></i>
+            </div>
+          </div>
+          <div class="progress mt-3" style="height: 5px;">
+            <div class="progress-bar bg-success" role="progressbar" style="width: 60%;" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3 mb-md-0">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Appels Complétés</h6>
+              <h3 class="mb-0">{stats.completedCalls}</h3>
+            </div>
+            <div class="bg-info bg-opacity-10 p-3 rounded">
+              <i class="bi bi-check2-circle text-info fs-4"></i>
+            </div>
+          </div>
+          <div class="progress mt-3" style="height: 5px;">
+            <div class="progress-bar bg-info" role="progressbar" style="width: 80%;" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Taux de Succès</h6>
+              <h3 class="mb-0">{stats.successRate}%</h3>
+            </div>
+            <div class="bg-warning bg-opacity-10 p-3 rounded">
+              <i class="bi bi-graph-up text-warning fs-4"></i>
+            </div>
+          </div>
+          <div class="progress mt-3" style="height: 5px;">
+            <div class="progress-bar bg-warning" role="progressbar" style="width: {stats.successRate}%;" aria-valuenow="{stats.successRate}" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts and Activity -->
+  <div class="row mb-4">
+    <div class="col-lg-8 mb-4 mb-lg-0">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-0">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Performance d'Appels</h5>
+            <div class="btn-group">
+              <button type="button" class="btn btn-sm btn-outline-secondary">Jour</button>
+              <button type="button" class="btn btn-sm btn-primary">Semaine</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary">Mois</button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div style="height: 300px;">
+            <canvas id="performanceChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Activités Récentes</h5>
+          <button class="btn btn-sm btn-outline-primary">Voir tout</button>
+        </div>
+        <div class="card-body p-0">
+          <div class="list-group list-group-flush">
+            {#each activities as activity}
+              <div class="list-group-item border-0 py-3">
+                <div class="d-flex">
+                  <div class="me-3">
+                    <div class="avatar bg-light p-2 rounded-circle">
+                      <i class="bi {getActivityIcon(activity.type)} {getActivityStatusClass(activity.status)}"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <h6 class="mb-0">{activity.target}</h6>
+                      <small class="text-muted">{formatDate(activity.timestamp)}</small>
+                    </div>
+                    <p class="mb-0 text-muted small">{activity.description}</p>
+                  </div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Campaigns Section -->
+  <div class="row mb-4">
+    <div class="col-12 mb-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <h4>Campagnes Actives</h4>
+        <div class="d-flex gap-2">
+          <div class="input-group">
+            <input type="text" class="form-control form-control-sm" placeholder="Rechercher...">
+            <button class="btn btn-outline-secondary btn-sm" type="button">
+              <i class="bi bi-search"></i>
+            </button>
+          </div>
+          <button class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Nouvelle Campagne
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    {#each campaigns.filter(c => c.status === 'active') as campaign}
+      <div class="col-md-6 col-lg-4 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{campaign.name}</h5>
+            <span class="badge {getStatusBadgeClass(campaign.status)}">{campaign.status}</span>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <span>Progression</span>
+                <span>{campaign.progress}%</span>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-primary" role="progressbar" style="width: {campaign.progress}%;" aria-valuenow="{campaign.progress}" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-6">
+                <div class="border rounded p-2 text-center">
+                  <div class="text-muted small">Appels</div>
+                  <div class="fw-bold">{campaign.callsToday}</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="border rounded p-2 text-center">
+                  <div class="text-muted small">Taux de Succès</div>
+                  <div class="fw-bold">{campaign.successRate}%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer bg-white border-0">
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center">
+                <div class="spinner-grow spinner-grow-sm text-success me-2" role="status">
+                  <span class="visually-hidden">En cours...</span>
+                </div>
+                <small class="text-muted">En cours</small>
+              </div>
+              <button class="btn btn-sm btn-outline-primary">Gérer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    {/each}
+  </div>
+
+  <!-- All Campaigns Table -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0">
+          <h5 class="mb-0">Toutes les Campagnes</h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Nom</th>
+                  <th>Statut</th>
+                  <th>Progression</th>
+                  <th>Appels</th>
+                  <th>Taux de Succès</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each campaigns as campaign}
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div class="bg-light p-2 rounded me-2">
+                          <i class="bi bi-folder text-primary"></i>
+                        </div>
+                        <div>
+                          <div>{campaign.name}</div>
+                          <small class="text-muted">ID: {campaign.id}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="badge {getStatusBadgeClass(campaign.status)}">{campaign.status}</span></td>
+                    <td>
+                      <div class="progress" style="height: 6px; width: 100px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: {campaign.progress}%;" aria-valuenow="{campaign.progress}" aria-valuemin="0" aria-valuemax="100"></div>
+                      </div>
+                      <small class="text-muted">{campaign.progress}%</small>
+                    </td>
+                    <td>{campaign.callsToday}</td>
+                    <td>{campaign.successRate}%</td>
+                    <td class="text-end">
+                      <button class="btn btn-sm btn-outline-secondary me-1">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+          <div>
+            <small class="text-muted">Affichage de {campaigns.length} campagnes</small>
+          </div>
+          <nav aria-label="Page navigation">
+            <ul class="pagination pagination-sm mb-0">
+              <li class="page-item disabled">
+                <a class="page-link" href="#" aria-label="Previous">
+                  <span aria-hidden="true">&laquo;</span>
+                </a>
+              </li>
+              <li class="page-item active"><a class="page-link" href="#">1</a></li>
+              <li class="page-item"><a class="page-link" href="#">2</a></li>
+              <li class="page-item"><a class="page-link" href="#">3</a></li>
+              <li class="page-item">
+                <a class="page-link" href="#" aria-label="Next">
+                  <span aria-hidden="true">&raquo;</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

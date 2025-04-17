@@ -98,14 +98,14 @@
 
             <div class="col-md-6">
                 <div class="form-group">
-                    <label for="campaign_active" class="form-label">Active Status</label>
+                    <label for="active" class="form-label">Active Status</label>
                     <select 
-                        id="campaign_active" 
+                        id="active" 
                         class="form-select form-select-sm" 
-                        bind:value={company.campaign_active}
+                        bind:value={company.active}
                     >
-                        <option value={1}>Active</option>
-                        <option value={0}>Inactive</option>
+                        <option value="Y">Active</option>
+                        <option value="N">Inactive</option>
                     </select>
                 </div>
             </div>

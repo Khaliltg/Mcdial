@@ -4,30 +4,38 @@ import '../app.css';
 import Navbar from '$lib/components/Navbar.svelte';
 import Sidebar from '$lib/components/Sidebar.svelte';
 import Footer from '$lib/components/Footer.svelte';
-import '../app.css';
+import { page } from '$app/stores';
+
 let isSidebarOpen = false;
 
 function toggleSidebar() {
   isSidebarOpen = !isSidebarOpen;
 }
+
+$: isLoginPage = $page.url.pathname === '/login';
 </script>
 
 <div class="d-flex flex-column min-vh-100">
-  <Navbar on:toggleSidebar={toggleSidebar} />
+  {#if !isLoginPage}
+    <Navbar on:toggleSidebar={toggleSidebar} />
+  {/if}
 
   <div class="container-fluid flex-grow-1 mt-5">
     <div class="row">
-      <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar p-0">
-        <Sidebar isOpen={isSidebarOpen} />
-      </div>
-      
-      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 pt-3">
+      {#if !isLoginPage}
+        <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar p-0">
+          <Sidebar isOpen={isSidebarOpen} />
+        </div>
+      {/if}
+      <main class={isLoginPage ? 'col-12' : 'col-md-9 ms-sm-auto col-lg-10 px-md-4 pt-3'}>
         <slot />
       </main>
     </div>
   </div>
 
-  <Footer />
+  {#if !isLoginPage}
+    <Footer />
+  {/if}
 </div>
 
 <style>

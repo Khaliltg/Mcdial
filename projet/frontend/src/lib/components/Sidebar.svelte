@@ -158,16 +158,11 @@
         description: 'Manage user groups',
         children: [
           {name: 'Afficher les groupes d utilisateurs',
-          href: '/user-groups/show', 
+          href: '/userGroupe/afficher', 
           icon: 'people',
           description: 'List of user groups',
           },
           
-          { name :'Ajouter un nouveau groupe d utilisateurs',
-          href: '/user-groups/add-user', 
-          icon: 'person-add',
-          description: 'Add a new user to a group',
-          },
           { name : 'Rapport horaire de groupe',
           href: '/user-groups/group-hourly-report', 
           icon: 'clock',
@@ -175,7 +170,7 @@
           },
           {
             name : 'Changement de groupe groupé',
-            href: '/user-groups/bulk-group-change', 
+            href: '/userGroupe/bulk_userGroupe', 
             icon: 'arrow-down-up',
             description: 'Bulk group change'
           },
@@ -310,6 +305,8 @@
       let activeParentItem = null;
       let hoveredItem = null;
       
+      import { goto } from '$app/navigation';
+
       function toggleSubmenu(item) {
         activeParentItem = activeParentItem === item ? null : item;
       }
@@ -319,7 +316,7 @@
           toggleSubmenu(item);
         } else if (item.href) {
           activeItem = item.href;
-          window.location.href = item.href;
+          goto(item.href);
         }
       }
     </script>

@@ -1,4 +1,5 @@
 <script>
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { fade, slide, fly, scale } from 'svelte/transition';
@@ -68,7 +69,7 @@
   async function loadLists() {
     try {
       isLoading = true;
-      const res = await fetch('http://localhost:8000/api/lists/afficher');
+      const res = await fetchWithAuth('http://localhost:8000/api/lists/afficher');
       if (res.ok) {
         lists = await res.json();
         activeLists = lists.filter(list => list.active === 'Y');
@@ -86,7 +87,7 @@
 
   async function loadCampaigns() {
     try {
-      const res = await fetch('http://localhost:8000/api/lists/campaigns');
+      const res = await fetchWithAuth('http://localhost:8000/api/lists/campaigns');
       if (res.ok) {
         campaigns = await res.json();
       } else {
@@ -293,7 +294,7 @@
   async function fetchDeletedLists() {
     try {
       isLoading = true;
-      const response = await fetch('http://localhost:8000/api/lists/corbeille');
+      const response = await fetchWithAuth('http://localhost:8000/api/lists/corbeille');
       if (response.ok) {
         deletedLists = await response.json();
         updatePagination();

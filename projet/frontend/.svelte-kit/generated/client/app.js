@@ -1,3 +1,6 @@
+import * as client_hooks from '../../../src/hooks.client.ts';
+
+
 export { matchers } from './matchers.js';
 
 export const nodes = [
@@ -35,7 +38,12 @@ export const nodes = [
 	() => import('./nodes/31'),
 	() => import('./nodes/32'),
 	() => import('./nodes/33'),
-	() => import('./nodes/34')
+	() => import('./nodes/34'),
+	() => import('./nodes/35'),
+	() => import('./nodes/36'),
+	() => import('./nodes/37'),
+	() => import('./nodes/38'),
+	() => import('./nodes/39')
 ];
 
 export const server_loads = [];
@@ -60,25 +68,31 @@ export const dictionary = {
 		"/liste/corbeille": [17],
 		"/liste/details/[list_id]": [18],
 		"/liste/dnc": [19],
-		"/liste/fileliste/[id]": [21],
-		"/liste/list-details/[list_id]": [22],
-		"/liste/modifier/[id]": [23],
-		"/liste/prospects": [24],
-		"/liste/recherchelist": [25],
+		"/liste/fileliste/[id]": [20],
+		"/liste/list-details/[list_id]": [21],
+		"/liste/modifier/[id]": [22],
+		"/liste/prospects": [23],
+		"/liste/recherchelist": [24],
+		"/login": [25],
 		"/phone/afficher": [26],
 		"/phone/ajouter": [27],
 		"/phone/copy": [28],
-		"/users/add": [29],
-		"/users/copy": [30],
-		"/users/detail": [31],
-		"/users/list": [32],
-		"/users/search": [33],
-		"/users/stats": [34]
+		"/stats/userStats": [29],
+		"/userGroupe/afficher": [30],
+		"/userGroupe/ajouter": [31],
+		"/userGroupe/bulk_userGroupe": [32],
+		"/userGroupe/details": [33],
+		"/users/add": [34],
+		"/users/copy": [35],
+		"/users/detail": [36],
+		"/users/list": [37],
+		"/users/search": [38],
+		"/users/stats": [39]
 	};
 
 export const hooks = {
-	handleError: (({ error }) => { console.error(error) }),
-	
+	handleError: client_hooks.handleError || (({ error }) => { console.error(error) }),
+	init: client_hooks.init,
 	reroute: (() => {}),
 	transport: {}
 };

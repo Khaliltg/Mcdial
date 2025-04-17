@@ -1,23 +1,101 @@
 <script>
+    import { createEventDispatcher } from 'svelte';
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
+    import { errorStore } from '$lib/stores/errorStore';
+    
+    const dispatch = createEventDispatcher();
+    
     export let company;
+    
+    // UI state
+    let saving = false;
+    let hasChanges = false;
     
     // Split the dial_statuses string into an array
     $: dialStatuses = company.dial_statuses ? company.dial_statuses.split(' ') : [];
     
     // For adding new dial status
     let newDialStatus = "";
+    let originalDialStatuses = company.dial_statuses || '';
     
     function addDialStatus() {
         if (newDialStatus.trim()) {
+            // Check if status already exists
+            if (dialStatuses.includes(newDialStatus.trim())) {
+                errorStore.set(`Le statut "${newDialStatus.trim()}" existe déjà`);
+                setTimeout(() => errorStore.set(''), 3000);
+                return;
+            }
+            
             dialStatuses = [...dialStatuses, newDialStatus.trim()];
             company.dial_statuses = dialStatuses.join(' ');
             newDialStatus = "";
+            hasChanges = true;
         }
     }
     
     function removeDialStatus(index) {
         dialStatuses = dialStatuses.filter((_, i) => i !== index);
         company.dial_statuses = dialStatuses.join(' ');
+        hasChanges = true;
+    }
+    
+    async function saveChanges() {
+        try {
+            saving = true;
+            
+            // Only save if there are changes
+            if (!hasChanges) {
+                errorStore.set('Aucun changement à enregistrer');
+                setTimeout(() => errorStore.set(''), 3000);
+                saving = false;
+                return;
+            }
+            
+            // Prepare data for update
+            const updateData = {
+                dial_statuses: company.dial_statuses
+            };
+            
+            // Call API to update campaign
+            const response = await fetchWithAuth(`http://localhost:8000/api/admin/compagnies/update/${company.campaign_id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updateData)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Erreur ${response.status}: Impossible de mettre à jour les statuts`);
+            }
+            
+            // Update original value to track future changes
+            originalDialStatuses = company.dial_statuses;
+            hasChanges = false;
+            
+            // Show success message
+            errorStore.set('Statuts d\'appel mis à jour avec succès');
+            setTimeout(() => errorStore.set(''), 3000);
+            
+            // Notify parent component
+            dispatch('saved');
+            
+        } catch (err) {
+            console.error('Error saving dial statuses:', err);
+            const errorMessage = err && typeof err === 'object' && 'message' in err ? err.message : 'Erreur lors de la mise à jour des statuts';
+            errorStore.set(errorMessage);
+            setTimeout(() => errorStore.set(''), 5000);
+        } finally {
+            saving = false;
+        }
+    }
+    
+    // Handle key press in input field
+    function handleKeyDown(event) {
+        if (event.key === 'Enter') {
+            addDialStatus();
+        }
     }
 </script>
 
@@ -33,14 +111,15 @@
                 <input 
                     type="text" 
                     bind:value={newDialStatus}
-                    placeholder="Enter new dial status"
+                    placeholder="Entrer un nouveau statut d'appel"
+                    on:keydown={handleKeyDown}
                     class="flex-1 px-4 py-2.5 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all sm:text-sm"
                 >
                 <button 
                     on:click={addDialStatus}
                     class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all"
                 >
-                    Add Status
+                    Ajouter
                 </button>
             </div>
 
@@ -61,6 +140,25 @@
                         </div>
                     {/each}
                 {/if}
+            </div>
+            
+            <!-- Save button -->
+            <div class="mt-6 flex justify-end">
+                <button 
+                    on:click={saveChanges}
+                    disabled={saving || !hasChanges}
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {#if saving}
+                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Enregistrement...
+                    {:else}
+                        Enregistrer les modifications
+                    {/if}
+                </button>
             </div>
         </div>
     </div>
