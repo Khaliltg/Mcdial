@@ -2,6 +2,7 @@
     // @ts-nocheck
     import { goto } from '$app/navigation';
     import { fade } from 'svelte/transition';
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
     let currentStep = 1;
     let isSubmitting = false;
@@ -136,7 +137,7 @@
             // Prepare and clean form data
             const cleanedFormData = prepareFormData();
 
-            const response = await fetch('http://localhost:8000/api/admin/compagnies/ajouter', {
+            const response = await fetchWithAuth('http://localhost:8000/api/admin/compagnies/ajouter', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

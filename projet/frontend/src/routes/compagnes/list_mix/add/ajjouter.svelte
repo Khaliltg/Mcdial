@@ -1,5 +1,7 @@
 <script>
     import { onMount } from 'svelte';
+    import { goto } from '$app/navigation';
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
     
     // État local pour les campagnes
     let campaigns = [];
@@ -30,7 +32,7 @@
       error = null;
       
       try {
-        const response = await fetch('http://localhost:8000/api/admin/compagnies/recuperer');
+        const response = await fetchWithAuth('http://localhost:8000/api/admin/compagnies/recuperer');
         
         if (!response.ok) {
           throw new Error(`Erreur HTTP: ${response.status}`);

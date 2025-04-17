@@ -370,6 +370,81 @@ exports.updateStatus = async (req, res) => {
     }
 };
 
+/**
+ * Create a new status for a campaign
+ */
+exports.createStatus = async (req, res) => {
+    try {
+        const { campaign_id } = req.params;
+        const { status, status_name, selectable, human_answered, sale, dnc, 
+                customer_contact, not_interested, unworkable, scheduled_callback, 
+                completed, answering_machine, min_sec, max_sec } = req.body;
+        
+        if (!campaign_id || !status) {
+            return res.status(400).json({
+                success: false,
+                message: 'ID de campagne et statut requis'
+            });
+        }
+
+        // Check if status already exists
+        const [existingStatus] = await connection.execute(
+            'SELECT * FROM vicidial_campaign_statuses WHERE campaign_id = ? AND status = ?',
+            [campaign_id, status]
+        );
+
+        if (existingStatus.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Ce statut existe déjà pour cette campagne'
+            });
+        }
+
+        // Convert boolean values to 'Y'/'N' and ensure numeric values are valid
+        const values = [
+            campaign_id,
+            status,
+            status_name || '',
+            selectable === true ? 'Y' : 'N',
+            human_answered === true ? 'Y' : 'N',
+            sale === true ? 'Y' : 'N',
+            dnc === true ? 'Y' : 'N',
+            customer_contact === true ? 'Y' : 'N',
+            not_interested === true ? 'Y' : 'N',
+            unworkable === true ? 'Y' : 'N',
+            scheduled_callback === true ? 'Y' : 'N',
+            completed === true ? 'Y' : 'N',
+            answering_machine === true ? 'Y' : 'N',
+            Math.max(0, parseInt(min_sec) || 0),
+            Math.max(0, parseInt(max_sec) || 0)
+        ];
+
+        // Ensure max_sec is not less than min_sec
+        if (values[14] < values[13]) {
+            values[14] = values[13];
+        }
+
+        const query = `
+            INSERT INTO vicidial_campaign_statuses (
+                campaign_id, status, status_name, selectable, human_answered,
+                sale, dnc, customer_contact, not_interested, unworkable,
+                scheduled_callback, completed, answering_machine, min_sec, max_sec
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+
+        const [result] = await connection.execute(query, values);
+
+        res.json({
+            success: true,
+            message: 'Statut créé avec succès',
+            insertId: result.insertId
+        });
+
+    } catch (err) {
+        res.status(500).json(formatErrorResponse(err, 'Erreur lors de la création du statut'));
+    }
+};
+
 
 exports.deleteStatus = async (req, res) => {
     try {

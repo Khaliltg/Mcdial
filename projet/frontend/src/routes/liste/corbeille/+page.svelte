@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
   let deletedLists = [];
   let isLoading = false;
@@ -11,7 +12,7 @@
     errorMessage = '';
 
     try {
-      const response = await fetch('http://localhost:8000/api/lists/corbeille');
+      const response = await fetchWithAuth('http://localhost:8000/api/lists/corbeille');
       if (response.ok) {
         deletedLists = await response.json();
       } else {

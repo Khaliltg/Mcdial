@@ -1,4 +1,6 @@
-<script>
+<script lang="ts">
+    import { Card, CardHeader, CardTitle, CardContent } from '$lib/components/ui/card';
+
     export let stats = {
         totalCalls: 0,
         activeCampaigns: 0,
@@ -7,98 +9,77 @@
     };
 </script>
 
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon bg-primary">
-            <i class="bi bi-telephone"></i>
-        </div>
-        <div class="stat-content">
-            <h3 class="stat-value">{stats.totalCalls.toLocaleString()}</h3>
-            <p class="stat-label">Appels Totaux</p>
-        </div>
-    </div>
+<div class="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+    <Card class="shadow-sm border border-border/50 overflow-hidden">
+        <div class="bg-gradient-to-br from-primary/5 to-primary/10 absolute h-full w-full"></div>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2 relative">
+            <CardTitle class="text-sm font-medium">Appels Totaux</CardTitle>
+            <div class="h-9 w-9 rounded-full bg-background shadow-sm flex items-center justify-center">
+                <i class="bi bi-telephone-fill text-primary"></i>
+            </div>
+        </CardHeader>
+        <CardContent class="relative">
+            <div class="text-2xl font-bold">{stats.totalCalls.toLocaleString()}</div>
+            <div class="flex items-center justify-between mt-1">
+                <p class="text-xs text-muted-foreground">Tous les appels</p>
+                <span class="text-xs font-medium px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary">Total</span>
+            </div>
+        </CardContent>
+    </Card>
 
-    <div class="stat-card">
-        <div class="stat-icon bg-success">
-            <i class="bi bi-graph-up"></i>
-        </div>
-        <div class="stat-content">
-            <h3 class="stat-value">{stats.activeCampaigns}</h3>
-            <p class="stat-label">Campagnes Actives</p>
-        </div>
-    </div>
+    <a href="/compagnes" class="no-underline">
+        <Card class="shadow-sm border border-border/50 overflow-hidden">
+            <div class="bg-gradient-to-br from-secondary/5 to-secondary/10 absolute h-full w-full"></div>
+            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2 relative">
+                <CardTitle class="text-sm font-medium">Campagnes Actives</CardTitle>
+                <div class="h-9 w-9 rounded-full bg-background shadow-sm flex items-center justify-center">
+                    <i class="bi bi-megaphone-fill text-secondary"></i>
+                </div>
+            </CardHeader>
+            <CardContent class="relative">
+                <div class="text-2xl font-bold">{stats.activeCampaigns}</div>
+                <div class="flex items-center justify-between mt-1">
+                    <p class="text-xs text-muted-foreground">Campagnes en cours</p>
+                    <span class="text-xs font-medium px-1.5 py-0.5 rounded-sm bg-secondary/10 text-secondary">Actif</span>
+                </div>
+            </CardContent>
+        </Card>
+    </a>
 
-    <div class="stat-card">
-        <div class="stat-icon bg-info">
-            <i class="bi bi-check2-circle"></i>
-        </div>
-        <div class="stat-content">
-            <h3 class="stat-value">{stats.completedCalls.toLocaleString()}</h3>
-            <p class="stat-label">Appels Complétés</p>
-        </div>
-    </div>
+    <Card class="shadow-sm border border-border/50 overflow-hidden">
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100/50 absolute h-full w-full"></div>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2 relative">
+            <CardTitle class="text-sm font-medium">Appels Complétés</CardTitle>
+            <div class="h-9 w-9 rounded-full bg-background shadow-sm flex items-center justify-center">
+                <i class="bi bi-check2-circle-fill text-blue-500"></i>
+            </div>
+        </CardHeader>
+        <CardContent class="relative">
+            <div class="text-2xl font-bold">{stats.completedCalls.toLocaleString()}</div>
+            <div class="flex items-center justify-between mt-1">
+                <p class="text-xs text-muted-foreground">Conversations terminées</p>
+                <span class="text-xs font-medium px-1.5 py-0.5 rounded-sm bg-blue-100 text-blue-700">Complété</span>
+            </div>
+        </CardContent>
+    </Card>
 
-    <div class="stat-card">
-        <div class="stat-icon bg-warning">
-            <i class="bi bi-lightning"></i>
-        </div>
-        <div class="stat-content">
-            <h3 class="stat-value">{stats.successRate}%</h3>
-            <p class="stat-label">Taux de Succès</p>
-        </div>
-    </div>
+    <Card class="shadow-sm border border-border/50 overflow-hidden">
+        <div class="bg-gradient-to-br from-amber-50 to-amber-100/50 absolute h-full w-full"></div>
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2 relative">
+            <CardTitle class="text-sm font-medium">Taux de Succès</CardTitle>
+            <div class="h-9 w-9 rounded-full bg-background shadow-sm flex items-center justify-center">
+                <i class="bi bi-lightning-charge-fill text-amber-500"></i>
+            </div>
+        </CardHeader>
+        <CardContent class="relative">
+            <div class="text-2xl font-bold">{stats.successRate}%</div>
+            <div class="flex items-center justify-between mt-1">
+                <p class="text-xs text-muted-foreground">Appels réussis</p>
+                <span class="text-xs font-medium px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-700">Succès</span>
+            </div>
+        </CardContent>
+    </Card>
 </div>
 
 <style>
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
-    .stat-card {
-        background: white;
-        border-radius: 1rem;
-        padding: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1.25rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    }
-
-    .stat-icon {
-        width: 3.5rem;
-        height: 3.5rem;
-        border-radius: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        color: white;
-    }
-
-    .stat-content {
-        flex: 1;
-    }
-
-    .stat-value {
-        font-size: 1.75rem;
-        font-weight: 600;
-        margin: 0;
-        line-height: 1.2;
-    }
-
-    .stat-label {
-        color: #6c757d;
-        margin: 0;
-        font-size: 0.875rem;
-        margin-top: 0.25rem;
-    }
 </style>

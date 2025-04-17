@@ -1,6 +1,7 @@
 <script>
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
   /**
    * @type {any[]}
@@ -12,7 +13,12 @@
 
   onMount(async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/admin/compagnies/recuperer');
+      // Get token from localStorage
+const token = localStorage.getItem('token');
+console.log('Token from localStorage:', token); // Debug log
+
+// Send request with credentials and Authorization header
+const response = await fetchWithAuth('http://localhost:8000/api/admin/compagnies/recuperer');
       if (response.ok) {
         const data = await response.json();
         compagnies = Array.isArray(data) ? data : [];

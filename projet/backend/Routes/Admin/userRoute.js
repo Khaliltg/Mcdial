@@ -1,27 +1,31 @@
 // routes/userRoutes.js
 const express = require('express');
-const { createUser,getUsers,getUserById,getUsersGroups,updateUser,copyUser,getUserStats} = require('../../Controllers/Admin/User');
-//const userController = require('../controllers/Admin/User');
+const { createUser, getUsers, getUserById, getUsersGroups, updateUser, copyUser, getUserStats, getUserStatistics } = require('../../Controllers/Admin/User');
 
 const router = express.Router();
-// create user routes
 
+// Create user routes
+router.post('/create-users', createUser);
 
-router.post('/create-users',createUser );
-
-router.get( '/users-group', getUsersGroups);
-
-// get all users routes
+// Get all users routes
 router.get('/allUsers', getUsers);
-// get user by id routes
+
+// Get user groups
+router.get('/users-group', getUsersGroups);
+
+// Get user by id routes
 router.get('/getUserById/:userId', getUserById);
 
+// Update user
 router.put('/users/:userId', updateUser);
 
-//copy user route
-router.post("/copyUser",copyUser)
+// Copy user route
+router.post('/copyUser', copyUser);
 
-// get user stats routes
+// Get user stats routes
+router.get('/userStats/:user', getUserStats);
 
-router.post('/userStats', getUserStats);
+// Get comprehensive user statistics
+router.get('/user/:user/stats', getUserStatistics);
+
 module.exports = router;

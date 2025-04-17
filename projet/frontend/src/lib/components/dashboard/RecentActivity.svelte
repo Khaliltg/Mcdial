@@ -1,93 +1,55 @@
-<script>
-    export let activities = [];
+<script lang="ts">
+    import type { ActivityItem } from '$lib/types';
+    import { Card, CardHeader, CardTitle, CardContent } from '$lib/components/ui/card';
+
+    export let activities: ActivityItem[] = [];
 </script>
 
-<div class="card">
-    <div class="card-header border-0 bg-white">
-        <h5 class="mb-0">Activité Récente</h5>
-    </div>
-    <div class="card-body p-0">
+<Card class="shadow-sm border border-border/50 h-full flex flex-col overflow-hidden">
+    <div class="bg-gradient-to-br from-muted/30 to-muted/50 absolute h-full w-full"></div>
+    <CardHeader class="pb-2 relative">
+        <CardTitle class="flex items-center gap-2">
+            <i class="bi bi-clock-history text-primary"></i>
+            Activité Récente
+        </CardTitle>
+    </CardHeader>
+    <CardContent class="p-0 flex-1 overflow-auto relative" style="max-height: calc(100vh - 20rem);">
         {#if activities.length === 0}
-            <div class="text-center py-5">
-                <i class="bi bi-clock-history display-4 text-muted"></i>
-                <p class="mt-3 text-muted">Aucune activité récente</p>
+            <div class="text-center p-6 text-muted-foreground">
+                <i class="bi bi-clock-history text-3xl mb-2 inline-block opacity-50"></i>
+                <p>Aucune activité récente</p>
+                <button class="mt-3 text-xs px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                    <i class="bi bi-arrow-clockwise mr-1"></i> Rafraîchir
+                </button>
             </div>
         {:else}
-            <div class="activity-list">
-                {#each activities as activity}
-                    <div class="activity-item">
-                        <div class="activity-icon {activity.type}">
+            <div class="activity-list space-y-0">
+                {#each activities as activity (activity.text + activity.time)}
+                    <div class="activity-item flex items-start gap-4 p-4 hover:bg-background transition-colors border-l-2 border-transparent hover:border-primary/50">
+                        <span class="activity-icon flex-shrink-0 h-10 w-10 rounded-lg flex items-center justify-center text-lg text-primary-foreground {activity.type}">
                             <i class="bi {activity.icon}"></i>
-                        </div>
-                        <div class="activity-content">
-                            <p class="activity-text mb-0">{activity.text}</p>
-                            <small class="activity-time text-muted">{activity.time}</small>
+                        </span>
+                        <div class="activity-content flex-1 min-w-0">
+                            <p class="activity-text text-sm font-medium mb-1">{activity.text}</p>
+                            <small class="activity-time text-xs text-muted-foreground">{activity.time}</small>
                         </div>
                     </div>
                 {/each}
             </div>
         {/if}
-    </div>
-</div>
+    </CardContent>
+</Card>
 
 <style>
-    .activity-list {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .activity-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 1rem;
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid #e9ecef;
-        transition: background-color 0.2s ease-in-out;
-    }
-
-    .activity-item:last-child {
-        border-bottom: none;
-    }
-
-    .activity-item:hover {
-        background-color: #f8f9fa;
-    }
-
-    .activity-icon {
-        width: 2.5rem;
-        height: 2.5rem;
-        border-radius: 0.75rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.25rem;
-        color: white;
-        flex-shrink: 0;
-    }
-
     .activity-icon.call {
-        background-color: var(--bs-primary);
+        background-color: hsl(var(--primary));
     }
 
     .activity-icon.campaign {
-        background-color: var(--bs-success);
+        background-color: hsl(var(--secondary));
     }
 
     .activity-icon.alert {
-        background-color: var(--bs-danger);
-    }
-
-    .activity-content {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .activity-text {
-        font-size: 0.9375rem;
-        margin-bottom: 0.25rem;
-    }
-
-    .activity-time {
-        font-size: 0.8125rem;
+        background-color: hsl(var(--destructive));
     }
 </style>

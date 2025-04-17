@@ -1,4 +1,5 @@
 <script>
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
 
@@ -24,7 +25,7 @@
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/lists/ajouter', {
+      const response = await fetchWithAuth('http://localhost:8000/api/lists/ajouter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newList),
@@ -44,7 +45,7 @@
 
   async function loadCampaigns() {
     try {
-      const response = await fetch('http://localhost:8000/api/lists/campaigns');
+      const response = await fetchWithAuth('http://localhost:8000/api/lists/campaigns');
       if (response.ok) {
         campaigns = await response.json();
       } else {

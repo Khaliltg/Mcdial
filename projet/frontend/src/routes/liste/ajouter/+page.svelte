@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
   let users = [];
   let showAll = false;
@@ -8,7 +9,7 @@
   // Fetch the list of users when the component mounts
   onMount(async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/admin/user/allUsers'); // Replace with your API URL
+      const response = await fetchWithAuth('http://localhost:8000/api/admin/user/allUsers'); // Replace with your API URL
       if (response.ok) {
         users = await response.json();
       } else {
