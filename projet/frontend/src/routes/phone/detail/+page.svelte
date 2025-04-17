@@ -1,6 +1,7 @@
 <script>
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
     
     // API configuration
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -27,7 +28,7 @@
     onMount(async () => {
         try {
             // Get phone details by extension
-            const response = await fetch(`${API_BASE_URL}/api/admin/phone/${phoneId}`);
+            const response = await fetchWithAuth(`${API_BASE_URL}/api/admin/phone/${phoneId}`);
             const contentType = response.headers.get('content-type');
             
             if (!response.ok) {
@@ -63,11 +64,8 @@
         
         try {
             // Update phone by current extension
-            const response = await fetch(`${API_BASE_URL}/api/admin/phone/${phoneExtension}`, {
+            const response = await fetchWithAuth(`${API_BASE_URL}/api/admin/phone/${phoneExtension}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify({
                     login: agentScreenLogin,
                     pass: loginPassword

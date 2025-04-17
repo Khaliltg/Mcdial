@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
   let conferences = [];
   let serverIPs = [];
@@ -15,7 +16,7 @@
 
   async function fetchConferences() {
     try {
-      const res = await fetch('http://localhost:8000/api/conferences');
+      const res = await fetchWithAuth('http://localhost:8000/api/conferences');
       conferences = await res.json();
     } catch (e) {
       console.error('Erreur de récupération des conférences:', e);
@@ -24,7 +25,7 @@
 
   async function fetchServerIPs() {
     try {
-      const res = await fetch('http://localhost:8000/api/conferences/server_ips');
+      const res = await fetchWithAuth('http://localhost:8000/api/conferences/server_ips');
       serverIPs = await res.json();
     } catch (e) {
       console.error('Erreur de récupération des IPs:', e);
@@ -56,13 +57,13 @@
     }
 
     try {
-      const res = await fetch('http://localhost:8000/api/conferences', {
+      const res = await fetchWithAuth('http://localhost:8000/api/conferences', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conf_exten,
-        server_ip: finalIP,
-        extension
+          server_ip: finalIP,
+          extension
         })
       });
 
@@ -99,7 +100,7 @@
   }
 
   try {
-    const res = await fetch(`http://localhost:8000/api/conferences/${id}`, {
+    const res = await fetchWithAuth(`http://localhost:8000/api/conferences/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

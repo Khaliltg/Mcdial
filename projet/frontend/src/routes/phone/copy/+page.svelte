@@ -1,4 +1,7 @@
 <script>
+    import { goto } from '$app/navigation';
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
+
     let phoneExtension = '';
     let dialPlanNumbers = '';
     let voicemailBox = '';

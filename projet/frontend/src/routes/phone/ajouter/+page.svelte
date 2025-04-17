@@ -1,4 +1,5 @@
 <script>
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
     let formData = {
         phoneExtension: '',
         dialPlanNumber: '',
@@ -46,7 +47,7 @@
             
             console.log('Sending data to API:', apiData);
             
-            const response = await fetch('http://localhost:8000/api/admin/phone/', {
+            const response = await fetchWithAuth('http://localhost:8000/api/admin/phone/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

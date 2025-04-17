@@ -1,7 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
-  
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
+
     // API configuration
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -27,7 +28,7 @@
     // Fetch the list of phones when the component mounts
     onMount(async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/admin/phone/list`);
+        const response = await fetchWithAuth(`${API_BASE_URL}/api/admin/phone/list`);
         const contentType = response.headers.get('content-type');
 
         if (!response.ok) {
