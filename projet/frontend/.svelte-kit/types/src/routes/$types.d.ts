@@ -12,7 +12,47 @@ type EnsureDefined<T> = T extends null | undefined ? {} : T;
 type OptionalUnion<U extends Record<string, any>, A extends keyof U = U extends U ? keyof U : never> = U extends unknown ? { [P in Exclude<A, keyof U>]?: never } & U : never;
 export type Snapshot<T = any> = Kit.Snapshot<T>;
 type PageParentData = EnsureDefined<LayoutData>;
-type LayoutRouteId = RouteId | "/" | "/compagnes/add" | "/compagnes/auto_dial" | "/compagnes/copy" | "/compagnes/detail/[campaign_id]" | "/compagnes/list_mix/show_list_mix" | "/compagnes/pause_code" | "/compagnes/show" | "/compagnes/statues" | "/liste/Filedata" | "/liste/afficherlist" | "/liste/ajouter" | "/liste/ajouterListe" | "/liste/ajouterprospect" | "/liste/chargerprospect" | "/liste/corbeille" | "/liste/details/[list_id]" | "/liste/dnc" | "/liste/fileliste/[id]" | "/liste/list-details/[list_id]" | "/liste/modifier/[id]" | "/liste/prospects" | "/liste/recherchelist" | "/login" | "/phone/afficher" | "/phone/ajouter" | "/phone/copy" | "/stats/userStats" | "/userGroupe/afficher" | "/userGroupe/ajouter" | "/userGroupe/bulk_userGroupe" | "/userGroupe/details" | "/users/add" | "/users/copy" | "/users/detail" | "/users/list" | "/users/search" | "/users/stats" | null
+type LayoutRouteId = RouteId
+  | "/"
+  | "/admin/conferences"
+  | "/compagnes/add"
+  | "/compagnes/auto_dial"
+  | "/compagnes/copy"
+  | "/compagnes/detail/[campaign_id]"
+  | "/compagnes/list_mix/show_list_mix"
+  | "/compagnes/pause_code"
+  | "/compagnes/show"
+  | "/compagnes/statues"
+  | "/liste/Filedata"
+  | "/liste/afficherlist"
+  | "/liste/ajouter"
+  | "/liste/ajouterListe"
+  | "/liste/ajouterprospect"
+  | "/liste/chargerprospect"
+  | "/liste/corbeille"
+  | "/liste/details/[list_id]"
+  | "/liste/dnc"
+  | "/liste/fileliste/[id]"
+  | "/liste/list-details/[list_id]"
+  | "/liste/modifier/[id]"
+  | "/liste/prospects"
+  | "/liste/recherchelist"
+  | "/login"
+  | "/phone/afficher"
+  | "/phone/ajouter"
+  | "/phone/copy"
+  | "/stats/userStats"
+  | "/userGroupe/afficher"
+  | "/userGroupe/ajouter"
+  | "/userGroupe/bulk_userGroupe"
+  | "/userGroupe/details"
+  | "/users/add"
+  | "/users/copy"
+  | "/users/detail"
+  | "/users/list"
+  | "/users/search"
+  | "/users/stats"
+  | null;
 type LayoutParams = RouteParams & { campaign_id?: string; list_id?: string; id?: string }
 type LayoutParentData = EnsureDefined<{}>;
 

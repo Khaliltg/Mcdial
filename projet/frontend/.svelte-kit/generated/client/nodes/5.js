@@ -1,1 +1,1 @@
-export { default as component } from "../../../../src/routes/compagnes/copy/+page.svelte";
+export { default as component } from "../../../../src/routes/compagnes/auto_dial/+page.svelte";

@@ -39,7 +39,6 @@
   let newList = { list_id: '', list_name: '', list_description: '', campaign_id: '', active: 'Y' };
   let showAddListForm = false;
 
-  let editedList = { list_name: '', list_description: '', campaign_id: '' };
   let listId = null;
 
   let searchQuery = '';
@@ -771,9 +770,7 @@
                           <button class="btn btn-icon btn-info" title="Voir les fichiers" on:click={() => goto(`/liste/fileliste/${list.list_id}`)}>
                             <i class="fas fa-file-alt"></i>
                           </button>
-                          <button class="btn btn-icon btn-primary" title="Modifier" on:click={() => editList(list.list_id)}>
-                            <i class="fas fa-edit"></i>
-                          </button>
+                         
                           <button class="btn btn-icon btn-danger" title="Supprimer" on:click={() => openDeleteDialog(list)}>
                             <i class="fas fa-trash"></i>
                           </button>
@@ -908,9 +905,7 @@
                           <button class="btn btn-icon btn-info" title="Voir les fichiers" on:click={() => goto(`/liste/fileliste/${list.list_id}`)}>
                             <i class="fas fa-file-alt"></i>
                           </button>
-                          <button class="btn btn-icon btn-primary" title="Modifier" on:click={() => editList(list.list_id)}>
-                            <i class="fas fa-edit"></i>
-                          </button>
+                        
                           <button class="btn btn-icon btn-danger" title="Supprimer" on:click={() => openDeleteDialog(list)}>
                             <i class="fas fa-trash"></i>
                           </button>
@@ -1142,58 +1137,7 @@
       {/if}
     {/if}
 
-    <!-- Edit List Form -->
-    {#if listId}
-      <div class="form-section">
-        <h2 class="form-title">
-          <i class="fas fa-edit"></i> Modifier la liste
-        </h2>
-        <div class="form-group">
-          <label for="list-name">Nom de la liste</label>
-          <input 
-            type="text" 
-            id="list-name"
-            bind:value={editedList.list_name} 
-            placeholder="Nom de la liste" 
-            aria-label="Nom de la liste" 
-            class="form-input" 
-          />
-        </div>
-        <div class="form-group">
-          <label for="list-description">Description</label>
-          <input 
-            type="text" 
-            id="list-description"
-            bind:value={editedList.list_description} 
-            placeholder="Description" 
-            aria-label="Description de la liste" 
-            class="form-input" 
-          />
-        </div>
-        <div class="form-group">
-          <label for="campaign-select">Campagne</label>
-          <select id="campaign-select" bind:value={editedList.campaign_id} class="form-select">
-            <option value="" disabled selected>Sélectionner une campagne</option>
-            {#each campaigns as campaign}
-              <option value={campaign.campaign_id}>{campaign.campaign_name}</option>
-            {/each}
-          </select>
-        </div>
-        <div class="form-actions">
-          <button on:click={saveEdit} disabled={isLoading} class="btn btn-primary">
-            {#if isLoading}
-              <span class="spinner-sm"></span>
-            {:else}
-              <i class="fas fa-save"></i>
-            {/if}
-            Enregistrer
-          </button>
-          <button on:click={() => listId = null} class="btn btn-secondary">
-            <i class="fas fa-times"></i> Annuler
-          </button>
-        </div>
-      </div>
-    {/if}
+   
   </main>
 </div>
 
