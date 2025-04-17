@@ -106,7 +106,7 @@ export const options = {
 	</body>
 </html>`
 	},
-	version_hash: "cdfx4g" // Choose the appropriate version hash
+	version_hash: "cdfx4g"
 };
 
 export async function get_hooks() {
