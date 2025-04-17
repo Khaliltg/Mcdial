@@ -16,7 +16,7 @@
     id: string;
     type: 'call' | 'campaign' | 'system';
     description: string;
-    target: string;/Users/macbook/Downloads/conflit.txt
+    target: string;
     timestamp: Date;
     status: 'success' | 'warning' | 'error' | 'info';
   };

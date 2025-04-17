@@ -1,4 +1,1 @@
-
-export { default as usersDetailComponent } from "../../../../src/routes/users/detail/+page.svelte";
-export { default as userGroupeAjouterComponent } from "../../../../src/routes/userGroupe/ajouter/+page.svelte";
-
+export { default as component } from "../../../../src/routes/stats/userStats/+page.svelte";
