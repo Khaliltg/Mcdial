@@ -34,22 +34,24 @@ export const nodes = [
 	() => import('./nodes/30'),
 	() => import('./nodes/31'),
 	() => import('./nodes/32'),
-	() => import('./nodes/33')
+	() => import('./nodes/33'),
+	() => import('./nodes/34')
 ];
 
 export const server_loads = [];
 
 export const dictionary = {
 		"/": [2],
-		"/compagnes/add": [3],
-		"/compagnes/auto_dial": [4],
-		"/compagnes/copy": [5],
-		"/compagnes/detail/[campaign_id]": [6],
-		"/compagnes/list_mix/show_list_mix": [7],
-		"/compagnes/pause_code": [8],
-		"/compagnes/show": [9],
-		"/compagnes/statues": [10],
-		"/liste/Filedata": [11],
+		"/admin/conferences": [3],
+		"/compagnes/add": [4],
+		"/compagnes/auto_dial": [5],
+		"/compagnes/copy": [6],
+		"/compagnes/detail/[campaign_id]": [7],
+		"/compagnes/list_mix/show_list_mix": [8],
+		"/compagnes/pause_code": [9],
+		"/compagnes/show": [10],
+		"/compagnes/statues": [11],
+		"/liste/Filedata": [20],
 		"/liste/afficherlist": [12],
 		"/liste/ajouterListe": [14],
 		"/liste/ajouterprospect": [15],
@@ -58,20 +60,20 @@ export const dictionary = {
 		"/liste/corbeille": [17],
 		"/liste/details/[list_id]": [18],
 		"/liste/dnc": [19],
-		"/liste/fileliste/[id]": [20],
-		"/liste/list-details/[list_id]": [21],
-		"/liste/modifier/[id]": [22],
-		"/liste/prospects": [23],
-		"/liste/recherchelist": [24],
-		"/phone/afficher": [25],
-		"/phone/ajouter": [26],
-		"/phone/copy": [27],
-		"/users/add": [28],
-		"/users/copy": [29],
-		"/users/detail": [30],
-		"/users/list": [31],
-		"/users/search": [32],
-		"/users/stats": [33]
+		"/liste/fileliste/[id]": [21],
+		"/liste/list-details/[list_id]": [22],
+		"/liste/modifier/[id]": [23],
+		"/liste/prospects": [24],
+		"/liste/recherchelist": [25],
+		"/phone/afficher": [26],
+		"/phone/ajouter": [27],
+		"/phone/copy": [28],
+		"/users/add": [29],
+		"/users/copy": [30],
+		"/users/detail": [31],
+		"/users/list": [32],
+		"/users/search": [33],
+		"/users/stats": [34]
 	};
 
 export const hooks = {
