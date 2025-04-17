@@ -25,6 +25,7 @@
 	"/phone/afficher": [],
 	"/phone/ajouter": [],
 	"/phone/copy": [],
+	"/phone/detail": [],
 	"/users/add": [],
 	"/users/copy": [],
 	"/users/detail": [],

@@ -34,7 +34,8 @@ export const nodes = [
 	() => import('./nodes/30'),
 	() => import('./nodes/31'),
 	() => import('./nodes/32'),
-	() => import('./nodes/33')
+	() => import('./nodes/33'),
+	() => import('./nodes/34')
 ];
 
 export const server_loads = [];
@@ -49,15 +50,15 @@ export const dictionary = {
 		"/compagnes/pause_code": [8],
 		"/compagnes/show": [9],
 		"/compagnes/statues": [10],
-		"/liste/Filedata": [11],
-		"/liste/afficherlist": [12],
-		"/liste/ajouterListe": [14],
-		"/liste/ajouterprospect": [15],
-		"/liste/ajouter": [13],
-		"/liste/chargerprospect": [16],
-		"/liste/corbeille": [17],
-		"/liste/details/[list_id]": [18],
-		"/liste/dnc": [19],
+		"/liste/Filedata": [19],
+		"/liste/afficherlist": [11],
+		"/liste/ajouterListe": [13],
+		"/liste/ajouterprospect": [14],
+		"/liste/ajouter": [12],
+		"/liste/chargerprospect": [15],
+		"/liste/corbeille": [16],
+		"/liste/details/[list_id]": [17],
+		"/liste/dnc": [18],
 		"/liste/fileliste/[id]": [20],
 		"/liste/list-details/[list_id]": [21],
 		"/liste/modifier/[id]": [22],
@@ -66,12 +67,13 @@ export const dictionary = {
 		"/phone/afficher": [25],
 		"/phone/ajouter": [26],
 		"/phone/copy": [27],
-		"/users/add": [28],
-		"/users/copy": [29],
-		"/users/detail": [30],
-		"/users/list": [31],
-		"/users/search": [32],
-		"/users/stats": [33]
+		"/phone/detail": [28],
+		"/users/add": [29],
+		"/users/copy": [30],
+		"/users/detail": [31],
+		"/users/list": [32],
+		"/users/search": [33],
+		"/users/stats": [34]
 	};
 
 export const hooks = {

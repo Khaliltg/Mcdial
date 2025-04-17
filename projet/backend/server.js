@@ -4,6 +4,7 @@ const cors = require('cors');
 const db = require('./config/bd'); // Ensure this path is correct
 const AdminRoute = require('./Routes/Admin/userRoute');
 const listRoutes = require('./Routes/Admin/listRoutes');
+const phoneRoutes = require('./Routes/Admin/phoneRoutes');
 const compagnieRoutes = require('./Routes/Admin/compagniesRoutes');
 const prospectRoute = require("./Routes/Admin/prospects");
 const app = express();
@@ -21,6 +22,7 @@ app.use(express.urlencoded({ extended: true })); // Allows parsing of urlencoded
 app.use('/api/lists', listRoutes);
 app.use('/api/prospects', prospectRoute);
 app.use('/api/admin/user', AdminRoute);
+app.use('/api/admin/phone', phoneRoutes);
 app.use('/api/admin/compagnies', compagnieRoutes);
 app.use(express.static('public'));
 
