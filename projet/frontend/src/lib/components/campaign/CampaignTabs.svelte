@@ -1,7 +1,13 @@
 <script>
+    import { createEventDispatcher } from 'svelte';
+    const dispatch = createEventDispatcher();
+    
     export let activeTab = "general";
     export let tabs = [];
-    export let onTabChange = () => {};
+    
+    function handleTabChange(tabId) {
+        dispatch('change', tabId);
+    }
 </script>
 
 <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
@@ -11,7 +17,7 @@
                 <button
                     class="nav-link border-0 px-4 py-3 {activeTab === tab.id ? 'active' : ''}"
                     class:text-primary={activeTab === tab.id}
-                    on:click={() => onTabChange(tab.id)}
+                    on:click={() => handleTabChange(tab.id)}
                 >
                     <div class="d-flex align-items-center gap-2">
                         {#if tab.id === 'general'}

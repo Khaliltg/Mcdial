@@ -3,6 +3,7 @@
     import { writable } from 'svelte/store';
     import { fade, slide, fly } from 'svelte/transition';
     import { quintOut } from 'svelte/easing';
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
     import CampaignTable from '$lib/components/campaign/CampaignTable.svelte';
 
     const campaignsStore = writable([]);
@@ -65,12 +66,7 @@
             loading = true;
             errorStore.set(null);
             
-            const response = await fetch(`${apiBaseUrl}/compagnies/recuperer`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
+            const response = await fetchWithAuth(`${apiBaseUrl}/compagnies/recuperer`);
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -112,7 +108,7 @@
             loadingPauseCodes = true;
             errorStore.set(null);
             
-            const response = await fetch(`${apiBaseUrl}/compagnies/getPauseCodes/${campaignId}`);
+            const response = await fetchWithAuth(`${apiBaseUrl}/compagnies/getPauseCodes/${campaignId}`);
             
             if (!response.ok) {
                 throw new Error(`Erreur ${response.status}: ${response.statusText}`);
@@ -157,14 +153,23 @@
                 throw new Error('Aucune campagne sélectionnée');
             }
             
-            const response = await fetch(`${apiBaseUrl}/compagnies/createPauseCode/${selectedCampaign.campaign_id}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(pauseCode)
-            });
+            // Check if the pause code already exists for this campaign
+            const codeExists = pauseCodes.some(code => code.pause_code === pauseCode.pause_code);
+            if (codeExists) {
+                throw new Error('Ce code de pause existe déjà pour cette campagne');
+            }
+            
+            const response = await fetchWithAuth(
+                `${apiBaseUrl}/compagnies/createPauseCode/${selectedCampaign.campaign_id}`, 
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(pauseCode)
+                }
+            );
             
             if (!response.ok) {
                 const errorData = await response.json();
@@ -193,14 +198,17 @@
                 throw new Error('Aucune campagne sélectionnée');
             }
             
-            const response = await fetch(`${apiBaseUrl}/compagnies/updatePauseCode/${selectedCampaign.campaign_id}/${pauseCode.pause_code}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(pauseCode)
-            });
+            const response = await fetchWithAuth(
+                `${apiBaseUrl}/compagnies/updatePauseCode/${selectedCampaign.campaign_id}/${pauseCode.pause_code}`, 
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(pauseCode)
+                }
+            );
             
             if (!response.ok) {
                 const errorData = await response.json();
@@ -231,12 +239,15 @@
                 throw new Error('Aucune campagne sélectionnée');
             }
             
-            const response = await fetch(`${apiBaseUrl}/compagnies/deletePauseCode/${selectedCampaign.campaign_id}/${pauseCode.pause_code}`, {
-                method: 'DELETE',
-                headers: {
-                    'Accept': 'application/json'
+            const response = await fetchWithAuth(
+                `${apiBaseUrl}/compagnies/deletePauseCode/${selectedCampaign.campaign_id}/${pauseCode.pause_code}`, 
+                {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
                 }
-            });
+            );
             
             if (!response.ok) {
                 const errorData = await response.json();
@@ -348,6 +359,25 @@
             return `${minutes}m ${seconds > 0 ? seconds + 's' : ''}`;
         }
         return `${seconds}s`;
+    }
+    // Handle form submission with validation
+    function handleAddSubmit() {
+        try {
+            // Check if the pause code already exists
+            const codeExists = pauseCodes.some(code => 
+                code.pause_code.toLowerCase() === currentPauseCode.pause_code.toLowerCase());
+            
+            if (codeExists) {
+                errorStore.set('Ce code de pause existe déjà pour cette campagne');
+                setTimeout(() => errorStore.set(null), 3000);
+                return;
+            }
+            
+            // If validation passes, add the pause code
+            addPauseCode(currentPauseCode);
+        } catch (err) {
+            errorStore.set(err.message);
+        }
     }
 </script>
 
@@ -635,7 +665,7 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <form id="addPauseCodeForm" on:submit|preventDefault={() => addPauseCode(currentPauseCode)} name="addPauseCodeForm">
+                    <form id="addPauseCodeForm" on:submit|preventDefault={handleAddSubmit} name="addPauseCodeForm">
                         <div class="form-group">
                             <label for="pause_code" class="form-label">Code de pause <span class="required">*</span></label>
                             <input 

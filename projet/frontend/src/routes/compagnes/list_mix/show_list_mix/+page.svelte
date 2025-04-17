@@ -1,26 +1,29 @@
 <script>
-    import { onMount } from 'svelte';
-    import { fade, slide } from 'svelte/transition';
-    import ListMixManager from '../../../../lib/components/campaign/CampaignTabListMix.svelte';
+  import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
+  import ListMixManager from '../../../../lib/components/campaign/CampaignTabListMix.svelte';
+  import { fade, slide } from 'svelte/transition';
+  
+  onMount(async () => {
+    await fetchCampaigns();
+  });
+  
+  // État local pour les campagnes
+  let campaigns = [];
+  let isLoading = true;
+  let error = null;
+  let selectedCampaignId = null;
+  let searchQuery = '';
+  
+  // Fonction pour récupérer les campagnes depuis l'API
+  async function fetchCampaigns() {
+    isLoading = true;
+    error = null;
     
-    onMount(async () => {
-      await fetchCampaigns();
-    });
-    
-    // État local pour les campagnes
-    let campaigns = [];
-    let isLoading = true;
-    let error = null;
-    let selectedCampaignId = null;
-    let searchQuery = '';
-    
-    // Fonction pour récupérer les campagnes depuis l'API
-    async function fetchCampaigns() {
-      isLoading = true;
-      error = null;
-      
-      try {
-        const response = await fetch('http://localhost:8000/api/admin/compagnies/recuperer');
+    try {
+      // Utiliser fetchWithAuth pour l'authentification
+      const response = await fetchWithAuth('http://localhost:8000/api/admin/compagnies/recuperer');
         
         if (!response.ok) {
           throw new Error(`Erreur HTTP: ${response.status}`);

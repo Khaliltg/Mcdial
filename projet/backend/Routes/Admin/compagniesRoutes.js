@@ -7,6 +7,7 @@ const {
     getStatusCountsByList,
     getStatusCountsByCampaign,
     updateStatus,
+    createStatus,
     deleteStatus,
     getPauseCodes,
     createPauseCode,
@@ -48,6 +49,9 @@ router.get('/getStatusCountsByCampaign/:campaign_id', getStatusCountsByCampaign)
 
 // mettre à jour un statut
 router.put('/updateStatus/:campaign_id/:status', updateStatus);
+
+// créer un nouveau statut
+router.post('/createStatus/:campaign_id', createStatus);
 
 // supprimer un statut
 router.delete('/deleteStatus/:campaign_id/:status', deleteStatus);

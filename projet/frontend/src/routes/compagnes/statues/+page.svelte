@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
     import StatusEditModal from '$lib/components/status/StatusEditModal.svelte';
     import StatusDeleteModal from '$lib/components/status/StatusDeleteModal.svelte';
     import CampaignTable from '$lib/components/campaign/CampaignTable.svelte';
@@ -72,12 +73,7 @@
             loading = true;
             errorStore.set(null);
             
-            const response = await fetch(`${apiBaseUrl}/compagnies/recuperer`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
+            const response = await fetchWithAuth(`${apiBaseUrl}/compagnies/recuperer`);
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -118,7 +114,7 @@
         try {
             loadingStatuses = true;
             errorStore.set(null);
-            const response = await fetch(`${apiBaseUrl}/compagnies/getStatusCountsByCampaign/${campaignId}`);
+            const response = await fetchWithAuth(`${apiBaseUrl}/compagnies/getStatusCountsByCampaign/${campaignId}`);
             
             if (!response.ok) {
                 throw new Error('Erreur lors de la récupération des statuts');
@@ -140,14 +136,39 @@
     }
 
     async function createStatus() {
-        if (!selectedCampaign) return;
+        if (!selectedCampaign) {
+            errorStore.set('Veuillez d\'abord sélectionner une campagne');
+            setTimeout(() => errorStore.set(null), 3000);
+            return;
+        }
         
-        // Create a new empty status template
+        // Generate a unique status code suggestion (2 letters + 1 number)
+        const existingCodes = new Set(campaignStatuses.map(s => s.status));
+        let suggestedCode = '';
+        
+        // Try to generate a unique code
+        for (let i = 0; i < 100; i++) {
+            // Generate a random 2-letter prefix
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const prefix = letters.charAt(Math.floor(Math.random() * letters.length)) + 
+                           letters.charAt(Math.floor(Math.random() * letters.length));
+            
+            // Add a random number (1-9)
+            const number = Math.floor(Math.random() * 9) + 1;
+            const code = `${prefix}${number}`;
+            
+            if (!existingCodes.has(code)) {
+                suggestedCode = code;
+                break;
+            }
+        }
+        
+        // Create a new empty status template with suggested values
         editingStatus = {
-            status: '',
+            status: suggestedCode,
             status_name: '',
             min_sec: '0',
-            max_sec: '0',
+            max_sec: '60',  // Default to 60 seconds max
             selectable: true,
             human_answered: false,
             sale: false,
@@ -159,10 +180,20 @@
             completed: false,
             answering_machine: false
         };
+        
+        // Log for debugging
+        console.log('Creating new status with suggested code:', suggestedCode);
     }
 
-    async function updateStatus(status) {
+    /**
+     * Updates a status based on the event data from StatusEditModal
+     * @param {CustomEvent} event - The event containing the validated status data
+     */
+    async function updateStatus(event) {
         try {
+            // Get the validated status from the event detail
+            const status = event.detail;
+            
             if (!selectedCampaign || !selectedCampaign.campaign_id) {
                 throw new Error('Aucune campagne sélectionnée');
             }
@@ -171,52 +202,76 @@
                 throw new Error('Données du statut invalides');
             }
 
-            // Ensure all required fields are present with default values
+            // Prepare status data for API
             const statusData = {
                 status: status.status,
-                status_name: status.status_name || '',
-                min_sec: parseInt(status.min_sec) || 0,
-                max_sec: parseInt(status.max_sec) || 0,
-                selectable: Boolean(status.selectable),
-                human_answered: Boolean(status.human_answered),
-                sale: Boolean(status.sale),
-                dnc: Boolean(status.dnc),
-                customer_contact: Boolean(status.customer_contact),
-                not_interested: Boolean(status.not_interested),
-                unworkable: Boolean(status.unworkable),
-                scheduled_callback: Boolean(status.scheduled_callback),
-                completed: Boolean(status.completed),
-                answering_machine: Boolean(status.answering_machine)
+                status_name: status.status_name,
+                min_sec: status.min_sec,
+                max_sec: status.max_sec,
+                selectable: status.selectable ? 1 : 0,
+                human_answered: status.human_answered ? 1 : 0,
+                sale: status.sale ? 1 : 0,
+                dnc: status.dnc ? 1 : 0,
+                customer_contact: status.customer_contact ? 1 : 0,
+                not_interested: status.not_interested ? 1 : 0,
+                unworkable: status.unworkable ? 1 : 0,
+                scheduled_callback: status.scheduled_callback ? 1 : 0,
+                completed: status.completed ? 1 : 0,
+                answering_machine: status.answering_machine ? 1 : 0
             };
 
-            // Validate numeric fields
-            if (statusData.min_sec < 0 || statusData.max_sec < 0) {
-                throw new Error('Les temps minimum et maximum doivent être positifs');
-            }
-
-            if (statusData.max_sec < statusData.min_sec) {
-                throw new Error('Le temps maximum doit être supérieur au temps minimum');
-            }
+            // Note: validation is already done in the StatusEditModal component
 
             const isNewStatus = !campaignStatuses.some(s => s.status === status.status);
-            const endpoint = isNewStatus 
-                ? `${apiBaseUrl}/compagnies/createStatus/${selectedCampaign.campaign_id}`
-                : `${apiBaseUrl}/compagnies/updateStatus/${selectedCampaign.campaign_id}/${status.status}`;
-            
-            const method = isNewStatus ? 'POST' : 'PUT';
+            // For existing statuses, use the updateStatus endpoint
+            if (!isNewStatus) {
+                const endpoint = `${apiBaseUrl}/compagnies/updateStatus/${selectedCampaign.campaign_id}/${status.status}`;
+                
+                const response = await fetchWithAuth(endpoint, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(statusData)
+                });
 
-            const response = await fetch(endpoint, {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(statusData)
-            });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Erreur lors de la mise à jour');
+                }
+            } 
+            // For new statuses, use the new createStatus endpoint
+            else {
+                const endpoint = `${apiBaseUrl}/compagnies/createStatus/${selectedCampaign.campaign_id}`;
+                const response = await fetchWithAuth(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        status: status.status,
+                        status_name: status.status_name,
+                        selectable: statusData.selectable,
+                        human_answered: statusData.human_answered,
+                        sale: statusData.sale,
+                        dnc: statusData.dnc,
+                        customer_contact: statusData.customer_contact,
+                        not_interested: statusData.not_interested,
+                        unworkable: statusData.unworkable,
+                        scheduled_callback: statusData.scheduled_callback,
+                        completed: statusData.completed,
+                        answering_machine: statusData.answering_machine,
+                        min_sec: statusData.min_sec,
+                        max_sec: statusData.max_sec
+                    })
+                });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Erreur lors de la mise à jour');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Erreur lors de la création du statut');
+                }
             }
 
             await fetchCampaignStatuses(selectedCampaign.campaign_id);
@@ -229,13 +284,10 @@
 
     async function deleteStatus(status) {
         try {
-            const response = await fetch(
+            const response = await fetchWithAuth(
                 `${apiBaseUrl}/compagnies/deleteStatus/${selectedCampaign.campaign_id}/${status.status}`,
                 {
-                    method: 'DELETE',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
+                    method: 'DELETE'
                 }
             );
 

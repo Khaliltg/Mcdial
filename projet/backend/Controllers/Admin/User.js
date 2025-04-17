@@ -350,63 +350,161 @@ phone_pass
 };
 
 exports.getUserStats = async (req, res) => {
-    const { user, startDate, endDate, status } = req.body;
-
-    // Validate required date filters
-    if (!startDate || !endDate) {
-        return res.status(400).json({ message: 'startDate and endDate are required.' });
-    }
-
     try {
-        console.log('Filters:', { user, startDate, endDate, status });
-
-        // Prepare dynamic WHERE clauses
-        let whereClauses = ['vl.entry_date BETWEEN ? AND ?'];
-        let queryParams = [startDate, endDate];
-
-        // Check user filter
-        if (user) {
-            // Check if user is a single letter
-            if (user.length === 1) {
-                whereClauses.push('vl.user LIKE ?');
-                queryParams.push(`${user}%`); // Filter for users that start with the letter
-            } else {
-                whereClauses.push('vl.user = ?');
-                queryParams.push(user); // Full user match if not a single letter
-            }
+        const { user } = req.params;
+        
+        if (!user) {
+            return res.status(400).json({ message: 'User parameter is required' });
         }
 
-        // Check status filter
-        if (status) {
-            // Check if status is a single letter
-            if (status.length === 1) {
-                whereClauses.push('val.status LIKE ?');
-                queryParams.push(`${status}%`); // Filter for statuses that start with the letter
-            } else {
-                whereClauses.push('val.status = ?');
-                queryParams.push(status); // Full status match if not a single letter
-            }
-        }
+        // Get all data from vicidial_log
+        const [callData] = await db.query(
+            `SELECT * 
+            FROM vicidial_log 
+            WHERE user = ?`,
+            [user]
+        );
 
-        // Build final query
-        const query = `
-            SELECT vl.user, vl.entry_date, vl.list_id, vl.phone_number, vl.last_local_call_time,
-                   val.campaign_id, val.talk_sec, val.status, vl.lead_id
-            FROM vicidial_list vl
-            JOIN vicidial_agent_log val ON vl.lead_id = val.lead_id
-            WHERE ${whereClauses.join(' AND ')}
-        `;
+        // Get all data from vicidial_closer_log
+        const [closerData] = await db.query(
+            `SELECT * 
+            FROM vicidial_closer_log 
+            WHERE user = ?`,
+            [user]
+        );
 
-        const [results] = await db.query(query, queryParams);
+        // Get all data from vicidial_user_log
+        const [userLogData] = await db.query(
+            `SELECT * 
+            FROM vicidial_user_log 
+            WHERE user = ?`,
+            [user]
+        );
 
-        if (!Array.isArray(results) || results.length === 0) {
-            return res.status(404).json({ message: 'No records found for the given criteria.' });
-        }
+        // Get all data from vicidial_timeclock_log
+        const [timeclockData] = await db.query(
+            `SELECT * 
+            FROM vicidial_timeclock_log 
+            WHERE user = ?`,
+            [user]
+        );
 
-        res.json(results);
+        // Get all data from vicidial_user_closer_log
+        const [userCloserData] = await db.query(
+            `SELECT * 
+            FROM vicidial_user_closer_log 
+            WHERE user = ?`,
+            [user]
+        );
+
+        // Get user info
+        const [userInfo] = await db.query(
+            `SELECT * 
+            FROM vicidial_users 
+            WHERE user = ?`,
+            [user]
+        );
+
+        // Combine all data
+        const data = {
+            userInfo: userInfo[0],
+            callData: callData,
+            closerData: closerData,
+            userLogData: userLogData,
+            timeclockData: timeclockData,
+            userCloserData: userCloserData
+        };
+
+        res.json(data);
     } catch (error) {
-        console.error('Error retrieving user stats:', error);
-        res.status(500).json({ message: 'An error occurred, please try again later.' });
+        console.error('Error retrieving user data:', error);
+        res.status(500).json({ message: 'An error occurred while retrieving user data.' });
     }
 };
 
+// Get comprehensive user statistics
+exports.getUserStatistics = async (req, res) => {
+    try {
+        const { user } = req.params;
+        
+        if (!user) {
+            return res.status(400).json({ message: 'User parameter is required' });
+        }
+
+        // Get user info
+        const [userInfo] = await db.query('SELECT * FROM vicidial_users WHERE user = ?', [user]);
+        if (!userInfo.length) {
+            return res.status(404).json({ message: 'User not found' });
+        } 
+
+        // Get call statistics from vicidial_log
+        const [callStats] = await db.query(
+            `SELECT 
+                COUNT(*) as total_calls,
+                SUM(CASE WHEN status IN ('SALE', 'CONFIRMED') THEN 1 ELSE 0 END) as successful_calls,
+                AVG(length_in_sec) as avg_call_duration,
+                MAX(length_in_sec) as longest_call,
+                MIN(length_in_sec) as shortest_call
+            FROM vicidial_log 
+            WHERE user = ?`,
+            [user]
+        );
+
+        // Get closer statistics
+        const [closerStats] = await db.query(
+            `SELECT 
+                COUNT(*) as total_closer_calls,
+                SUM(CASE WHEN status IN ('SALE', 'CONFIRMED') THEN 1 ELSE 0 END) as successful_closer_calls
+            FROM vicidial_closer_log 
+            WHERE user = ?`,
+            [user]
+        );
+
+        // Get user log statistics
+        const [userLogStats] = await db.query(
+            `SELECT 
+                COUNT(*) as total_user_log_entries,
+                MIN(event_time) as first_login,
+                MAX(event_time) as last_login
+            FROM vicidial_user_log 
+            WHERE user = ?`,
+            [user]
+        );
+
+        // Get timeclock statistics
+        const [timeclockStats] = await db.query(
+            `SELECT 
+                COUNT(*) as total_timeclock_entries,
+                SUM(CASE WHEN event_type = 'LOGIN' THEN 1 ELSE 0 END) as total_logins,
+                SUM(CASE WHEN event_type = 'LOGOUT' THEN 1 ELSE 0 END) as total_logouts
+            FROM vicidial_timeclock_log 
+            WHERE user = ?`,
+            [user]
+        );
+
+        // Get user closer statistics
+        const [userCloserStats] = await db.query(
+            `SELECT 
+                COUNT(*) as total_user_closer_entries,
+                SUM(CASE WHEN status IN ('SALE', 'CONFIRMED') THEN 1 ELSE 0 END) as successful_closer_entries
+            FROM vicidial_user_closer_log 
+            WHERE user = ?`,
+            [user]
+        );
+
+        // Combine all statistics
+        const statistics = {
+            userInfo: userInfo[0],
+            callStats: callStats[0],
+            closerStats: closerStats[0],
+            userLogStats: userLogStats[0],
+            timeclockStats: timeclockStats[0],
+            userCloserStats: userCloserStats[0]
+        };
+
+        res.json(statistics);
+    } catch (error) {
+        console.error('Error retrieving user statistics:', error);
+        res.status(500).json({ message: 'An error occurred while retrieving user statistics.' });
+    }
+};

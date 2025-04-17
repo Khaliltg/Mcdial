@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
   let users = [];
   let filteredUsers = [];
@@ -13,7 +14,7 @@
   // Fetch the list of users when the component mounts
   onMount(async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/admin/user/allUsers');
+      const response = await fetchWithAuth('http://localhost:8000/api/admin/user/allUsers');
       if (response.ok) {
         users = await response.json();
         applyFilters();

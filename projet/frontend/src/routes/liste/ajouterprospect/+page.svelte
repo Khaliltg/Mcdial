@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
   let listIdOverride = '';
   let fileLayout = 'standard';
@@ -16,7 +17,7 @@
   async function loadLists() {
     try {
       isLoading = true;
-      const response = await fetch('http://localhost:8000/api/lists/afficher');
+      const response = await fetchWithAuth('http://localhost:8000/api/lists/afficher');
       
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -93,9 +94,11 @@
         } else {
             // Fallback to fetch if axios is not available
             console.log('Using fetch for upload');
-            response = await fetch('http://localhost:8000/api/lists/upload_leads', {
+            response = await fetchWithAuth('http://localhost:8000/api/lists/upload_leads', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                // Don't set Content-Type for FormData, browser will set it with boundary
+                headers: {}
             });
         }
 
