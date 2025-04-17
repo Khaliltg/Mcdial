@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const db = require('./config/bd'); // Ensure this path is correct
 const AdminRoute = require('./Routes/Admin/userRoute');
 const listRoutes = require('./Routes/Admin/listRoutes');
+const phoneRoutes = require('./Routes/Admin/phoneRoutes');
 const compagnieRoutes = require('./Routes/Admin/compagniesRoutes');
 const prospectRoute = require('./Routes/Admin/prospects');
 const UserGroupRoute = require('./Routes/Admin/UserGroupeRoute');
@@ -37,6 +38,7 @@ app.use('/api/conferences', authenticateToken, conferencesRoutes);
 app.use('/api/lists', authenticateToken, listRoutes);
 app.use('/api/prospects', authenticateToken, prospectRoute);
 app.use('/api/admin/user', authenticateToken, requireAdmin, AdminRoute);
+app.use('/api/admin/phone', authenticateToken, requireAdmin, phoneRoutes);
 app.use('/api/admin/compagnies', authenticateToken, requireAdmin, compagnieRoutes);
 app.use('/api/admin/usergroup', authenticateToken, requireAdmin, UserGroupRoute);
 
@@ -45,7 +47,6 @@ app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ error: 'Something went wrong!' });
 });
-
 app.use(express.static('public'));
 
 // Start the server

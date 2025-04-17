@@ -1,3 +1,4 @@
+
 <script lang="ts">
   import { onMount } from 'svelte';
   import Chart from 'chart.js/auto';
@@ -15,7 +16,7 @@
     id: string;
     type: 'call' | 'campaign' | 'system';
     description: string;
-    target: string;
+    target: string;/Users/macbook/Downloads/conflit.txt
     timestamp: Date;
     status: 'success' | 'warning' | 'error' | 'info';
   };

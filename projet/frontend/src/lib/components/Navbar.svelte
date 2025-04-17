@@ -1,5 +1,5 @@
 <script>
-// @ts-nocheck
+  // @ts-nocheck
   import { createEventDispatcher } from 'svelte';
   import { goto } from '$app/navigation';
   import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
@@ -8,7 +8,7 @@
   let isMenuOpen = false;
   let isLoggingOut = false;
   const dispatch = createEventDispatcher();
-
+  
   function toggleSidebar() {
     dispatch('toggleSidebar');
   }
@@ -29,7 +29,7 @@
         localStorage.removeItem('token');
         localStorage.removeItem('auth');
         
-        // Clear cookies manually as a backup to server-side clearing
+        // Clear cookies manually
         document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Domain=localhost;';
         document.cookie = 'user_level=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Domain=localhost;';
         
@@ -55,7 +55,6 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
   <div class="container-fluid px-4">
     <!-- Sidebar toggle for mobile -->
-    <!-- svelte-ignore a11y_consider_explicit_label -->
     <button 
       class="btn btn-outline-primary me-3 d-md-none" 
       type="button" 
@@ -66,12 +65,11 @@
 
     <!-- Logo with modern styling -->
     <a class="navbar-brand d-flex align-items-center" href="/">
-      <i class="bi bi-graph-up-arrow me-2 text-primary"></i>
+      <img src="logo blue.png" alt="Logo" class="me-2" style="height: 40px;">
       <span class="fw-bold">Mcdial</span>
     </a>
 
     <!-- Responsive toggle -->
-    <!-- svelte-ignore a11y_consider_explicit_label -->
     <button 
       class="navbar-toggler" 
       type="button" 
@@ -103,3 +101,10 @@
     </div>
   </div>
 </nav>
+
+<style>
+  /* Additional styles if necessary */
+  .navbar-brand img {
+    max-height: 40px; /* Adjust height to fit your design */
+  }
+</style>

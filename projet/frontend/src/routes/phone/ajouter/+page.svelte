@@ -9,27 +9,96 @@
         agentScreenLogin: '',
         loginPassword: '',
         registrationPassword: '',
-        status: '',
+        status: 'ACTIVE',
         activeAccount: true,
         phoneType: '',
         fullName: '',
-        clientProtocol: '',
-        localGMT: '',
+        clientProtocol: 'SIP',
     };
 
-    const handleSubmit = () => {
-        console.log('Form submitted:', formData);
-        // Add your form submission logic here
+    let isSubmitting = false;
+    let submitMessage = '';
+    let submitError = false;
+
+    const handleSubmit = async () => {
+        try {
+            isSubmitting = true;
+            submitMessage = '';
+            submitError = false;
+            
+            // Map form data to API expected format
+            const apiData = {
+                extension: formData.phoneExtension,
+                dialplan_number: formData.dialPlanNumber,
+                voicemail_id: formData.voicemailBox,
+                outbound_cid: formData.outboundCallerID,
+                user_group: formData.adminUserGroup,
+                server_ip: formData.serverIP,
+                login: formData.agentScreenLogin,
+                pass: formData.loginPassword,
+                conf_secret: formData.registrationPassword,
+                status: formData.status,
+                active: formData.activeAccount ? 'Y' : 'N',
+                phone_type: formData.phoneType,
+                fullname: formData.fullName,
+                protocol: formData.clientProtocol
+            };
+            
+            console.log('Sending data to API:', apiData);
+            
+            const response = await fetch('http://localhost:8000/api/admin/phone/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(apiData)
+            });
+            
+            const result = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(result.message || 'Failed to add phone');
+            }
+            
+            submitMessage = 'Phone added successfully!';
+            
+            // Reset form after successful submission
+            formData = {
+                phoneExtension: '',
+                dialPlanNumber: '',
+                voicemailBox: '',
+                outboundCallerID: '',
+                adminUserGroup: '',
+                serverIP: '',
+                agentScreenLogin: '',
+                loginPassword: '',
+                registrationPassword: '',
+                status: 'ACTIVE',
+                activeAccount: true,
+                phoneType: '',
+                fullName: '',
+                clientProtocol: 'SIP'
+            };
+            
+        } catch (error) {
+            console.error( error);
+        }
     };
 </script>
 
 <div class="phone-config-container">
     <h2>📞𝐀𝐣𝐨𝐮𝐭𝐞𝐫 𝐮𝐧 𝐧𝐨𝐮𝐯𝐞𝐚𝐮 𝐭é𝐥é𝐩𝐡𝐨𝐧𝐞</h2>
     
+    {#if submitMessage}
+        <div class="message {submitError ? 'error' : 'success'}">
+            {submitMessage}
+        </div>
+    {/if}
+    
     <form on:submit|preventDefault={handleSubmit}>
         <div class="form-group">
             <label for="phoneExtension">Phone Extension:</label>
-            <input id="phoneExtension" type="text" bind:value={formData.phoneExtension} />
+            <input id="phoneExtension" type="text" bind:value={formData.phoneExtension} required />
         </div>
         
         <div class="form-group">
@@ -58,7 +127,7 @@
         
         <div class="form-group">
             <label for="serverIP">Server IP:</label>
-            <input id="serverIP" type="text" bind:value={formData.serverIP} readonly />
+            <input id="serverIP" type="text" bind:value={formData.serverIP} />
         </div>
         
         <div class="form-group">
@@ -87,8 +156,8 @@
         <div class="form-group">
             <label for="activeAccount">Active Account:</label>
             <select id="activeAccount" bind:value={formData.activeAccount}>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
+                <option value={true}>Yes</option>
+                <option value={false}>No</option>
             </select>  
         </div>
         
@@ -107,53 +176,17 @@
             <select id="clientProtocol" bind:value={formData.clientProtocol}>
                 <option>SIP</option>
                 <option>ZAP</option>
-                <option>IAX 2</option>
+                <option>IAX2</option>
                 <option>EXTERNAL</option>
                 <option>DAHDI</option>
                 <!-- Add other protocols if needed -->
             </select>
         </div>
+         
         
-        <div class="form-group">
-            <label>Local GMT:</label>
-            <select id="localGMT" bind:value={formData.localGMT}> 
-                <option>12.75</option>
-                <option>12</option>
-                <option>11</option>
-                <option>10</option>    
-                <option>9.50</option>
-                <option>9</option>
-                <option>8</option> 
-                <option>7</option>
-                <option>6.5</option>
-                <option>6</option>
-                <option>5.75</option>
-                <option>5.50</option>
-                <option>5</option>
-                <option>4.50</option>
-                <option>4</option>
-                <option>3.50</option>
-                <option>3</option>
-                <option>2</option>
-                <option>1</option>
-                <option>0.00</option>
-                <option>-1.00</option>
-                <option>-2.00</option>
-                <option>-3.00</option>    
-                <option>-4.00</option>
-                <option>-5.00</option>
-                <option>-6.00</option>
-                <option>-7.00</option>
-                <option>-8.00</option>
-                <option>-9.00</option>
-                <option>-10.00</option>
-                <option>-11.00</option>
-                <option>-12.00</option>
-                <option>-5.00</option>
-            </select>
-        </div>
-        
-        <button type="submit" class="submit-btn">SUBMIT</button>
+        <button type="submit" class="submit-btn" disabled={isSubmitting}>
+            {isSubmitting ? 'SUBMITTING...' : 'SUBMIT'}
+        </button>
     </form>
 </div>
 
@@ -164,8 +197,6 @@
     }
 
     .phone-config-container {
-     
-    
         padding: 20px;
         background-color: white;
         border-radius: 8px;
@@ -217,10 +248,34 @@
         cursor: pointer;
         font-size: 16px;
         transition: background-color 0.3s;
-       
+        width: 100%;
     }
     
-    .submit-btn:hover {
+    .submit-btn:hover:not(:disabled) {
         background-color: #45a049;
+    }
+    
+    .submit-btn:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+    }
+    
+    .message {
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        text-align: center;
+    }
+    
+    .success {
+        background-color: #dff0d8;
+        color: #3c763d;
+        border: 1px solid #d6e9c6;
+    }
+    
+    .error {
+        background-color: #f2dede;
+        color: #a94442;
+        border: 1px solid #ebccd1;
     }
 </style>

@@ -1,23 +1,12 @@
-<script lang="ts">
+<script>
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
   
     // API configuration
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-    interface Phone {
-        extension: string;
-        port?: string;
-        server_ip?: string;
-        dialplan_number?: string;
-        status?: string;
-        fullname?: string;
-        voicemail_id?: string;
-        user_group?: string;
-    }
-
-    let phones: Phone[] = [];
-    let filteredUsers: Phone[] = [];
+    let phones = [];
+    let filteredUsers = [];
     let showAll = false;
     let isLoading = true;
     let searchQuery = '';
@@ -49,7 +38,7 @@
       }
     });
 
-    function afficherDetail(phoneID: string) {
+    function afficherDetail(phoneID){
         goto(`/phone/detail/?id=${phoneID}`)
     }
 </script>
