@@ -7,8 +7,10 @@
  * @returns {Promise<Response>} - The fetch response
  */
 export async function fetchWithAuth(url, options = {}) {
-  // Get token from localStorage
-  const token = localStorage.getItem('token');
+  // Get token from cookies
+  const token = document.cookie.split('; ')
+    .find(row => row.startsWith('token='))
+    ?.split('=')[1];
   
   // Create headers with authentication if token exists
   const headers = new Headers(options.headers || {});
@@ -21,7 +23,7 @@ export async function fetchWithAuth(url, options = {}) {
   // Create the final request options
   const requestOptions = {
     ...options,
-    credentials: 'include', // TypeScript: RequestCredentials type
+    credentials: 'include', // Include cookies in the request
     headers: headers
   };
   

@@ -4,7 +4,9 @@
   import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
   // API URL from environment variable with fallback
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+  // Base URL for static assets
+  const ASSETS_URL = import.meta.env.VITE_ASSETS_URL || 'http://localhost:8000';
 
   // Variables for form state
   let listIdOverride = '';
@@ -24,7 +26,7 @@
   async function loadLists() {
     try {
       isLoading = true;
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/lists/afficher`);
+      const response = await fetchWithAuth(`${API_BASE_URL}/lists/afficher`);
       
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       lists = await response.json();
@@ -94,7 +96,7 @@
         .find(row => row.startsWith('token='))
         ?.split('=')[1];
 
-      const response = await fetch(`${API_BASE_URL}/api/prospects/upload_leads`, {
+      const response = await fetch(`${API_BASE_URL}/prospects/upload_leads`, {
         method: 'POST',
         body: formData,
         headers: {
@@ -105,6 +107,17 @@
         credentials: 'include'
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      
+      // Check if the response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`Expected JSON response but got: ${contentType}\n${text.substring(0, 100)}...`);
+      }
+      
       const data = await response.json();
       
       if (response.ok) {
@@ -121,7 +134,7 @@
       }
     } catch (error) {
       console.error('Erreur lors du chargement des leads:', error);
-      errorMessage = 'Erreur de connexion au serveur. Veuillez réessayer.';
+      errorMessage = `Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue lors du chargement'}`;
     } finally {
       isLoading = false;
     }
