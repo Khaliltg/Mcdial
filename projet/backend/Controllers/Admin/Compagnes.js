@@ -106,8 +106,46 @@ exports.ajouter = async (req, res) => {
 
 exports.recuperer = async (req, res) => {
     try {
-        const [rows] = await connection.execute('SELECT * FROM vicidial_campaigns');
-        res.json(rows);
+        // Get pagination parameters with defaults
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const offset = (page - 1) * limit;
+        
+        // Get search parameter
+        const search = req.query.search || '';
+        
+        // Build the query with search filter if provided
+        let query = 'SELECT * FROM vicidial_campaigns';
+        let countQuery = 'SELECT COUNT(*) as total FROM vicidial_campaigns';
+        let queryParams = [];
+        
+        if (search) {
+            query += ' WHERE campaign_name LIKE ? OR campaign_id LIKE ?';
+            countQuery += ' WHERE campaign_name LIKE ? OR campaign_id LIKE ?';
+            queryParams = [`%${search}%`, `%${search}%`];
+        }
+        
+        // Add sorting and pagination
+        query += ' ORDER BY campaign_changedate DESC LIMIT ? OFFSET ?';
+        queryParams.push(limit, offset);
+        
+        // Execute the queries
+        const [rows] = await connection.execute(query, queryParams);
+        const [countResult] = await connection.execute(countQuery, search ? [`%${search}%`, `%${search}%`] : []);
+        
+        const totalItems = countResult[0].total;
+        const totalPages = Math.ceil(totalItems / limit);
+        
+        res.json({
+            success: true,
+            data: rows,
+            pagination: {
+                page,
+                limit,
+                totalItems,
+                totalPages
+            }
+        });
     } catch (err) {
         res.status(500).json(formatErrorResponse(err, 'Erreur lors de la récupération des compagnies'));
     }

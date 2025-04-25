@@ -1,0 +1,789 @@
+// Fichier temporaire pour stocker le script de +page.svelte
+// Ce fichier sera utilisé pour reconstruire +page.svelte
+
+<script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth';
+  
+  // Importer les composants
+  import AgentHeader from '$lib/components/agent-interface/header/AgentHeader.svelte';
+  import PredictiveDialer from '$lib/components/agent-interface/dialer/PredictiveDialer.svelte';
+  import CallControls from '$lib/components/agent-interface/call-controls/CallControls.svelte';
+  import ProspectForm from '$lib/components/agent-interface/prospect-form/ProspectForm.svelte';
+  import DispositionPanel from '$lib/components/agent-interface/disposition/DispositionPanel.svelte';
+  
+  // Importer le service WebRTC
+  import * as webrtcService from '$lib/services/webrtcService';
+  import { sipStatus, callStatus, currentSession } from '$lib/services/webrtcService';
+  
+  // URL de base de l'API
+  const API_BASE_URL = 'http://localhost:8000/api';
+  
+  // Configuration WebRTC
+  const ASTERISK_SERVER = 'localhost';
+  const ASTERISK_WEBRTC_PORT = '8088';
+  const ASTERISK_SIP_DOMAIN = 'localhost';
+  
+  // État de l'agent
+  let agentInfo = {
+    name: 'Agent',
+    id: '',
+    extension: '',
+    campaign: '',
+    status: 'Disponible',
+    sipPassword: 'welcome' // Mot de passe SIP par défaut
+  };
+  
+  // Statistiques d'appels
+  let callStats = {
+    today: 0,
+    completed: 0,
+    successRate: 0
+  };
+  
+  // État de l'appel
+  let callActive = false;
+  let callMuted = false;
+  let callOnHold = false;
+  let callDuration = 0;
+  let callDurationInterval: ReturnType<typeof setInterval> | null = null;
+  let recording = false;
+  let callJustEnded = false; // Indique qu'un appel vient de se terminer
+  
+  // État WebRTC
+  let sipConnected = false;
+  let sipRegistered = false;
+  let webrtcInitialized = false;
+  
+  // Informations sur l'appel en cours
+  let currentCall = {
+    callId: '',
+    phoneNumber: '',
+    customerName: '',
+    startTime: null as Date | null
+  };
+  
+  // Informations client
+  let customer = {
+    name: '',
+    phone: ''
+  };
+  
+  // Données du prospect actuel
+  let currentProspect: any = null;
+  let showProspectModal: boolean = false; // Contrôle l'affichage de la boîte de dialogue modale du prospect
+  
+  // Script
+  interface ScriptSection {
+    id: string;
+    title: string;
+    content: string;
+    order: number;
+  }
+  
+  interface Script {
+    id: string;
+    name: string;
+    description: string;
+    sections: ScriptSection[];
+  }
+  
+  let currentScript: Script | null = null;
+  
+  // État de l'interface
+  let isLoading = true;
+  let error = '';
+  let showDisposition = false;
+  let canManualDial = true; // Permission pour les appels manuels
+  
+  // Variables pour l'API Web Audio
+  let audioContext: AudioContext | undefined;
+  let oscillator: OscillatorNode | undefined;
+  let gainNode: GainNode | undefined;
+  let dialToneInterval: ReturnType<typeof setInterval> | null = null; // Intervalle pour le son de tonalité d'appel
+  let ringtoneAudio: HTMLAudioElement | null = null; // Élément audio pour la sonnerie
+  
+  // Fonction pour charger les données de l'agent
+  async function loadAgentData() {
+    try {
+      const response = await fetchWithAuth(`${API_BASE_URL}/agent/info`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Récupérer les informations du token stocké
+        const token = localStorage.getItem('agent_token');
+        let decodedToken = null;
+        
+        if (token) {
+          // Décoder le token JWT (sans vérification de signature)
+          const base64Url = token.split('.')[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          decodedToken = JSON.parse(window.atob(base64));
+        }
+        
+        // Utiliser les données du token si disponibles, sinon utiliser les données de l'API
+        agentInfo = {
+          name: decodedToken?.full_name || data?.full_name || 'Agent',
+          id: decodedToken?.user || data?.user_id || '',
+          status: data?.status || 'Disponible',
+          extension: decodedToken?.extension || data?.extension || '',
+          campaign: decodedToken?.campaign_name || data?.campaign_name || '',
+          sipPassword: data?.sip_password || 'welcome'
+        };
+        
+        // Récupérer les statistiques d'appels si disponibles
+        if (data.callStats) {
+          callStats = data.callStats;
+        }
+
+        // Initialiser WebRTC si l'extension est disponible
+        if (agentInfo.extension && !webrtcInitialized) {
+          initWebRTC();
+        }
+      } else {
+        console.error('Erreur lors de la récupération des données agent:', response.status);
+        error = 'Impossible de récupérer les informations de l\'agent';
+      }
+    } catch (err) {
+      console.error('Erreur lors du chargement des données:', err);
+      error = 'Erreur lors du chargement des données';
+    } finally {
+      isLoading = false;
+    }
+  }
+  
+  // Fonction pour mettre l'agent en pause
+  async function handlePause() {
+    try {
+      const response = await fetchWithAuth(`${API_BASE_URL}/agent/pause`, {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        agentInfo.status = 'En pause';
+      } else {
+        console.error('Erreur lors de la mise en pause:', response.status);
+      }
+    } catch (err) {
+      console.error('Erreur lors de la mise en pause:', err);
+    }
+  }
+  
+  // Fonction pour reprendre l'activité de l'agent
+  async function handleResume() {
+    try {
+      const response = await fetchWithAuth(`${API_BASE_URL}/agent/resume`, {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        agentInfo.status = 'Disponible';
+      } else {
+        console.error('Erreur lors de la reprise:', response.status);
+      }
+    } catch (err) {
+      console.error('Erreur lors de la reprise:', err);
+    }
+  }
+  
+  // Fonction pour déconnecter l'agent
+  async function handleLogout() {
+    try {
+      await fetchWithAuth(`${API_BASE_URL}/agent/auth/logout`, {
+        method: 'POST'
+      });
+      
+      // Supprimer le token et rediriger vers la page de login
+      localStorage.removeItem('agent_token');
+      window.location.href = '/login';
+    } catch (err) {
+      console.error('Erreur lors de la déconnexion:', err);
+    }
+  }
+  
+  // Fonction pour composer un numéro manuellement
+  async function handleDial(event: CustomEvent) {
+    const { phoneNumber } = event.detail;
+    
+    try {
+      const response = await fetchWithAuth(`${API_BASE_URL}/agent/call/dial-manual`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ phone_number: phoneNumber })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Démarrer l'appel
+        startCall({
+          callId: data.call_id || Date.now().toString(),
+          phoneNumber,
+          customerName: 'Client'
+        });
+      } else {
+        console.error('Erreur lors de la composition:', response.status);
+        alert('Erreur lors de la composition du numéro');
+      }
+    } catch (err) {
+      console.error('Erreur lors de la composition:', err);
+      alert('Erreur lors de la composition du numéro');
+    }
+  }
+  
+  // Fonction pour démarrer un appel
+  function startCall(callInfo: { callId: string, phoneNumber: string, customerName: string, leadId?: string }) {
+    console.log('Démarrage d\'un appel avec:', callInfo);
+    
+    // Mettre à jour l'état de l'appel
+    callActive = true;
+    callJustEnded = false;
+    callDuration = 0;
+    
+    // Mettre à jour les informations de l'appel
+    currentCall = {
+      callId: callInfo.callId,
+      phoneNumber: callInfo.phoneNumber,
+      customerName: callInfo.customerName,
+      startTime: new Date()
+    };
+    
+    // Mettre à jour les informations du client
+    customer = {
+      name: callInfo.customerName,
+      phone: callInfo.phoneNumber
+    };
+    
+    // S'assurer que currentProspect est défini pour que le formulaire s'affiche
+    if (!currentProspect) {
+      currentProspect = {
+        lead_id: callInfo.leadId || '',
+        phone_number: callInfo.phoneNumber,
+        first_name: callInfo.customerName.split(' ')[0] || '',
+        last_name: callInfo.customerName.split(' ')[1] || '',
+        status: 'NEW',
+        comments: ''
+      };
+      console.log('Prospect créé dans startCall:', currentProspect);
+    }
+    
+    // Si WebRTC est activé, initier l'appel via WebRTC
+    if (webrtcInitialized && sipRegistered) {
+      // Ajouter des en-têtes pour l'appel
+      const extraHeaders = {
+        'X-Lead-ID': callInfo.leadId || '',
+        'X-Agent-ID': agentInfo.id || ''
+      };
+      
+      // Initier l'appel via WebRTC
+      webrtcService.makeCall(callInfo.phoneNumber, extraHeaders);
+    }
+    
+    // Démarrer le timer de durée d'appel
+    startCallDurationTimer();
+    
+    // Jouer le son de tonalité d'appel si WebRTC n'est pas activé
+    if (!webrtcInitialized || !sipRegistered) {
+      playDialTone();
+    }
+    
+    // Charger un script pour l'appel
+    loadScript();
+  }
+  
+  // Fonction pour jouer le son de tonalité d'appel
+  function playDialTone() {
+    try {
+      // Créer un nouveau contexte audio si nécessaire
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      
+      // Arrêter l'intervalle précédent s'il existe
+      if (dialToneInterval) {
+        clearInterval(dialToneInterval);
+        dialToneInterval = null;
+      }
+      
+      // Fonction pour créer et jouer un bip
+      const createBip = () => {
+        // Arrêter l'oscillateur précédent s'il existe
+        if (oscillator) {
+          try {
+            oscillator.stop();
+            oscillator.disconnect();
+          } catch (e) {
+            // Ignorer les erreurs si l'oscillateur est déjà arrêté
+          }
+        }
+        
+        if (!audioContext) return;
+        
+        // Créer un nouvel oscillateur
+        oscillator = audioContext.createOscillator();
+        gainNode = audioContext.createGain();
+        
+        // Configurer l'oscillateur pour un son de bip d'appel
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // 440Hz = La
+        
+        // Configurer le volume
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        
+        // Connecter les nœuds
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Démarrer l'oscillateur pour 0.8 seconde
+        oscillator.start();
+        setTimeout(() => {
+          if (oscillator) {
+            try {
+              oscillator.stop();
+              oscillator.disconnect();
+            } catch (e) {
+              // Ignorer les erreurs
+            }
+          }
+        }, 800);
+      };
+      
+      // Jouer le premier bip immédiatement
+      createBip();
+      
+      // Créer un intervalle pour jouer un bip toutes les 2 secondes
+      dialToneInterval = setInterval(createBip, 2000);
+      
+      console.log('Son de tonalité d\'appel démarré');
+    } catch (error) {
+      console.error('Erreur lors de la création du son de tonalité:', error);
+    }
+  }
+  
+  // Fonction pour arrêter le son de tonalité d'appel
+  function stopDialTone() {
+    try {
+      // Arrêter l'intervalle
+      if (dialToneInterval) {
+        clearInterval(dialToneInterval);
+        dialToneInterval = null;
+      }
+      
+      // Arrêter l'oscillateur
+      if (oscillator) {
+        oscillator.stop();
+        oscillator.disconnect();
+        oscillator = undefined;
+      }
+      
+      console.log('Son de tonalité d\'appel arrêté');
+    } catch (error) {
+      console.error('Erreur lors de l\'arrêt du son de tonalité:', error);
+    }
+  }
+  
+  // Fonction pour jouer la sonnerie (appel entrant)
+  function playRingtone() {
+    try {
+      // Créer un élément audio pour la sonnerie si nécessaire
+      if (!ringtoneAudio) {
+        ringtoneAudio = new Audio('/sounds/ringtone.mp3');
+        ringtoneAudio.loop = true;
+      }
+      
+      // Jouer la sonnerie
+      ringtoneAudio.play();
+      console.log('Sonnerie démarrée');
+    } catch (error) {
+      console.error('Erreur lors de la lecture de la sonnerie:', error);
+    }
+  }
+  
+  // Fonction pour arrêter la sonnerie
+  function stopRingtone() {
+    try {
+      if (ringtoneAudio) {
+        ringtoneAudio.pause();
+        ringtoneAudio.currentTime = 0;
+        console.log('Sonnerie arrêtée');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'arrêt de la sonnerie:', error);
+    }
+  }
+  
+  // Fonction pour démarrer le timer de durée d'appel
+  function startCallDurationTimer() {
+    // Arrêter le timer précédent s'il existe
+    if (callDurationInterval) {
+      clearInterval(callDurationInterval);
+    }
+    
+    // Réinitialiser la durée
+    callDuration = 0;
+    
+    // Démarrer un nouveau timer
+    callDurationInterval = setInterval(() => {
+      callDuration += 1;
+    }, 1000);
+  }
+  
+  // Fonction pour initialiser WebRTC
+  function initWebRTC() {
+    if (!agentInfo || !agentInfo.extension) {
+      console.error('Impossible d\'initialiser WebRTC: informations de l\'agent manquantes');
+      return;
+    }
+    
+    // Configuration WebRTC
+    const webrtcConfig = {
+      serverUrl: `wss://${ASTERISK_SERVER}:${ASTERISK_WEBRTC_PORT}/ws`,
+      extension: agentInfo.extension,
+      password: agentInfo.sipPassword || 'welcome',  // Mot de passe par défaut ou depuis les infos agent
+      domain: ASTERISK_SIP_DOMAIN,
+      displayName: agentInfo.name || `Agent ${agentInfo.id}`
+    };
+    
+    // Initialiser la connexion SIP
+    try {
+      const success = webrtcService.initSIP(webrtcConfig);
+      webrtcInitialized = success;
+      console.log('Initialisation WebRTC:', success ? 'réussie' : 'échouée');
+    } catch (error) {
+      console.error('Erreur lors de l\'initialisation WebRTC:', error);
+      webrtcInitialized = false;
+    }
+  }
+  
+  // Fonction pour terminer un appel
+  function endCall() {
+    callActive = false;
+    callJustEnded = true;
+    
+    // Arrêter le timer de durée d'appel
+    if (callDurationInterval) {
+      clearInterval(callDurationInterval);
+      callDurationInterval = null;
+    }
+    
+    // Arrêter le son de tonalité d'appel s'il est en cours
+    stopDialTone();
+    
+    // Réinitialiser l'état de l'appel
+    callMuted = false;
+    callOnHold = false;
+    recording = false;
+    
+    // Si WebRTC est activé, terminer l'appel via WebRTC
+    if (webrtcInitialized) {
+      webrtcService.hangupCall();
+    }
+    
+    // Enregistrer la fin de l'appel
+    if (currentCall.callId) {
+      try {
+        fetchWithAuth(`${API_BASE_URL}/agent/end-call`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            callId: currentCall.callId,
+            duration: callDuration
+          })
+        });
+      } catch (error) {
+        console.error('Erreur lors de l\'enregistrement de la fin de l\'appel:', error);
+      }
+    }
+    
+    // Afficher le panneau de disposition
+    showDisposition = true;
+  }
+  
+  // Fonction pour gérer le clic sur le bouton de mise en sourdine
+  function handleToggleMute() {
+    callMuted = !callMuted;
+    console.log('Micro ' + (callMuted ? 'coupé' : 'activé'));
+    
+    // Si WebRTC est activé, mettre en sourdine via WebRTC
+    if (webrtcInitialized) {
+      webrtcService.toggleMute(callMuted);
+    }
+  }
+  
+  // Fonction pour gérer le clic sur le bouton de mise en attente
+  function handleToggleHold() {
+    callOnHold = !callOnHold;
+    console.log('Appel ' + (callOnHold ? 'mis en attente' : 'repris'));
+    
+    // Si WebRTC est activé, mettre en attente via WebRTC
+    if (webrtcInitialized) {
+      webrtcService.toggleHold(callOnHold);
+    }
+  }
+  
+  // Fonction pour gérer le clic sur le bouton d'enregistrement
+  function handleToggleRecording() {
+    recording = !recording;
+    console.log('Enregistrement ' + (recording ? 'démarré' : 'arrêté'));
+    
+    // Envoyer une requête pour démarrer/arrêter l'enregistrement
+    try {
+      fetchWithAuth(`${API_BASE_URL}/agent/recording`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          callId: currentCall.callId,
+          recording: recording
+        })
+      });
+    } catch (error) {
+      console.error('Erreur lors de la gestion de l\'enregistrement:', error);
+    }
+  }
+  
+  // Fonction pour gérer le clic sur le bouton de raccrochage
+  function handleHangup() {
+    endCall();
+    console.log('Appel raccroché');
+  }
+  
+  // Fonction pour gérer le transfert d'appel
+  function handleTransfer() {
+    alert('Fonctionnalité de transfert à implémenter');
+  }
+  
+  // Fonction pour gérer l'ouverture du pavé DTMF
+  function handleOpenDtmfPad() {
+    alert('Fonctionnalité DTMF à implémenter');
+  }
+  
+  // Fonction pour gérer l'événement callInitiated du composant PredictiveDialer
+  function handleCallInitiated(event: { detail: any }) {
+    const { phoneNumber, callId, contactName, leadId } = event.detail;
+    
+    console.log('Appel initié depuis PredictiveDialer avec détails:', event.detail);
+    
+    // S'assurer que callActive est mis à true avant de démarrer l'appel
+    callActive = true;
+    
+    // Mettre à jour les informations du client
+    customer = {
+      name: contactName || 'Client',
+      phone: phoneNumber
+    };
+    
+    // Démarrer l'appel avec les informations reçues
+    startCall({
+      callId: callId,
+      phoneNumber: phoneNumber,
+      customerName: contactName || 'Client',
+      leadId: leadId
+    });
+    
+    // Si currentProspect n'est pas défini, créer un objet prospect par défaut
+    if (!currentProspect) {
+      currentProspect = {
+        lead_id: leadId || '',
+        phone_number: phoneNumber,
+        first_name: contactName?.split(' ')[0] || '',
+        last_name: contactName?.split(' ')[1] || '',
+        status: 'NEW',
+        comments: ''
+      };
+      console.log('Prospect par défaut créé:', currentProspect);
+    }
+  }
+  
+  // Fonction pour gérer l'événement prospectLoaded du composant PredictiveDialer
+  function handleProspectLoaded(event: { detail: any }) {
+    const { prospect } = event.detail;
+    
+    console.log('Prospect chargé:', prospect);
+    
+    // Mettre à jour le prospect actuel
+    currentProspect = prospect;
+  }
+  
+  // Fonction pour gérer la soumission de la disposition
+  function handleDispositionSubmit(event: CustomEvent) {
+    const dispositionData = event.detail;
+    
+    try {
+      fetchWithAuth(`${API_BASE_URL}/agent/call/disposition`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          call_id: currentCall.callId,
+          disposition: dispositionData.dispositionId,
+          notes: dispositionData.notes,
+          callback_date: dispositionData.callbackDate,
+          callback_time: dispositionData.callbackTime
+        })
+      });
+      
+      // Réinitialiser l'état de l'appel
+      showDisposition = false;
+      currentCall = {
+        callId: '',
+        phoneNumber: '',
+        customerName: '',
+        startTime: null
+      };
+      customer = {
+        name: '',
+        phone: ''
+      };
+      currentProspect = null;
+      
+      // Mettre à jour les statistiques
+      callStats.completed++;
+      callStats.today++;
+      callStats.successRate = Math.round((callStats.completed / callStats.today) * 100);
+    } catch (error) {
+      console.error('Erreur lors de la soumission de la disposition:', error);
+    }
+  }
+  
+  // Fonction pour annuler la disposition
+  function handleDispositionCancel() {
+    showDisposition = false;
+    
+    // Réinitialiser l'état de l'appel
+    currentCall = {
+      callId: '',
+      phoneNumber: '',
+      customerName: '',
+      startTime: null
+    };
+    customer = {
+      name: '',
+      phone: ''
+    };
+    currentProspect = null;
+  }
+  
+  // Fonction pour charger un script
+  function loadScript() {
+    // Script fictif pour démonstration
+    currentScript = {
+      id: '1',
+      name: 'Script d\'appel standard',
+      description: 'Script standard pour les appels sortants',
+      sections: [
+        {
+          id: '1',
+          title: 'Introduction',
+          content: 'Bonjour, je m\'appelle [Votre Nom] et je vous appelle de la part de [Entreprise]. Comment allez-vous aujourd\'hui ?',
+          order: 1
+        },
+        {
+          id: '2',
+          title: 'Présentation du produit',
+          content: 'Je vous contacte aujourd\'hui pour vous parler de notre nouveau produit/service qui pourrait vous intéresser...',
+          order: 2
+        },
+        {
+          id: '3',
+          title: 'Gestion des objections',
+          content: 'Je comprends vos préoccupations. Beaucoup de nos clients avaient les mêmes inquiétudes avant d\'essayer notre produit/service...',
+          order: 3
+        },
+        {
+          id: '4',
+          title: 'Conclusion',
+          content: 'Pour résumer, notre produit/service vous permettra de [avantages]. Souhaitez-vous en savoir plus ou procéder à une commande ?',
+          order: 4
+        }
+      ]
+    };
+  }
+  
+  // Initialisation au chargement de la page
+  onMount(async () => {
+    // Charger les informations de l'agent
+    await loadAgentData();
+    
+    // Démarrer le timer de durée d'appel si un appel est en cours
+    if (callActive) {
+      startCallDurationTimer();
+    }
+    
+    // S'abonner aux changements d'état SIP
+    const unsubscribeSipStatus = sipStatus.subscribe(status => {
+      console.log('Statut SIP changé:', status);
+      sipConnected = status === 'connected' || status === 'registered';
+      sipRegistered = status === 'registered';
+    });
+    
+    // S'abonner aux changements d'état d'appel
+    const unsubscribeCallStatus = callStatus.subscribe(status => {
+      console.log('Statut d\'appel changé:', status);
+      
+      if (status === 'ringing') {
+        // Appel entrant, déclencher la sonnerie
+        playRingtone();
+      } else if (status === 'inprogress') {
+        // Appel en cours, arrêter la sonnerie et démarrer le timer
+        stopRingtone();
+        callActive = true;
+        startCallDurationTimer();
+      } else if (status === 'ended' || status === 'idle') {
+        // Appel terminé
+        if (callActive) {
+          endCall();
+        }
+      }
+    });
+    
+    // S'abonner aux changements de session d'appel
+    const unsubscribeCurrentSession = currentSession.subscribe(session => {
+      if (session) {
+        // Récupérer les informations de l'appel
+        const phoneNumber = session.remote_identity?.uri?.user || '';
+        const displayName = session.remote_identity?.display_name || 'Client';
+        
+        // Démarrer l'appel dans l'interface
+        if (!callActive) {
+          startCall({
+            callId: session.id || Date.now().toString(),
+            phoneNumber,
+            customerName: displayName
+          });
+        }
+      }
+    });
+    
+    // Nettoyage lors du démontage du composant
+    return () => {
+      unsubscribeSipStatus();
+      unsubscribeCallStatus();
+      unsubscribeCurrentSession();
+    };
+  });
+  
+  // Nettoyage lors du démontage du composant
+  onDestroy(() => {
+    // Terminer la connexion WebRTC
+    if (webrtcInitialized) {
+      webrtcService.terminateSIP();
+    }
+    
+    // Arrêter le timer de durée d'appel
+    if (callDurationInterval) {
+      clearInterval(callDurationInterval);
+    }
+    
+    // Arrêter les sons
+    stopDialTone();
+    stopRingtone();
+  });
+</script>

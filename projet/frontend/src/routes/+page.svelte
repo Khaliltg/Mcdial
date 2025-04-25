@@ -3,15 +3,24 @@
   import { onMount } from 'svelte';
   import Chart from 'chart.js/auto';
   import type { Chart as ChartType } from 'chart.js/auto';
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
-  // Simulated data (replace with actual API calls later)
-  let stats = {
-    totalCalls: 1250,
-    activeCampaigns: 5,
-    completedCalls: 875,
-    successRate: 70
+  // API URL from environment variable with fallback
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
+  // Define types for our data
+  type Campaign = {
+    campaign_id: string;
+    campaign_name: string;
+    active: string;
+    dial_status_a: string;
+    hopper_level: number;
+    calls_today: number;
+    success_rate: number;
+    progress: number;
   };
 
+  // Define types for our data
   type ActivityItem = {
     id: string;
     type: 'call' | 'campaign' | 'system';
@@ -19,93 +28,25 @@
     target: string;
     timestamp: Date;
     status: 'success' | 'warning' | 'error' | 'info';
+    user?: string;
   };
 
-  let activities: ActivityItem[] = [
-    {
-      id: '1',
-      type: 'call',
-      description: 'Appel terminé avec succès',
-      target: 'Jean Dupont',
-      timestamp: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
-      status: 'success'
-    },
-    {
-      id: '2',
-      type: 'campaign',
-      description: 'Nouvelle campagne créée',
-      target: 'Prospection Q2',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
-      status: 'info'
-    },
-    {
-      id: '3',
-      type: 'call',
-      description: 'Appel sans réponse',
-      target: 'Marie Martin',
-      timestamp: new Date(Date.now() - 1000 * 60 * 90), // 1.5 hours ago
-      status: 'warning'
-    },
-    {
-      id: '4',
-      type: 'system',
-      description: 'Mise à jour du système',
-      target: 'v1.2.5',
-      timestamp: new Date(Date.now() - 1000 * 60 * 120), // 2 hours ago
-      status: 'info'
-    },
-    {
-      id: '5',
-      type: 'call',
-      description: 'Appel échoué',
-      target: 'Pierre Dubois',
-      timestamp: new Date(Date.now() - 1000 * 60 * 240), // 4 hours ago
-      status: 'error'
-    }
-  ];
+  // Initialize state variables
+  let stats = {
+    totalCalls: 0,
+    activeCampaigns: 0,
+    completedCalls: 0,
+    successRate: 0,
+    activeUsers: 0,
+    inactiveUsers: 0,
+    totalUsers: 0,
+    loggedInToday: 0,
+    currentlyLoggedIn: 0
+  };
 
-  let campaigns = [
-    {
-      id: 'c1',
-      name: 'Prospection Clients',
-      status: 'active',
-      progress: 65,
-      callsToday: 125,
-      successRate: 72
-    },
-    {
-      id: 'c2',
-      name: 'Suivi Prospects',
-      status: 'active',
-      progress: 42,
-      callsToday: 87,
-      successRate: 58
-    },
-    {
-      id: 'c3',
-      name: 'Enquête Satisfaction',
-      status: 'paused',
-      progress: 30,
-      callsToday: 0,
-      successRate: 65
-    },
-    {
-      id: 'c4',
-      name: 'Relance Impayés',
-      status: 'completed',
-      progress: 100,
-      callsToday: 0,
-      successRate: 82
-    },
-    {
-      id: 'c5',
-      name: 'Présentation Nouveau Produit',
-      status: 'scheduled',
-      progress: 0,
-      callsToday: 0,
-      successRate: 0
-    }
-  ];
+  let campaigns: Campaign[] = [];
+  let isLoading = true;
+  let error = '';
 
   // Chart data
   let performanceChart: ChartType;
@@ -114,7 +55,7 @@
     datasets: [
       {
         label: 'Appels',
-        data: [65, 78, 52, 91, 43, 23, 36],
+        data: [0, 0, 0, 0, 0, 0, 0],
         borderColor: '#0d6efd',
         backgroundColor: 'rgba(13, 110, 253, 0.1)',
         tension: 0.3,
@@ -122,7 +63,7 @@
       },
       {
         label: 'Succès',
-        data: [42, 55, 40, 70, 32, 18, 29],
+        data: [0, 0, 0, 0, 0, 0, 0],
         borderColor: '#198754',
         backgroundColor: 'rgba(25, 135, 84, 0.1)',
         tension: 0.3,
@@ -131,13 +72,190 @@
     ]
   };
 
+  // Activities data from admin log
+  
+  let activities: ActivityItem[] = [];
+  let recentlyActiveUsers: any[] = [];
+  let activitiesLoading = false;
+  let activitiesError = '';
+
+  // Function to fetch recent activities from admin log
+  async function fetchActivities() {
+    try {
+      activitiesLoading = true;
+      activitiesError = '';
+      
+      const response = await fetchWithAuth(`${API_BASE_URL}/admin/logs/recent-activities?limit=5`);
+      
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        // Convert string timestamps to Date objects
+        activities = data.data.map((activity: any) => ({
+          ...activity,
+          timestamp: new Date(activity.timestamp)
+        }));
+      } else {
+        throw new Error('Format de réponse invalide');
+      }
+      
+    } catch (err) {
+      console.error('Error fetching activities:', err);
+      activitiesError = err instanceof Error ? err.message : 'Une erreur est survenue';
+      // Fallback to empty activities array
+      activities = [];
+    } finally {
+      activitiesLoading = false;
+    }
+  }
+  
+  // Pagination state
+  let currentPage = 1;
+  let itemsPerPage = 5;
+  let totalItems = 0;
+  let totalPages = 0;
+  let searchQuery = '';
+  
+  // Function to fetch campaign data with pagination
+  async function fetchCampaigns(page = 1, limit = 5, search = '') {
+    try {
+      isLoading = true;
+      error = '';
+      
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      });
+      
+      if (search) {
+        queryParams.append('search', search);
+      }
+      
+      const response = await fetchWithAuth(`${API_BASE_URL}/admin/compagnies/recuperer?${queryParams}`);
+      
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Erreur lors de la récupération des campagnes');
+      }
+      
+      // Update pagination state
+      currentPage = result.pagination.page;
+      itemsPerPage = result.pagination.limit;
+      totalItems = result.pagination.totalItems;
+      totalPages = result.pagination.totalPages;
+      
+      // Process campaign data
+      campaigns = result.data.map(campaign => ({
+        campaign_id: campaign.campaign_id,
+        campaign_name: campaign.campaign_name,
+        active: campaign.active,
+        dial_status_a: campaign.dial_status_a,
+        hopper_level: parseInt(campaign.hopper_level) || 0,
+        // Generate some random stats for now (would be replaced with real data)
+        calls_today: Math.floor(Math.random() * 200),
+        success_rate: Math.floor(Math.random() * 100),
+        progress: campaign.active === 'Y' ? Math.floor(Math.random() * 100) : 0
+      }));
+      
+      // Calculate dashboard stats
+      updateDashboardStats();
+      
+      // Update chart data
+      updateChartData();
+      
+    } catch (err) {
+      console.error('Error fetching campaigns:', err);
+      error = err instanceof Error ? err.message : 'Une erreur est survenue';
+    } finally {
+      isLoading = false;
+    }
+  }
+  
+  // Function to handle page changes
+  function changePage(newPage: number) {
+    if (newPage < 1 || newPage > totalPages || newPage === currentPage) {
+      return;
+    }
+    fetchCampaigns(newPage, itemsPerPage, searchQuery);
+  }
+  
+  // Function to handle search
+  function handleSearch() {
+    fetchCampaigns(1, itemsPerPage, searchQuery);
+  }
+  
+  // Update dashboard statistics based on campaign data
+  function updateDashboardStats() {
+    const activeCampaignsCount = campaigns.filter(c => c.active === 'Y').length;
+    const totalCallsCount = campaigns.reduce((sum, c) => sum + c.calls_today, 0);
+    const successfulCalls = campaigns.reduce((sum, c) => sum + Math.floor(c.calls_today * (c.success_rate / 100)), 0);
+    
+    // Preserve existing values for user-related stats
+    const { activeUsers, inactiveUsers, totalUsers, loggedInToday, currentlyLoggedIn } = stats;
+    
+    stats = {
+      totalCalls: totalCallsCount,
+      activeCampaigns: activeCampaignsCount,
+      completedCalls: successfulCalls,
+      successRate: totalCallsCount > 0 ? Math.round((successfulCalls / totalCallsCount) * 100) : 0,
+      activeUsers,
+      inactiveUsers,
+      totalUsers,
+      loggedInToday,
+      currentlyLoggedIn
+    };
+  }
+  
+  // Update chart data based on campaign performance
+  function updateChartData() {
+    // Generate some realistic data for the week
+    const weekdays = 7;
+    const callsData: number[] = [];
+    const successData: number[] = [];
+    
+    for (let i = 0; i < weekdays; i++) {
+      const dailyCalls = Math.floor(Math.random() * 100) + 20;
+      callsData.push(dailyCalls);
+      successData.push(Math.floor(dailyCalls * (Math.random() * 0.3 + 0.5))); // 50-80% success rate
+    }
+    
+    performanceData = {
+      ...performanceData,
+      datasets: [
+        {
+          ...performanceData.datasets[0],
+          data: callsData
+        },
+        {
+          ...performanceData.datasets[1],
+          data: successData
+        }
+      ]
+    };
+  }
+
   function getStatusBadgeClass(status: string) {
     switch (status) {
-      case 'active': return 'bg-primary';
-      case 'paused': return 'bg-warning text-dark';
-      case 'completed': return 'bg-success';
-      case 'scheduled': return 'bg-secondary';
+      case 'Y': return 'bg-primary';
+      case 'N': return 'bg-secondary';
       default: return 'bg-light text-dark';
+    }
+  }
+  
+  function getStatusLabel(status: string) {
+    switch (status) {
+      case 'Y': return 'Active';
+      case 'N': return 'Inactive';
+      default: return status;
     }
   }
 
@@ -175,7 +293,44 @@
     }
   }
 
-  onMount(() => {
+  // Function to fetch active users count
+  async function fetchActiveUsers() {
+    try {
+      const response = await fetchWithAuth(`${API_BASE_URL}/admin/user/active-users-count`);
+      
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        stats = {
+          ...stats,
+          activeUsers: result.data.activeUsersCount,
+          inactiveUsers: result.data.inactiveUsersCount,
+          totalUsers: result.data.totalUsersCount,
+          loggedInToday: result.data.loggedInTodayCount,
+          currentlyLoggedIn: result.data.currentlyLoggedIn
+        };
+
+        // Store recently active users for potential display
+        recentlyActiveUsers = result.data.recentlyActiveUsers || [];
+      }
+    } catch (err) {
+      console.error('Error fetching active users count:', err);
+    }
+  }
+
+  onMount(async () => {
+    // Fetch campaign data, activities, and active users count in parallel
+    await Promise.all([
+      fetchCampaigns(),
+      fetchActivities(),
+      fetchActiveUsers()
+    ]);
+    
+    // Initialize chart
     const ctx = document.getElementById('performanceChart') as HTMLCanvasElement;
     if (ctx) {
       performanceChart = new Chart(ctx, {
@@ -186,24 +341,24 @@
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              display: true,
-              position: 'top'
+              position: 'top',
             },
             tooltip: {
               mode: 'index',
-              intersect: false
+              intersect: false,
             }
           },
           scales: {
             y: {
               beginAtZero: true,
               grid: {
-                display: true
+                // Using any to bypass Chart.js type limitation
+                drawBorder: false as any,
               }
             },
             x: {
               grid: {
-                display: false
+                display: false,
               }
             }
           }
@@ -257,7 +412,7 @@
 
   <!-- Stats Cards -->
   <div class="row mb-4">
-    <div class="col-md-3 mb-3 mb-md-0">
+    <div class="col-md-3 col-lg-2 mb-3 mb-md-0">
       <div class="card h-100 border-0 shadow-sm">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center">
@@ -275,7 +430,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-3 mb-3 mb-md-0">
+    <div class="col-md-3 col-lg-2 mb-3 mb-md-0">
       <div class="card h-100 border-0 shadow-sm">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center">
@@ -293,7 +448,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-3 mb-3 mb-md-0">
+    <div class="col-md-3 col-lg-2 mb-3 mb-md-0">
       <div class="card h-100 border-0 shadow-sm">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center">
@@ -311,7 +466,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-3 col-lg-2 mb-3 mb-md-0">
       <div class="card h-100 border-0 shadow-sm">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center">
@@ -329,6 +484,53 @@
         </div>
       </div>
     </div>
+    <div class="col-md-3 col-lg-2 mb-3 mb-md-0">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Utilisateurs Actifs</h6>
+              <h3 class="mb-0">{stats.activeUsers}</h3>
+              <small class="text-muted">{Math.round((stats.activeUsers / stats.totalUsers) * 100) || 0}% du total</small>
+            </div>
+            <div class="bg-success bg-opacity-10 p-3 rounded">
+              <i class="bi bi-person-check-fill text-success fs-4"></i>
+            </div>
+          </div>
+          <div class="progress mt-3" style="height: 5px;">
+            <div class="progress-bar bg-success" role="progressbar" 
+              style="width: {stats.totalUsers ? (stats.activeUsers / stats.totalUsers) * 100 : 0}%;" 
+              aria-valuenow="{stats.totalUsers ? (stats.activeUsers / stats.totalUsers) * 100 : 0}" 
+              aria-valuemin="0" 
+              aria-valuemax="100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-lg-2 mb-3 mb-md-0">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Utilisateurs Inactifs</h6>
+              <h3 class="mb-0">{stats.inactiveUsers}</h3>
+              <small class="text-muted">{Math.round((stats.inactiveUsers / stats.totalUsers) * 100) || 0}% du total</small>
+            </div>
+            <div class="bg-danger bg-opacity-10 p-3 rounded">
+              <i class="bi bi-person-x text-danger fs-4"></i>
+            </div>
+          </div>
+          <div class="progress mt-3" style="height: 5px;">
+            <div class="progress-bar bg-danger" role="progressbar" 
+              style="width: {stats.totalUsers ? (stats.inactiveUsers / stats.totalUsers) * 100 : 0}%;" 
+              aria-valuenow="{stats.totalUsers ? (stats.inactiveUsers / stats.totalUsers) * 100 : 0}" 
+              aria-valuemin="0" 
+              aria-valuemax="100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  
   </div>
 
   <!-- Charts and Activity -->
@@ -359,104 +561,85 @@
           <button class="btn btn-sm btn-outline-primary">Voir tout</button>
         </div>
         <div class="card-body p-0">
-          <div class="list-group list-group-flush">
-            {#each activities as activity}
-              <div class="list-group-item border-0 py-3">
-                <div class="d-flex">
-                  <div class="me-3">
-                    <div class="avatar bg-light p-2 rounded-circle">
-                      <i class="bi {getActivityIcon(activity.type)} {getActivityStatusClass(activity.status)}"></i>
+          {#if activitiesLoading}
+            <div class="d-flex justify-content-center py-4">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Chargement...</span>
+              </div>
+            </div>
+          {:else if activitiesError}
+            <div class="alert alert-danger m-3" role="alert">
+              <i class="bi bi-exclamation-triangle me-2"></i>
+              {activitiesError}
+            </div>
+          {:else if activities.length === 0}
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-inbox-fill fs-3 mb-2"></i>
+              <p>Aucune activité récente</p>
+            </div>
+          {:else}
+            <div class="list-group list-group-flush">
+              {#each activities as activity}
+                <div class="list-group-item border-0 py-3">
+                  <div class="d-flex">
+                    <div class="me-3">
+                      <div class="avatar bg-light p-2 rounded-circle">
+                        <i class="bi {getActivityIcon(activity.type)} {getActivityStatusClass(activity.status)}"></i>
+                      </div>
                     </div>
-                  </div>
-                  <div class="flex-grow-1">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                      <h6 class="mb-0">{activity.target}</h6>
-                      <small class="text-muted">{formatDate(activity.timestamp)}</small>
+                    <div class="flex-grow-1">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <h6 class="mb-0">{activity.target}</h6>
+                        <small class="text-muted">{formatDate(activity.timestamp)}</small>
+                      </div>
+                      <p class="mb-0 text-muted small">{activity.description}</p>
+                      {#if activity.user}
+                        <small class="text-primary">Par: {activity.user}</small>
+                      {/if}
                     </div>
-                    <p class="mb-0 text-muted small">{activity.description}</p>
                   </div>
                 </div>
-              </div>
-            {/each}
-          </div>
+              {/each}
+            </div>
+          {/if}
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Campaigns Section -->
-  <div class="row mb-4">
-    <div class="col-12 mb-3">
-      <div class="d-flex justify-content-between align-items-center">
-        <h4>Campagnes Actives</h4>
-        <div class="d-flex gap-2">
-          <div class="input-group">
-            <input type="text" class="form-control form-control-sm" placeholder="Rechercher...">
-            <button class="btn btn-outline-secondary btn-sm" type="button">
-              <i class="bi bi-search"></i>
-            </button>
-          </div>
-          <button class="btn btn-primary btn-sm">
-            <i class="bi bi-plus-lg me-1"></i>Nouvelle Campagne
-          </button>
-        </div>
-      </div>
-    </div>
-    
-    {#each campaigns.filter(c => c.status === 'active') as campaign}
-      <div class="col-md-6 col-lg-4 mb-3">
-        <div class="card border-0 shadow-sm h-100">
-          <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">{campaign.name}</h5>
-            <span class="badge {getStatusBadgeClass(campaign.status)}">{campaign.status}</span>
-          </div>
-          <div class="card-body">
-            <div class="mb-3">
-              <div class="d-flex justify-content-between mb-1">
-                <span>Progression</span>
-                <span>{campaign.progress}%</span>
-              </div>
-              <div class="progress" style="height: 8px;">
-                <div class="progress-bar bg-primary" role="progressbar" style="width: {campaign.progress}%;" aria-valuenow="{campaign.progress}" aria-valuemin="0" aria-valuemax="100"></div>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-6">
-                <div class="border rounded p-2 text-center">
-                  <div class="text-muted small">Appels</div>
-                  <div class="fw-bold">{campaign.callsToday}</div>
-                </div>
-              </div>
-              <div class="col-6">
-                <div class="border rounded p-2 text-center">
-                  <div class="text-muted small">Taux de Succès</div>
-                  <div class="fw-bold">{campaign.successRate}%</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer bg-white border-0">
-            <div class="d-flex justify-content-between align-items-center">
-              <div class="d-flex align-items-center">
-                <div class="spinner-grow spinner-grow-sm text-success me-2" role="status">
-                  <span class="visually-hidden">En cours...</span>
-                </div>
-                <small class="text-muted">En cours</small>
-              </div>
-              <button class="btn btn-sm btn-outline-primary">Gérer</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    {/each}
-  </div>
+ 
 
   <!-- All Campaigns Table -->
   <div class="row mb-4">
     <div class="col-12">
       <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white border-0">
+        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
           <h5 class="mb-0">Toutes les Campagnes</h5>
+          <div class="d-flex">
+            <div class="input-group input-group-sm me-2" style="width: 200px;">
+              <input 
+                type="text" 
+                class="form-control" 
+                placeholder="Rechercher..." 
+                bind:value={searchQuery}
+                on:keyup={(e) => e.key === 'Enter' && handleSearch()}
+              >
+              <button class="btn btn-outline-secondary" type="button" on:click={handleSearch}>
+                <i class="bi bi-search"></i>
+              </button>
+            </div>
+            <select 
+              class="form-select form-select-sm" 
+              style="width: 80px;" 
+              bind:value={itemsPerPage} 
+              on:change={() => fetchCampaigns(1, itemsPerPage, searchQuery)}
+            >
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+          </div>
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
@@ -480,20 +663,20 @@
                           <i class="bi bi-folder text-primary"></i>
                         </div>
                         <div>
-                          <div>{campaign.name}</div>
-                          <small class="text-muted">ID: {campaign.id}</small>
+                          <div>{campaign.campaign_name}</div>
+                          <small class="text-muted">ID: {campaign.campaign_id}</small>
                         </div>
                       </div>
                     </td>
-                    <td><span class="badge {getStatusBadgeClass(campaign.status)}">{campaign.status}</span></td>
+                    <td><span class="badge {getStatusBadgeClass(campaign.active)}">{getStatusLabel(campaign.active)}</span></td>
                     <td>
                       <div class="progress" style="height: 6px; width: 100px;">
                         <div class="progress-bar bg-primary" role="progressbar" style="width: {campaign.progress}%;" aria-valuenow="{campaign.progress}" aria-valuemin="0" aria-valuemax="100"></div>
                       </div>
                       <small class="text-muted">{campaign.progress}%</small>
                     </td>
-                    <td>{campaign.callsToday}</td>
-                    <td>{campaign.successRate}%</td>
+                    <td>{campaign.calls_today}</td>
+                    <td>{campaign.success_rate}%</td>
                     <td class="text-end">
                       <button class="btn btn-sm btn-outline-secondary me-1">
                         <i class="bi bi-pencil"></i>
@@ -510,22 +693,50 @@
         </div>
         <div class="card-footer bg-white d-flex justify-content-between align-items-center">
           <div>
-            <small class="text-muted">Affichage de {campaigns.length} campagnes</small>
+            <small class="text-muted">
+              {#if totalItems > 0}
+                Affichage de {(currentPage - 1) * itemsPerPage + 1} à {Math.min(currentPage * itemsPerPage, totalItems)} sur {totalItems} campagnes
+              {:else}
+                Aucune campagne trouvée
+              {/if}
+            </small>
           </div>
           <nav aria-label="Page navigation">
             <ul class="pagination pagination-sm mb-0">
-              <li class="page-item disabled">
-                <a class="page-link" href="#" aria-label="Previous">
+              <!-- Previous button -->
+              <li class="page-item {currentPage === 1 ? 'disabled' : ''}">
+                <button 
+                  class="page-link" 
+                  on:click={() => changePage(currentPage - 1)} 
+                  disabled={currentPage === 1}
+                  aria-label="Previous"
+                >
                   <span aria-hidden="true">&laquo;</span>
-                </a>
+                </button>
               </li>
-              <li class="page-item active"><a class="page-link" href="#">1</a></li>
-              <li class="page-item"><a class="page-link" href="#">2</a></li>
-              <li class="page-item"><a class="page-link" href="#">3</a></li>
-              <li class="page-item">
-                <a class="page-link" href="#" aria-label="Next">
+              
+              <!-- Page numbers -->
+              {#each Array(totalPages) as _, i}
+                <li class="page-item {currentPage === i + 1 ? 'active' : ''}">
+                  <button 
+                    class="page-link" 
+                    on:click={() => changePage(i + 1)}
+                  >
+                    {i + 1}
+                  </button>
+                </li>
+              {/each}
+              
+              <!-- Next button -->
+              <li class="page-item {currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}">
+                <button 
+                  class="page-link" 
+                  on:click={() => changePage(currentPage + 1)} 
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  aria-label="Next"
+                >
                   <span aria-hidden="true">&raquo;</span>
-                </a>
+                </button>
               </li>
             </ul>
           </nav>

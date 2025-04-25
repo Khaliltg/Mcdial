@@ -1,6 +1,6 @@
 // routes/userRoutes.js
 const express = require('express');
-const { createUser, getUsers, getUserById, getUsersGroups, updateUser, copyUser, getUserStats, getUserStatistics } = require('../../Controllers/Admin/User');
+const { createUser, getUsers, getUserById, getUsersGroups, updateUser, copyUser, getUserStats, getUserStatistics, getActiveUsersCount } = require('../../Controllers/Admin/User');
 
 const router = express.Router();
 
@@ -27,5 +27,8 @@ router.get('/userStats/:user', getUserStats);
 
 // Get comprehensive user statistics
 router.get('/user/:user/stats', getUserStatistics);
+
+// Get active users count
+router.get('/active-users-count', getActiveUsersCount);
 
 module.exports = router;
