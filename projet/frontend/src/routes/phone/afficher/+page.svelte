@@ -8,13 +8,13 @@
     
     interface Phone {
       extension: string;
-      port?: string;
+      mot_de_pass: string;
       server_ip?: string;
       dialplan_number?: string;
       status?: string;
       active?: string; // Y = actif, N = inactif
       fullname?: string;
-      voicemail_id?: string;
+      protocol?: string;
       user_group?: string;
     }
     
@@ -349,10 +349,10 @@
                             <i class="bi {getSortIcon('extension')} ms-1 sort-icon"></i>
                           </div>
                         </th>
-                        <th class="sortable" on:click={() => sortBy('port')}>
+                        <th class="sortable" on:click={() => sortBy('password')}>
                           <div class="d-flex align-items-center">
-                            <i class="bi bi-usb me-2"></i> PORT
-                            <i class="bi {getSortIcon('port')} ms-1 sort-icon"></i>
+                            <i class="bi bi-usb me-2"></i> MOT DE PASS
+                            <i class="bi {getSortIcon('password')} ms-1 sort-icon"></i>
                           </div>
                         </th>
                         <th class="sortable" on:click={() => sortBy('server_ip')}>
@@ -379,10 +379,10 @@
                             <i class="bi {getSortIcon('fullname')} ms-1 sort-icon"></i>
                           </div>
                         </th>
-                        <th class="sortable" on:click={() => sortBy('voicemail_id')}>
+                        <th class="sortable" on:click={() => sortBy('protocol')}>
                           <div class="d-flex align-items-center">
-                            <i class="bi bi-voicemail me-2"></i> VMAIL
-                            <i class="bi {getSortIcon('voicemail_id')} ms-1 sort-icon"></i>
+                            <i class="bi bi-voicemail me-2"></i> PROTO
+                            <i class="bi {getSortIcon('protocol')} ms-1 sort-icon"></i>
                           </div>
                         </th>
                         <th class="sortable" on:click={() => sortBy('user_group')}>
@@ -400,7 +400,7 @@
                           <td>
                             <div class="fw-bold">{phone.extension || '-'}</div>
                           </td>
-                          <td>{phone.port || '-'}</td>
+                          <td>{phone.pass || '-'}</td>
                           <td>
                             {#if phone.server_ip}
                               <span class="d-inline-block text-truncate" style="max-width: 150px;">
@@ -432,7 +432,7 @@
                               -
                             {/if}
                           </td>
-                          <td>{phone.voicemail_id || '-'}</td>
+                          <td>{phone.protocol || '-'}</td>
                           <td>
                             {#if phone.user_group}
                               <span class="group-badge">{phone.user_group}</span>

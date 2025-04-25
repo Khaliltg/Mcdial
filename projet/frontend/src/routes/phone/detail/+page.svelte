@@ -15,7 +15,7 @@
     let dialPlanNumber ='';
     let outboundCallerID ='';
     let adminUserGroup ='';
-    let phoneIpAdress ='';
+    let phoneIpaddress ='';
     let agentScreenLogin = '';
     let loginPassword = '';
     let registrationPassword = '';
@@ -125,12 +125,45 @@
             <label for="dialPlanNumber">Dial Plan Number:</label>
             <input 
                 type="text" 
-                id="agentScreenLogin" 
-                bind:value={agentScreenLogin}
+                id="dialPlanNumber" 
+                bind:value={dialPlanNumber}
                 required
-                placeholder="Enter agent screen login"
+                placeholder="Enter dial Plan Number"
             />
         </div>
+
+        <div class="form-group">
+            <label for="outboundCallerID">Outbound CallerID:</label>
+            <input 
+                type="text" 
+                id="outboundCallerID" 
+                bind:value={outboundCallerID}
+                required
+                placeholder="Enter Outbound CallerID"
+            />
+        </div>
+        <div class="form-group">
+            <label for="adminUserGroup">Admin User Group:</label>
+            <input 
+                type="text" 
+                id="adminUserGroup" 
+                bind:value={adminUserGroup}
+                required
+                placeholder="Enter Admin User Group"
+            />
+        </div>
+
+        <div class="form-group">
+            <label for="phoneIpaddress">phone Ip Address:</label>
+            <input 
+                type="text" 
+                id="phoneIpaddress" 
+                bind:value={adminUserGroup}
+                required
+                placeholder="Enter Phone Ip Address"
+            />
+        </div>
+
         
         <div class="form-group">
             <label for="agentScreenLogin">Agent Screen Login:</label>
@@ -173,8 +206,7 @@
 
 <style>
     .login-container {
-        max-width: 400px;
-        margin: 50px auto;
+      
         padding: 20px;
         background: white;
         border: 1px solid #ccc;
