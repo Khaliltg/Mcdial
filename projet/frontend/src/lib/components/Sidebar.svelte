@@ -7,7 +7,7 @@
       const menuItems = [
         {
           name : ' Rapport',
-          href: null, 
+          href: "/rapport/rapport", 
           icon: 'file-text-fill',
           description: 'Générer un rapport',
           
