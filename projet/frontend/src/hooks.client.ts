@@ -24,11 +24,9 @@ export async function handle({ event, resolve }) {
     '/stats/userStats',
     // Add more admin-only routes here
   ];
-  const adminLevels = [1, 9];
-  if (adminRoutes.some((r) => event.url.pathname.startsWith(r)) && !adminLevels.includes(user_level)) {
-    // Redirect non-admins to dashboard
-    goto('/');
-    return new Response(null, { status: 303 });
+  if (adminRoutes.some((r) => event.url.pathname.startsWith(r)) && user_level !== 1) {
+    // Let the server-side handle redirect
+    return resolve(event);
   }
 
   return resolve(event);

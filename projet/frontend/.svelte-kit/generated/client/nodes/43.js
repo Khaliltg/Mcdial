@@ -1,1 +1,2 @@
-export { default as component } from "../../../../src/routes/users/detail/+page.svelte";
+export { default as userStatsComponent } from "../../../../src/routes/users/stats/+page.svelte";
+export { default as bulkUserGroupeComponent } from "../../../../src/routes/userGroupe/bulk_userGroupe/+page.svelte";

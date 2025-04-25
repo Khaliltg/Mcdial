@@ -1,1 +1,2 @@
-export { default as component } from "../../../../src/routes/compagnes/show/+page.svelte";
+export { default as listMixComponent } from "../../../../src/routes/compagnes/list_mix/show_list_mix/+page.svelte";
+export { default as newCallComponent } from "../../../../src/routes/agent/calls/new/+page.svelte";

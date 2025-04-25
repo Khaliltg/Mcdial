@@ -1,1 +1,2 @@
-export { default as component } from "../../../../src/routes/phone/afficher/+page.svelte";
+export { default as rechercheListComponent } from "../../../../src/routes/liste/recherchelist/+page.svelte";
+export { default as corbeilleComponent } from "../../../../src/routes/liste/corbeille/+page.svelte";

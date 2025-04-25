@@ -1,1 +1,2 @@
-export { default as component } from "../../../../src/routes/liste/afficherlist/+page.svelte";
+export { default as showComponent } from "../../../../src/routes/compagnes/show/+page.svelte";
+export { default as loginComponent } from "../../../../src/routes/agent/login/+page.svelte";

@@ -64,6 +64,10 @@ const { Readable } = require('stream');
 
 // Fonction pour importer les leads
 exports.uploadLeads = async (req, res) => {
+    console.log('uploadLeads function called');
+    console.log('Request file:', req.file);
+    console.log('Request body:', req.body);
+    
     const file = req.file;
     const { listIdOverride } = req.body;
 
@@ -71,55 +75,68 @@ exports.uploadLeads = async (req, res) => {
         return res.status(400).json({ error: "Aucun fichier n'a été téléchargé." });
     }
 
+    if (!listIdOverride) {
+        return res.status(400).json({ error: "Veuillez sélectionner une liste de destination." });
+    }
+
     const results = [];
 
     try {
         // Lire depuis le buffer
+        console.log('Parsing CSV file...');
         const stream = Readable.from(file.buffer.toString());
 
         stream
-            .pipe(csv({ separator: ';' })) // adaptateur selon ton fichier
-            .on('data', (row) => results.push(row))
+            .pipe(csv()) // Utiliser le séparateur par défaut (détection automatique)
+            .on('data', (row) => {
+                console.log('CSV row:', row);
+                results.push(row);
+            })
             .on('end', async () => {
+                console.log(`Parsed ${results.length} rows from CSV`);
                 let insertCount = 0;
 
                 for (const row of results) {
                     try {
+                        // Mapper les champs du CSV aux champs de la base de données
+                        // Utiliser les noms de colonnes réels du fichier CSV
                         const values = [
-                            new Date(),            // entry_date
-                            new Date(),            // modify_date
-                            'NEW',                 // status
-                            'admin',               // user
-                            '',                    // vendor_lead_code
-                            '',                    // source_id
-                            listIdOverride || 1001, // list_id
-                            '+1',                  // gmt_offset_now
-                            'N',                   // called_since_last_reset
-                            '33',                  // phone_code
-                            row.phone_number || '',
-                            '',                    // title
-                            row.first_name || '',
-                            '',                    // middle_initial
-                            row.last_name || '',
-                            row.adress1 || '',
-                            '',                    // address2
-                            '',                    // address3
-                            row.city || '',
-                            '',                    // state
-                            '',                    // province
-                            row.code || '',
-                            'FR',                  // country_code
-                            row.genre === 'mr' ? 'M' : 'F',
-                            '',          // date_of_birth
-                            '',                    // alt_phone
-                            row.email || '',
-                            '',                    // security_phrase
-                            '',                    // comments
-                            0,                     // called_count
-                            new Date(),            // last_local_call_time
-                            1,                     // rank
-                            'admin'                // owner
+                            new Date(),                // entry_date
+                            new Date(),                // modify_date
+                            'NEW',                     // status
+                            'admin',                   // user
+                            '',                        // vendor_lead_code
+                            '',                        // source_id
+                            listIdOverride,            // list_id
+                            '+1',                      // gmt_offset_now
+                            'N',                       // called_since_last_reset
+                            '33',                      // phone_code
+                            row.tel || '',             // phone_number - adapté au format du CSV
+                            row.genre || '',           // title
+                            row.prenom || '',          // first_name - adapté au format du CSV
+                            '',                        // middle_initial
+                            row.nom || '',             // last_name - adapté au format du CSV
+                            row.adresse || '',         // address1 - adapté au format du CSV
+                            '',                        // address2
+                            '',                        // address3
+                            row.ville || '',           // city - adapté au format du CSV
+                            '',                        // state
+                            '',                        // province
+                            row.code_postal || '',     // postal_code - adapté au format du CSV
+                            'FR',                      // country_code
+                            row.genre === 'mr' ? 'M' : 'F', // gender
+                            '',                        // date_of_birth
+                            '',                        // alt_phone
+                            row.email || '',           // email
+                            '',                        // security_phrase
+                            '',                        // comments
+                            0,                         // called_count
+                            new Date(),                // last_local_call_time
+                            1,                         // rank
+                            'admin'                    // owner
                         ];
+
+                        console.log('Inserting row:', values);
 
                         const query = `
                             INSERT INTO vicidial_list (
@@ -135,6 +152,7 @@ exports.uploadLeads = async (req, res) => {
 
                         await db.query(query, values);
                         insertCount++;
+                        console.log(`Inserted row ${insertCount}`);
 
                     } catch (err) {
                         console.error("Erreur ligne ignorée :", err.message);
@@ -142,11 +160,12 @@ exports.uploadLeads = async (req, res) => {
                     }
                 }
 
+                console.log(`Import completed: ${insertCount} leads inserted`);
                 res.json({ message: `Import terminé avec succès. ${insertCount} leads insérés.` });
             });
 
     } catch (err) {
         console.error("Erreur de parsing :", err);
-        res.status(500).json({ error: "Erreur serveur pendant le traitement du fichier." });
+        res.status(500).json({ error: "Erreur serveur pendant le traitement du fichier: " + err.message });
     }
 };

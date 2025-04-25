@@ -20,11 +20,15 @@ const {
     deleteListMix,
     reorderListMix,
     updateCampaign,
-    getCampaignPauseCodes
+    getCampaignPauseCodes,
+    getDashboardCampaigns
 } = require('../../Controllers/Admin/Compagnes');
 
 const express = require('express');
 const router = express.Router();
+
+// Dashboard summary for all campaigns
+router.get('/dashboard', getDashboardCampaigns);
 
 // ajouter une nouvelle compagnie
 router.post('/ajouter', ajouter);

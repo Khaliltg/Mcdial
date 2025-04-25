@@ -422,6 +422,67 @@ exports.getUserStats = async (req, res) => {
     }
 };
 
+// Get dashboard user statistics
+exports.getDashboardUserStats = async (req, res) => {
+    try {
+        // Obtenir le nombre total d'utilisateurs
+        const [totalUsers] = await db.query('SELECT COUNT(*) as total FROM vicidial_users');
+        
+        // Obtenir le nombre d'utilisateurs actifs
+        const [activeUsers] = await db.query("SELECT COUNT(*) as active FROM vicidial_users WHERE active = 'Y'");
+        
+        // Obtenir le nombre d'utilisateurs par niveau
+        const [usersByLevel] = await db.query(
+            `SELECT user_level, 
+                   CASE 
+                     WHEN user_level = 1 THEN 'Agent'
+                     WHEN user_level = 2 THEN 'Manager'
+                     WHEN user_level = 3 THEN 'Supervisor'
+                     WHEN user_level = 4 THEN 'Admin'
+                     WHEN user_level = 9 THEN 'Super Admin'
+                     ELSE CONCAT('Niveau ', user_level)
+                   END as level_name,
+                   COUNT(*) as count 
+            FROM vicidial_users 
+            GROUP BY user_level 
+            ORDER BY user_level`
+        );
+        
+        // Obtenir les utilisateurs récemment connectés
+        const [recentLogins] = await db.query(
+            `SELECT user, full_name, last_login_date, user_level,
+                   CASE 
+                     WHEN user_level = 1 THEN 'Agent'
+                     WHEN user_level = 2 THEN 'Manager'
+                     WHEN user_level = 3 THEN 'Supervisor'
+                     WHEN user_level = 4 THEN 'Admin'
+                     WHEN user_level = 9 THEN 'Super Admin'
+                     ELSE CONCAT('Niveau ', user_level)
+                   END as level_name
+            FROM vicidial_users
+            WHERE last_login_date IS NOT NULL 
+            ORDER BY last_login_date DESC 
+            LIMIT 5`
+        );
+        
+        // Calculer le taux d'utilisateurs actifs
+        const activeRate = totalUsers[0].total > 0 
+            ? Math.round((activeUsers[0].active / totalUsers[0].total) * 100) 
+            : 0;
+        
+        res.json({
+            totalUsers: totalUsers[0].total,
+            activeUsers: activeUsers[0].active,
+            activeRate: activeRate,
+            usersByLevel: usersByLevel,
+            recentLogins: recentLogins
+        });
+    } catch (error) {
+        console.error('Error retrieving dashboard user statistics:', error);
+        res.status(500).json({ message: 'An error occurred while retrieving dashboard user statistics.' });
+    }
+};
+
 // Get comprehensive user statistics
 exports.getUserStatistics = async (req, res) => {
     try {
