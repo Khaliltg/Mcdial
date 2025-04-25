@@ -113,6 +113,83 @@ exports.recuperer = async (req, res) => {
     }
 };
 
+// Dashboard campaign summary for frontend with comprehensive data
+exports.getDashboardCampaigns = async (req, res) => {
+    try {
+        // 1. Récupérer les informations de base des campagnes
+        const [campaignRows] = await connection.execute(`
+            SELECT 
+                c.campaign_id, 
+                c.campaign_name, 
+                c.active as status,
+                c.campaign_description,
+                c.dial_status_a,
+                c.hopper_level,
+                c.auto_dial_level,
+                c.campaign_changedate,
+                c.campaign_stats_refresh,
+                c.list_order_mix
+            FROM vicidial_campaigns c
+            ORDER BY c.campaign_changedate DESC
+        `);
+        
+        // 2. Récupérer les statistiques d'appels pour chaque campagne
+        const campaignIds = campaignRows.map(c => c.campaign_id);
+        
+        // Si aucune campagne n'est trouvée, retourner un tableau vide
+        if (campaignIds.length === 0) {
+            return res.json([]);
+        }
+        
+        // 3. Récupérer les statistiques d'appels pour aujourd'hui
+        const today = new Date().toISOString().split('T')[0];
+        const [callStats] = await connection.execute(`
+            SELECT 
+                campaign_id,
+                COUNT(*) as total_calls,
+                SUM(CASE WHEN status IN ('ANSWER', 'HUMAN', 'SALE') THEN 1 ELSE 0 END) as successful_calls
+            FROM vicidial_log
+            WHERE call_date >= '${today} 00:00:00'
+            AND campaign_id IN (${campaignIds.map(id => `'${id}'`).join(',')})
+            GROUP BY campaign_id
+        `);
+        
+        // Créer un dictionnaire pour un accès facile aux statistiques d'appels
+        const callStatsByID = {};
+        callStats.forEach(stat => {
+            callStatsByID[stat.campaign_id] = {
+                totalCalls: stat.total_calls || 0,
+                successfulCalls: stat.successful_calls || 0
+            };
+        });
+        
+        // 4. Combiner les données et calculer les métriques
+        const enhancedCampaigns = campaignRows.map(campaign => {
+            const stats = callStatsByID[campaign.campaign_id] || { totalCalls: 0, successfulCalls: 0 };
+            const progress = stats.totalCalls > 0 ? Math.floor((stats.successfulCalls / stats.totalCalls) * 100) : 0;
+            
+            return {
+                id: campaign.campaign_id,
+                name: campaign.campaign_name,
+                status: campaign.status,
+                description: campaign.campaign_description,
+                dialStatus: campaign.dial_status_a,
+                hopperLevel: campaign.hopper_level,
+                autoDialLevel: campaign.auto_dial_level,
+                lastUpdated: campaign.campaign_changedate,
+                progress: progress,
+                callsToday: stats.totalCalls,
+                successfulCalls: stats.successfulCalls,
+                successRate: progress // Le taux de succès est égal au progrès dans ce cas
+            };
+        });
+
+        res.json(enhancedCampaigns);
+    } catch (err) {
+        res.status(500).json(formatErrorResponse(err, 'Erreur lors de la récupération des données du dashboard'));
+    }
+};
+
 
 exports.getById = async (req, res) => {
     try {

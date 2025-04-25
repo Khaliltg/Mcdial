@@ -23,7 +23,7 @@ const corsOptions = {
     origin: 'http://localhost:5173', // Explicitly set frontend origin
     credentials: true, // Critical for cookies to be accepted
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Auth-Token'],
     exposedHeaders: ['Set-Cookie'], // Allow Set-Cookie to be exposed
 };
 app.use(cors(corsOptions));

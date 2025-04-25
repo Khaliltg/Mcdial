@@ -1,407 +1,203 @@
-    <script>
-      // @ts-nocheck
-      import Truck from "bootstrap-icons/icons/truck.svg";
-      // svelte-ignore export_let_unused
-      export let isOpen = false;
-      
-      const menuItems = [
-        {
-          name : ' Rapport',
-          href: null, 
-          icon: 'file-text-fill',
-          description: 'Générer un rapport',
-          
-        },
-      
-        { 
-          name: 'Utilisateurs', 
-          href: null, 
-          icon: 'people-fill',
-          description: 'Outils de gestion des utilisateurs',
-          children: [
-            { 
-              name: 'Afficher les utilisateurs', 
-              href: '/users/list', 
-              icon: 'list-ul',
-              description: 'Afficher tous les comptes d utilisateurs'
-            },
-            { 
-              name: 'Ajouter un nouvel utilisateur', 
-              href: '/users/add', 
-              icon: 'person-plus-fill',
-              description: 'Créer un nouveau compte utilisateur'
-            },
-            {
-              name: 'Copier l utilisateur',
-              href: '/users/copy', 
-              icon: 'person',
-              description: 'Copier les informations du compte utilisateur'
-            },
-            { 
-              name: 'Rechercher un utilisateur',
-              href: '/users/search', 
-              icon: 'search',
-              description: 'Rechercher un compte utilisateur'
-            },
-     
-        
-          ]
-        },
-        {
-          name :'statistiques des utilisateurs',
-          href: null,
-          icon: 'clipboard',
-          description: 'Afficher les statistiques des utilisateurs',
-          children: [
-            {
-              name : 'statut des utilisateurs',
-              href: '/users/stats', 
-              icon: 'stop-circle',
-              description: 'Afficher l etat des utilisateurs'
-            },
-          ]
-        },
-        
-        { 
-        name : ' campagnes',
-          href: null,
-          icon: 'bullseye',
-          description: 'Gestion des campagnes',
-          children: [
-            {name : 'campagnes principales',
-            href: '/compagnes/show', 
-            icon: 'list-ul',
-            description: 'Liste des campagnes principales'
-            },
-            {
-              name : 'statuts',
-              href: '/compagnes/statues', 
-              icon: 'stop-circle',
-              description: 'Gérer les états des campagnes'
-            },
-            {
-              name : ' hotkeys',
-              href: '/campaigns/hotkeys', 
-              icon: 'keyboard',
-              description: 'Gérer les hotkeys'
-            },
-            {
-              name :'Recyclage Liste',
-              href: '/campaigns/lead-recycle', 
-              icon: 'trash',
-              description: 'Gérer la suppression des leads'
-            },
-            {
-              name :'Cadran automatique',
-              href: '/compagnes/auto_dial', 
-              icon: 'telephone',
-              description: 'Gérer le cadran automatique',
-            },
-            {
-              name : ' List Mix',
-              href: '/compagnes/list_mix/show_list_mix', 
-              icon: 'card-list',
-              description: 'Gérer la liste mix'
-            },
-            {
-              name : ' pause codes ',
-              href: '/compagnes/pause_code', 
-              icon: 'pause',
-              description: 'Gérer les codes de pause'
-            },
-            {
-              name : 'Préréglages',
-              href: '/campaigns/presets', 
-              icon: 'arrow-left-square',
-              description: 'Gérer les Préréglages'
-            },
-            {
-              name : 'AC-CDI',
-              href: '/campaigns/ac-cdi', 
-              icon: 'file-code',
-              description: 'Gérer les AC-CDI'
-            },
-          ]
-            
+<script lang="ts">
+  import { onMount, createEventDispatcher } from 'svelte';
+  import { goto } from '$app/navigation';
 
-        },
-        {
-          name : 'lists',
-          href: null,
-          icon: 'list-ul',
-          description: 'Gestion des listes',
-          children: [
-            {name : 'Afficher les listes',
-            href: '/liste/afficherlist', 
-            icon: 'list-ul',
-            description: 'Liste des listes',
-            },
-           
-           
-            { 
-              name : ' Ajouter un nouveau prospect',
-            href: '/liste/chargerprospect', 
-            icon: 'plus-circle',
-            description: 'Ajouter un nouveau lead',
-            },
-           
-         
-            
-          ]
-        },
-       
-       
-      {
-        name: 'Groupes d utilisateurs',
-        href: null,
-        icon: 'people',
-        description: 'Manage user groups',
-        children: [
-          {name: 'Afficher les groupes d utilisateurs',
-          href: '/userGroupe/afficher', 
-          icon: 'people',
-          description: 'List of user groups',
-          },
-          
-          { name : 'Rapport horaire de groupe',
-          href: '/user-groups/group-hourly-report', 
-          icon: 'clock',
-          description: 'Group hourly report',
-          },
-          {
-            name : 'Changement de groupe groupé',
-            href: '/userGroupe/bulk_userGroupe', 
-            icon: 'arrow-down-up',
-            description: 'Bulk group change'
-          },
-    ]
+  // Props
+  export let isOpen = false;
+
+  // Dispatcher for events
+  const dispatch = createEventDispatcher();
+
+  // Menu item type definition
+  interface MenuItem {
+    name: string;
+    href: string | null;
+    icon: string;
+    description?: string;
+    children?: MenuItem[];
+  }
+
+  // State variables
+  let compactMode = false;
+  let searchQuery = '';
+  let filteredItems: MenuItem[] = [];
+  let expandedItems = new Set<string>();
+  let mobileMenuVisible = false;
+  let userName = 'Utilisateur';
+
+  // Menu items
+  const menuItems: MenuItem[] = [
+    {
+      name: 'Rapport',
+      href: null,
+      icon: 'file-text-fill',
+      description: 'Générer un rapport',
     },
     {
-      name : 'Telephone',
+      name: 'Utilisateurs',
       href: null,
-      icon: 'telephone 1',
-      description: 'Phone settings',
+      icon: 'people-fill',
+      description: 'Outils de gestion des utilisateurs',
       children: [
-        {name : 'Afficher les téléphone',
-        href: '/phone/afficher', 
-        icon: 'phone',
-        description: 'List of phones',
-        },
-        { name : 'Ajouter un nouveau téléphone',
-        href: '/phone/ajouter', 
-        icon: 'phone',
-        description: 'Add a new phone',
-      },
-      {
-        name :'copier un téléphone existant',
-        href : '/phone/copy',
-        icon : 'phone',
-        description : 'Copy an existing phone',
-      },
-    ]
- 
+        { name: 'Afficher les utilisateurs', href: '/users/list', icon: 'list-ul' },
+        { name: 'Ajouter un nouvel utilisateur', href: '/users/add', icon: 'person-plus-fill' },
+        { name: 'Copier l utilisateur', href: '/users/copy', icon: 'person' },
+        { name: 'Rechercher un utilisateur', href: '/users/search', icon: 'search' },
+      ],
     },
-  
     {
-      name :' Admin',
+      name: 'Statistiques des utilisateurs',
       href: null,
-      icon: 'ticket-perforated-fill',
-      description: 'Admin panel',
+      icon: 'clipboard',
+      description: 'Afficher les statistiques des utilisateurs',
       children: [
-       
-      
-      
-     
-      {name : 'carriers',
-      href: '/admin/carrier', 
-        icon: 'truck',
-        description: 'Carrier settings',
-      },
-      {name : 'serveurs',
-      href: '/admin/server', 
-        icon: 'server',
-        description: 'Server settings',
-      },
-     
-    
-    ]
+        { name: 'Statut des utilisateurs', href: '/users/stats', icon: 'stop-circle' },
+      ],
     },
-      
-      
-      
+    {
+      name: 'Campagnes',
+      href: null,
+      icon: 'bullseye',
+      description: 'Gestion des campagnes',
+      children: [
+        { name: 'Campagnes principales', href: '/compagnes/show', icon: 'list-ul' },
+        { name: 'Statuts', href: '/compagnes/statues', icon: 'stop-circle' },
+        { name: 'Cadran automatique', href: '/compagnes/auto_dial', icon: 'telephone' },
+        { name: 'Pause codes', href: '/compagnes/pause_code', icon: 'pause' },
+      ],
+    },
+    {
+      name: 'Groupes d utilisateurs',
+      href: null,
+      icon: 'people',
+      description: 'Manage user groups',
+      children: [
+        { name: 'Afficher les groupes d utilisateurs', href: '/userGroupe/afficher', icon: 'people' },
+        { name: 'Rapport horaire de groupe', href: '/user-groups/group-hourly-report', icon: 'clock' },
+        { name: 'Changement de groupe groupé', href: '/userGroupe/bulk_userGroupe', icon: 'arrow-down-up' },
+      ],
+    },
+    // Add more menu items as needed...
+  ];
 
-        
-      ];
-      
-      let activeItem = '/dashboard';
-      let activeParentItem = null;
-      let hoveredItem = null;
-      
-      import { goto } from '$app/navigation';
+  // Lifecycle method
+  onMount(() => {
+    const savedMode = localStorage.getItem('sidebarCompactMode');
+    compactMode = savedMode === 'true';
+    dispatch('modeChange', { compact: compactMode });
 
-      function toggleSubmenu(item) {
-        activeParentItem = activeParentItem === item ? null : item;
-      }
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      const userObj = JSON.parse(storedUser);
+      userName = userObj?.name || userName;
+    }
 
-      function handleItemClick(item) {
-        if (item.children) {
-          toggleSubmenu(item);
-        } else if (item.href) {
-          activeItem = item.href;
-          goto(item.href);
-        }
-      }
-    </script>
+    filteredItems = menuItems;
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  });
 
+  // Handle window resizing
+  function handleResize() {
+    if (window.innerWidth < 768 && !compactMode) {
+      compactMode = true;
+      localStorage.setItem('sidebarCompactMode', 'true');
+      dispatch('modeChange', { compact: true });
+    }
+  }
 
+  // Toggle compact mode
+  function toggleCompactMode() {
+    compactMode = !compactMode;
+    localStorage.setItem('sidebarCompactMode', compactMode.toString());
+    dispatch('modeChange', { compact: compactMode });
+    if (window.innerWidth < 992) {
+      mobileMenuVisible = !mobileMenuVisible;
+    }
+  }
 
-    <div class="bg-white border-end h-100 shadow-sm font-inter">
-      <div class="d-flex flex-column h-100">
-        <div class="px-3 pt-3">
-          <div class="list-group list-group-flush">
-            {#each menuItems as item}
-              <div>
-                <div 
-                  class={`
-                    list-group-item list-group-item-action 
-                    d-flex justify-content-between align-items-center 
-                    cursor-pointer
-                    ${activeItem === item.href ? 'active' : ''}
-                    py-3 px-0 border-0
-                    font-regular
-                    position-relative
-                    hover-effect
-                  `}
-                  on:mouseenter={() => hoveredItem = item}
-                  on:mouseleave={() => hoveredItem = null}
-                  on:click={() => handleItemClick(item)}
-                  role="button"
-                  tabindex="0"
-                >
-                  <div class="d-flex align-items-center">
-                    <i class="bi bi-{item.icon} me-3 text-muted fs-5"></i>
-                    <div>
-                      <span class="font-regular fs-6 d-block">{item.name}</span>
-                      {#if hoveredItem === item}
-                        <small class="text-muted fs-7 description-tooltip">
-                          {item.description}
-                        </small>
-                      {/if}
-                    </div>
-                  </div>
-                  {#if item.badge}
-                    <span class="badge bg-primary rounded-pill font-light fs-7">
-                      {item.badge}
-                    </span>
-                  {/if}
-                  {#if item.children}
-                    <i class={`bi bi-chevron-${activeParentItem === item ? 'down' : 'right'} ms-2`}></i>
-                  {/if}
-                </div>
+  // Close mobile menu
+  function closeMobileMenu() {
+    mobileMenuVisible = false;
+  }
 
-                {#if item.children && activeParentItem === item}
-                  <div class="list-group list-group-flush ps-4 submenu-animation">
-                    {#each item.children as childItem}
-                      <div 
-                        class={`
-                          list-group-item list-group-item-action 
-                          d-flex align-items-center 
-                          ${activeItem === childItem.href ? 'active' : ''}
-                          py-3 px-0 border-0
-                          font-regular
-                          position-relative
-                          hover-effect
-                          cursor-pointer
-                        `}
-                        on:mouseenter={() => hoveredItem = childItem}
-                        on:mouseleave={() => hoveredItem = null}
-                        on:click={() => handleItemClick(childItem)}
-                        role="button"
-                        tabindex="0"
-                      >
-                        <i class="bi bi-{childItem.icon} me-3 text-muted fs-5"></i>
-                        <div>
-                          <span class="font-regular fs-6 d-block">{childItem.name}</span>
-                          {#if hoveredItem === childItem}
-                            <small class="text-muted fs-7 description-tooltip">
-                              {childItem.description}
-                            </small>
-                          {/if}
-                        </div>
-                      </div>
-                    {/each}
-                  </div>
-                {/if}
+  // Navigate to a link
+  function navigateTo(href: string | null) {
+    if (href) {
+      goto(href);
+    }
+  }
+
+  // Handle item click
+  function handleItemClick(item: MenuItem) {
+    if (item.children) {
+      expandedItems.has(item.name) ? expandedItems.delete(item.name) : expandedItems.add(item.name);
+    } else if (item.href) {
+      navigateTo(item.href);
+    }
+  }
+</script>
+
+<!-- Sidebar Structure -->
+<div class="sidebar-container {compactMode ? 'compact' : ''} {mobileMenuVisible ? 'visible' : ''}">
+  <div class="d-flex flex-column h-100">
+    <div class="p-3 d-flex justify-content-end">
+      <button type="button" class="compact-toggle-btn" on:click={toggleCompactMode}>
+        <i class="bi {compactMode ? 'bi-chevron-right' : 'bi-chevron-left'}"></i>
+      </button>
+    </div>
+    <div class="sidebar-menu">
+      <div class="p-2">
+        {#each filteredItems as item}
+          <div>
+            <button 
+              type="button"
+              class="list-group-item-action d-flex justify-content-between align-items-center"
+              on:click={() => handleItemClick(item)}
+            >
+              <div class="d-flex align-items-center">
+                <i class="bi bi-{item.icon} me-3"></i>
+                <span>{item.name}</span>
               </div>
-            {/each}
+              {#if item.children}
+                <i class="bi bi-chevron-{expandedItems.has(item.name) ? 'down' : 'right'}"></i>
+              {/if}
+            </button>
+            {#if item.children && expandedItems.has(item.name)}
+              <div class="submenu">
+                {#each item.children as child}
+                  <button 
+                    type="button"
+                    class="list-group-item-action"
+                    on:click={() => navigateTo(child.href)}
+                  >
+                    <i class="bi bi-{child.icon}"></i>
+                    <span>{child.name}</span>
+                  </button>
+                {/each}
+              </div>
+            {/if}
           </div>
-        </div>
+        {/each}
       </div>
     </div>
+  </div>
+</div>
 
-    <style>
-      
-      .list-group-item-action.active {
-        background-color: rgba(0, 123, 255, 0.1);
-        color: #007bff;
-      }
-
-      .list-group-item-action.active i {
-        color: #007bff;
-      }
-
-      .cursor-pointer {
-        cursor: pointer;
-      }
-
-      .font-inter {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-      }
-
-      .fs-7 {
-        font-size: 0.75rem;
-      }
-
-      .hover-effect {
-        transition: all 0.3s ease;
-      }
-
-      .hover-effect:hover {
-        background-color: rgba(0, 123, 255, 0.05);
-        transform: translateX(5px);
-      }
-
-      .description-tooltip {
-        opacity: 0;
-        max-height: 0;
-        overflow: hidden;
-        transition: all 0.3s ease;
-      }
-
-      .hover-effect:hover .description-tooltip {
-        opacity: 1;
-        max-height: 50px;
-      }
-
-      .submenu-animation {
-        animation: slideDown 0.3s ease;
-      }
-
-      @keyframes slideDown {
-        from {
-          opacity: 0;
-          transform: translateY(-10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      .menu-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          }
-      
-    </style>
-
+<style>
+  /* Add your styling here */
+  .sidebar-container {
+    width: 250px;
+    background-color: #fff;
+  }
+  .compact {
+    width: 80px;
+  }
+  .list-group-item-action {
+    padding: 10px;
+    transition: background-color 0.2s;
+  }
+  .list-group-item-action:hover {
+    background-color: #f0f0f0;
+  }
+</style>

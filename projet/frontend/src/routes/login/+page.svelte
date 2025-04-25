@@ -1,7 +1,9 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  import { errorStore } from '$lib/stores/errorStore';
+  import { writable } from 'svelte/store';
+  
+  const errorStore = writable('');
   
   let user = '';
   let pass = '';
@@ -38,7 +40,8 @@
       const res = await fetch('http://localhost:8000/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user, pass })
+        body: JSON.stringify({ user, pass }),
+        credentials: 'include'
       });
       
       const data = await res.json();
@@ -46,7 +49,7 @@
       
       if (res.ok) {
         // Check if user is admin (level 9)
-        if (data.user_level != 9) { // Using loose comparison to handle both string '9' and number 9
+        if (data.user.user_level != 9) { // Using loose comparison to handle both string '9' and number 9
           error = 'Accès refusé. Seuls les administrateurs peuvent se connecter.';
           errorStore.set(error);
           setTimeout(() => errorStore.set(''), 3000);
@@ -54,20 +57,12 @@
           return;
         }
         
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user_level', data.user_level);
-        localStorage.setItem('user', user);
+        localStorage.setItem('token', data.token || '');
+        localStorage.setItem('user_level', data.user.user_level);
+        localStorage.setItem('user', JSON.stringify(data.user));
         
-        // Set cookies for SSR protection
-        // Set cookies with compatibility for localhost (no Secure/SameSite if not https)
-        const isLocalhost = window.location.hostname === 'localhost';
-        if (isLocalhost && window.location.protocol === 'http:') {
-          document.cookie = `token=${data.token}; path=/; max-age=28800`;
-          document.cookie = `user_level=${data.user_level}; path=/; max-age=28800`;
-        } else {
-          document.cookie = `token=${data.token}; path=/; max-age=28800; SameSite=None; Secure`;
-          document.cookie = `user_level=${data.user_level}; path=/; max-age=28800; SameSite=None; Secure`;
-        }
+        // Ajouter manuellement le token dans un cookie accessible au JavaScript
+        document.cookie = `token_js=${data.token}; path=/; max-age=28800;`;
         
         goto('/');
       } else {
@@ -125,13 +120,11 @@
               <i class="bi bi-person input-icon"></i>
               <input 
                 type="text" 
-                id="username-field"
-                class="form-input {userError ? 'input-error' : user ? 'input-valid' : ''}"
-                placeholder="Entrez votre nom d'utilisateur" 
+                id="username-field" 
+                class="form-input {userError ? 'input-error' : ''}"
                 bind:value={user} 
                 on:focus={() => userFocused = true}
-                on:blur={() => userFocused = true}
-                required 
+                placeholder="Entrez votre identifiant"
                 autocomplete="username"
               />
             </div>
@@ -149,29 +142,25 @@
                 <input 
                   type="text" 
                   id="password-field"
-                  class="form-input {passError ? 'input-error' : pass ? 'input-valid' : ''}"
-                  placeholder="Entrez votre mot de passe" 
-                  bind:value={pass} 
+                  class="form-input {passError ? 'input-error' : ''}"
+                  bind:value={pass}
                   on:focus={() => passFocused = true}
-                  on:blur={() => passFocused = true}
-                  required 
+                  placeholder="Entrez votre mot de passe"
                   autocomplete="current-password"
                 />
               {:else}
                 <input 
                   type="password" 
                   id="password-field"
-                  class="form-input {passError ? 'input-error' : pass ? 'input-valid' : ''}"
-                  placeholder="Entrez votre mot de passe" 
-                  bind:value={pass} 
+                  class="form-input {passError ? 'input-error' : ''}"
+                  bind:value={pass}
                   on:focus={() => passFocused = true}
-                  on:blur={() => passFocused = true}
-                  required 
+                  placeholder="Entrez votre mot de passe"
                   autocomplete="current-password"
                 />
               {/if}
               <button 
-                type="button" 
+                type="button"
                 class="toggle-password"
                 on:click={togglePasswordVisibility}
               >
@@ -182,7 +171,15 @@
               <div class="error-message">{passError}</div>
             {/if}
           </div>
-          
+
+          <!-- Error message -->
+          {#if error}
+            <div class="error-alert">
+              <i class="bi bi-exclamation-triangle"></i>
+              <span>{error}</span>
+            </div>
+          {/if}
+
           <!-- Login button -->
           <button 
             type="submit" 
@@ -190,22 +187,14 @@
             disabled={!formIsValid || isLoading}
           >
             {#if isLoading}
-              <span class="spinner"></span>
+              <div class="spinner"></div>
               <span>Connexion en cours...</span>
             {:else}
               <i class="bi bi-box-arrow-in-right"></i>
               <span>Se connecter</span>
             {/if}
           </button>
-          
-          <!-- Error message -->
-          {#if error}
-            <div class="error-alert">
-              <i class="bi bi-exclamation-triangle-fill"></i>
-              <span>{error}</span>
-            </div>
-          {/if}
-          
+
           <!-- Footer with help text -->
           <div class="help-text">
             <p>Si vous rencontrez des difficultés pour vous connecter, veuillez contacter l'administrateur système.</p>
@@ -222,20 +211,13 @@
 </div>
 
 <style>
-  :global(body) {
-    margin: 0;
-    padding: 0;
-    background-color: #f5f7fa;
-    font-family: 'Poppins', 'Segoe UI', sans-serif;
-    color: #333;
-  }
-
   .login-container {
-    min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 2rem;
+    min-height: 100vh;
+    background-color: #f9fafb;
+    padding: 1rem;
   }
 
   .login-wrapper {
@@ -246,15 +228,15 @@
   .login-card {
     display: flex;
     background: white;
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
   }
 
   /* Brand section styles */
   .login-brand-section {
     flex: 1;
-    background: #1e88e5;
+    background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
     color: white;
     padding: 3rem 2rem;
     display: flex;
@@ -386,10 +368,6 @@
 
   .form-input.input-error {
     border-color: #e53935;
-  }
-
-  .form-input.input-valid {
-    border-color: #43a047;
   }
 
   .toggle-password {

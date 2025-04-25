@@ -1,8 +1,20 @@
 {
-	"/": [],
+	"/": [
+		"src/routes/+page.server.js"
+	],
+	"/admin": [],
 	"/admin/carrier": [],
 	"/admin/conferences": [],
-	"/admin/server": [],
+	"/admin/dashboard": [
+		"src/routes/admin/dashboard/+page.js",
+		"src/routes/admin/dashboard/+page.server.js"
+	],
+	"/admin/login": [],
+	"/agent": [],
+	"/agent/calls/history": [],
+	"/agent/calls/new": [],
+	"/agent/dashboard": [],
+	"/agent/login": [],
 	"/compagnes/add": [],
 	"/compagnes/auto_dial": [],
 	"/compagnes/copy": [],

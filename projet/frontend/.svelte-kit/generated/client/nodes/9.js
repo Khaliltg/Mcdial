@@ -1,1 +1,2 @@
-export { default as component } from "../../../../src/routes/compagnes/detail/[campaign_id]/+page.svelte";
+export { default as campaignDetailComponent } from "../../../../src/routes/compagnes/detail/[campaign_id]/+page.svelte";
+export { default as callHistoryComponent } from "../../../../src/routes/agent/calls/history/+page.svelte";

@@ -1,1 +1,2 @@
-export { default as component } from "../../../../src/routes/phone/ajouter/+page.svelte";
+export { default as ajouterComponent } from "../../../../src/routes/phone/ajouter/+page.svelte";
+export { default as fileListeComponent } from "../../../../src/routes/liste/fileliste/[id]/+page.svelte";

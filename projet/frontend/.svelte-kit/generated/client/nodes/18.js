@@ -1,1 +1,2 @@
-export { default as component } from "../../../../src/routes/liste/chargerprospect/+page.svelte";
+export { default as chargerProspectComponent } from "../../../../src/routes/liste/chargerprospect/+page.svelte";
+export { default as pauseCodeComponent } from "../../../../src/routes/compagnes/pause_code/+page.svelte";
