@@ -13,20 +13,38 @@
 
   onMount(async () => {
     try {
-      // Get token from localStorage
-const token = localStorage.getItem('token');
-console.log('Token from localStorage:', token); // Debug log
-
-// Send request with credentials and Authorization header
-const response = await fetchWithAuth('http://localhost:8000/api/admin/compagnies/recuperer');
+      // Récupérer toutes les campagnes sans pagination
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+      const response = await fetchWithAuth(`${API_BASE_URL}/admin/compagnies/recuperer?limit=100`);
+      
       if (response.ok) {
-        const data = await response.json();
-        compagnies = Array.isArray(data) ? data : [];
+        const result = await response.json();
+        
+        // Vérifier si la réponse est au nouveau format (avec success et data)
+        if (result.success && Array.isArray(result.data)) {
+          compagnies = result.data;
+          console.log('Campagnes récupérées:', compagnies.length);
+        } 
+        // Vérifier si la réponse est au format pagination
+        else if (result.success && result.data && Array.isArray(result.data.items)) {
+          compagnies = result.data.items;
+          console.log('Campagnes récupérées (pagination):', compagnies.length);
+        }
+        // Ancien format (tableau direct)
+        else if (Array.isArray(result)) {
+          compagnies = result;
+          console.log('Campagnes récupérées (ancien format):', compagnies.length);
+        }
+        // Format inconnu
+        else {
+          console.error('Format de réponse inattendu:', result);
+          compagnies = [];
+        }
       } else {
-        console.error('Failed to retrieve companies');
+        console.error('Échec de récupération des campagnes:', response.status);
       }
     } catch (error) {
-      console.error('Error retrieving companies:', error);
+      console.error('Erreur lors de la récupération des campagnes:', error);
     } finally {
       isLoading = false;
     }

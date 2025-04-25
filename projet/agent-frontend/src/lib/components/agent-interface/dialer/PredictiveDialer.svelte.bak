@@ -1,0 +1,844 @@
+<script lang="ts">
+  import { createEventDispatcher } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth';
+  import CallLogs from './CallLogs.svelte';
+  import CampaignNumberList from './CampaignNumberList.svelte';
+  import ProspectModal from './ProspectModal.svelte';
+  
+  const dispatch = createEventDispatcher();
+  
+  // Propriétés
+  export let agentId: string = '';
+  export let campaignId: string = '';
+  export let disabled: boolean = false;
+  export let canManualDial: boolean = false; // Permission pour les appels manuels
+  export let apiBaseUrl: string = 'http://localhost:8000/api';
+  export let callActive: boolean = false; // Indique si un appel est actuellement actif
+  export let callEnded: boolean = false; // Indique si un appel vient de se terminer
+  
+  // État local
+  let status: 'waiting' | 'ready' | 'dialing' | 'paused' = 'waiting';
+  let waitingForCall: boolean = false;
+  let manualNumber: string = '';
+  let errorMessage: string = '';
+  let pollingInterval: number;
+  let showManualDialer: boolean = false;
+  
+  // État pour les logs d'appels
+  let showCallLogs: boolean = false;
+  let callLogs: any[] = [];
+  let isLoadingLogs: boolean = false;
+  let campaignNumbers: any[] = [];
+  let isLoadingNumbers: boolean = false;
+  let showCampaignNumbers: boolean = false;
+  
+  // État pour le prospect actuel
+  let currentProspect: any = null;
+  let showProspectForm: boolean = false;
+  let isLoadingProspect: boolean = false;
+  let prospectNotes: string = '';
+  
+  // Fonction pour récupérer l'ID de l'agent si non défini
+  async function ensureAgentId() {
+    if (agentId) return true;
+    
+    try {
+      const response = await fetchWithAuth(`${apiBaseUrl}/agent/info`);
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération des informations de l\'agent');
+      }
+      
+      const data = await response.json();
+      if (data && data.userInfo && data.userInfo.user_id) {
+        agentId = data.userInfo.user_id;
+        console.log('ID agent récupéré:', agentId);
+        return true;
+      } else {
+        console.error('Impossible de récupérer l\'ID de l\'agent');
+        return false;
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération de l\'ID de l\'agent:', error);
+      return false;
+    }
+  }
+  
+  // Initialisation au chargement du composant
+  onMount(async () => {
+    // S'assurer que l'ID de l'agent est disponible
+    await ensureAgentId();
+    
+    // Charger l'historique des appels et les numéros de campagne au chargement
+    loadCallHistory();
+    loadCampaignNumbers();
+    
+    // Configurer le polling pour vérifier les appels entrants
+    pollingInterval = setInterval(checkForIncomingCalls, 3000);
+    
+    console.log('Composant PredictiveDialer initialisé avec agentId:', agentId);
+  });
+  
+  // Fonction pour démarrer le mode prédictif
+  // Fonction pour récupérer l'historique des appels
+  async function loadCallHistory() {
+    isLoadingLogs = true;
+    errorMessage = '';
+    
+    try {
+      const response = await fetchWithAuth(`${apiBaseUrl}/agent/call-history?limit=20`);
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération de l\'historique des appels');
+      }
+      
+      const data = await response.json();
+      callLogs = data.calls || [];
+      
+      // Enrichir les données des logs d'appels
+      callLogs = callLogs.map(call => ({
+        ...call,
+        // Ajouter des informations par défaut si elles n'existent pas
+        source: call.source || (call.is_manual ? 'manual' : 'system'),
+        contact_name: call.contact_name || '',
+        duration_formatted: call.duration_formatted || formatDuration(call.duration || 0)
+      }));
+      
+      showCallLogs = true;
+      
+      console.log('Historique des appels récupéré:', callLogs);
+    } catch (error: any) { // Type assertion pour corriger l'erreur TypeScript
+      console.error('Erreur lors de la récupération de l\'historique:', error);
+      errorMessage = `Erreur: ${error.message || 'Inconnue'}`;
+    } finally {
+      isLoadingLogs = false;
+    }
+  }
+  
+  // Fonction pour formater la durée en minutes:secondes
+  function formatDuration(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+  
+  // Fonction pour récupérer les numéros à appeler pour la campagne
+  async function loadCampaignNumbers() {
+    isLoadingNumbers = true;
+    errorMessage = '';
+    
+    try {
+      const response = await fetchWithAuth(`${apiBaseUrl}/agent/campaign-numbers?limit=20`);
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération des numéros de la campagne');
+      }
+      
+      const data = await response.json();
+      campaignNumbers = data.numbers || [];
+      
+      // Enrichir les données des numéros de campagne
+      campaignNumbers = campaignNumbers.map(number => ({
+        ...number,
+        // Ajouter des informations par défaut si elles n'existent pas
+        status: number.status || 'NEW',
+        called_count: number.called_count || 0,
+        first_name: number.first_name || '',
+        last_name: number.last_name || '',
+        list_id: number.list_id || '',
+        list_name: number.list_name || 'Liste principale'
+      }));
+      
+      showCampaignNumbers = true;
+      
+      console.log('Numéros de la campagne récupérés:', campaignNumbers);
+    } catch (error: any) { // Type assertion pour corriger l'erreur TypeScript
+      console.error('Erreur lors de la récupération des numéros:', error);
+      // Ne pas afficher cette erreur à l'utilisateur, juste logger
+    } finally {
+      isLoadingNumbers = false;
+    }
+  }
+  
+  function startPredictive() {
+    if (disabled) return;
+    
+    status = 'ready';
+    waitingForCall = true;
+    errorMessage = '';
+    
+    // Informer le backend que l'agent est prêt à recevoir des appels
+    fetch(`${apiBaseUrl}/agent/ready`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        agentId,
+        campaignId
+      }),
+      credentials: 'include'
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise en attente d\'appels');
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Agent prêt à recevoir des appels', data);
+      
+      // Charger l'historique des appels et les numéros de la campagne
+      loadCallHistory();
+      loadCampaignNumbers();
+      
+      waitingForCall = true;
+      status = 'ready';
+    })
+    .catch(error => {
+      console.error('Erreur:', error);
+      errorMessage = error.message;
+      waitingForCall = false;
+      status = 'waiting';
+    });
+  }
+  
+  // Fonction pour mettre en pause le mode prédictif
+  function pausePredictive() {
+    waitingForCall = false;
+    status = 'paused';
+    
+    // Informer le backend que l'agent n'est plus disponible pour les appels
+    fetch(`${apiBaseUrl}/agent/not-ready`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        agentId,
+        campaignId
+      }),
+      credentials: 'include'
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Erreur lors de la mise en pause');
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Agent en pause', data);
+    })
+    .catch(error => {
+      console.error('Erreur:', error);
+      errorMessage = error.message;
+    });
+  }
+  
+  // Fonction pour composer un numéro manuellement
+  async function dialManually() {
+    if (!canManualDial || !manualNumber || disabled) return;
+    
+    status = 'dialing';
+    waitingForCall = false;
+    errorMessage = '';
+    
+    // Nettoyer le numéro (enlever espaces, tirets, etc.)
+    const cleanNumber = manualNumber.replace(/[\s\-\(\)]/g, '');
+    
+    // Vérifier que le numéro est valide
+    if (cleanNumber.length < 8) {
+      errorMessage = 'Numéro de téléphone invalide';
+      status = 'waiting';
+      return;
+    }
+    
+    // S'assurer que l'ID de l'agent est défini
+    const agentIdAvailable = await ensureAgentId();
+    if (!agentIdAvailable) {
+      console.error('Erreur: Impossible de récupérer l\'ID de l\'agent');
+      errorMessage = 'Impossible de récupérer l\'ID de l\'agent. Veuillez vous reconnecter.';
+      status = 'waiting';
+      return;
+    }
+    
+    console.log('Initiation d\'appel manuel avec:', { agentId, campaignId, phoneNumber: cleanNumber });
+    
+    // Envoyer la requête au backend
+    fetch(`${apiBaseUrl}/agent/manual-call`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        agentId,
+        campaignId: campaignId || 'DEFAULT', // Fournir une valeur par défaut si non définie
+        phoneNumber: cleanNumber,
+        contactName: '', // Ajouter un nom de contact vide par défaut
+        leadId: null // Pas de leadId pour les appels manuels directs
+      }),
+      credentials: 'include'
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Erreur lors de la composition du numéro');
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Appel manuel initié', data);
+      
+      // Informer le composant parent qu'un appel a été initié
+      dispatch('callInitiated', {
+        phoneNumber: cleanNumber,
+        callId: data.callId
+      });
+      manualNumber = '';
+      showManualDialer = false;
+      
+      // Rafraîchir l'historique des appels après un appel réussi
+      loadCallHistory();
+    })
+    .catch(error => {
+      console.error('Erreur:', error);
+      errorMessage = error.message;
+      status = 'waiting';
+    });
+  }
+  
+  // Fonction pour appeler un numéro depuis la liste des numéros de campagne
+  async function callFromList(phoneNumber: string, contactName: string, leadId?: string) {
+    if (disabled || status === 'dialing' || status === 'ready') return;
+    
+    status = 'dialing';
+    waitingForCall = false;
+    errorMessage = '';
+    
+    // Vérifier si le numéro de téléphone est défini
+    if (!phoneNumber && !leadId) {
+      console.error('Erreur: Ni le numéro de téléphone ni le leadId ne sont définis');
+      errorMessage = 'Numéro de téléphone et ID de prospect manquants';
+      status = 'waiting';
+      return;
+    }
+    
+    // Nettoyer le numéro (enlever espaces, tirets, etc.) s'il est défini
+    const cleanedNumber = phoneNumber ? phoneNumber.replace(/[\s\-\(\)]/g, '') : '';
+    
+    // S'assurer que l'ID de l'agent est défini
+    const agentIdAvailable = await ensureAgentId();
+    if (!agentIdAvailable) {
+      console.error('Erreur: Impossible de récupérer l\'ID de l\'agent');
+      errorMessage = 'Impossible de récupérer l\'ID de l\'agent. Veuillez vous reconnecter.';
+      status = 'waiting';
+      return;
+    }
+    
+    // Préparer les données pour la requête
+    const requestData = {
+      agentId,
+      campaignId: campaignId || 'DEFAULT', // Fournir une valeur par défaut si non définie
+      phoneNumber: cleanedNumber,
+      contactName: contactName || '', // Ajouter le nom du contact pour les logs
+      leadId: leadId || null // Ajouter l'ID du prospect si disponible
+    };
+    
+    console.log('Initiation d\'appel avec:', requestData);
+    
+    // Appeler le backend pour initier l'appel
+    fetch(`${apiBaseUrl}/agent/manual-call`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData),
+      credentials: 'include'
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Erreur lors de l\'initiation de l\'appel');
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Appel depuis la liste initié', data);
+      
+      // Récupérer les informations du prospect
+      loadProspectData(cleanedNumber, leadId || data.leadId);
+      
+      // Informer le composant parent qu'un appel a été initié
+      dispatch('callInitiated', {
+        phoneNumber: cleanedNumber,
+        callId: data.callId,
+        contactName: contactName,
+        leadId: leadId || data.leadId
+      });
+      
+      // Rafraîchir l'historique des appels et la liste des numéros après un appel réussi
+      loadCallHistory();
+      loadCampaignNumbers();
+    })
+    .catch(error => {
+      console.error('Erreur:', error);
+      errorMessage = error.message;
+      status = 'waiting';
+    });
+  }
+  
+  // Fonction pour sauvegarder les données du prospect
+  async function saveProspectData() {
+    if (!currentProspect) return;
+    
+    try {
+      // Mettre à jour les commentaires avec les notes
+      currentProspect.comments = prospectNotes;
+      
+      const response = await fetchWithAuth(`${apiBaseUrl}/agent/save-prospect`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(currentProspect)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors de la sauvegarde des données du prospect');
+      }
+      
+      const data = await response.json();
+      console.log('Données du prospect sauvegardées:', data);
+      
+      // Mettre à jour le prospect actuel avec les données sauvegardées
+      currentProspect = data.prospect || currentProspect;
+      
+      // Afficher un message de succès temporaire
+      const tempMessage = errorMessage;
+      errorMessage = 'Données sauvegardées avec succès!';
+      setTimeout(() => {
+        errorMessage = tempMessage;
+      }, 3000);
+      
+    } catch (error: any) {
+      console.error('Erreur lors de la sauvegarde des données du prospect:', error);
+      errorMessage = `Erreur: ${error.message || 'Inconnue'}`;
+    }
+  }
+  
+  // Fonction pour charger les données du prospect
+  async function loadProspectData(phoneNumber: string, leadId?: string) {
+    isLoadingProspect = true;
+    showProspectForm = true;
+    
+    console.log(`Chargement des données du prospect: ${phoneNumber}, ID: ${leadId || 'non défini'}`);
+    
+    // Rechercher les informations du prospect dans la liste des numéros de campagne
+    let prospectInfo = campaignNumbers.find(num => num.phone_number === phoneNumber);
+    console.log("Données trouvées dans campaignNumbers:", prospectInfo);
+    
+    // Créer un objet prospect avec les données disponibles
+    currentProspect = {
+      // Champs principaux
+      lead_id: leadId || (prospectInfo?.lead_id || ''),
+      list_id: prospectInfo?.list_id || '',
+      entry_date: new Date().toISOString().slice(0, 16),
+      status: '',
+      vendor_lead_code: '',
+      source_id: '',
+      
+      // Informations de contact
+      phone_code: '',
+      phone_number: phoneNumber,
+      alt_phone: '',
+      title: '',
+      first_name: prospectInfo?.first_name || '',
+      middle_initial: '',
+      last_name: prospectInfo?.last_name || '',
+      email: '',
+      
+      // Adresse
+      address1: '',
+      address2: '',
+      address3: '',
+      city: '',
+      state: '',
+      province: '',
+      postal_code: '',
+      country_code: '',
+      
+      // Informations personnelles
+      gender: 'U',
+      date_of_birth: '',
+      security_phrase: '',
+      
+      // Statistiques d'appel
+      called_count: 0,
+      last_local_call_time: '',
+      called_since_last_reset: 'N',
+      
+      // Autres
+      rank: 0,
+      owner: '',
+      comments: ''
+    };
+    
+    // Initialiser les notes
+    prospectNotes = '';
+    console.log('Prospect créé avec les données disponibles:', currentProspect);
+    
+    // Informer le composant parent que les données du prospect ont été chargées
+    dispatch('prospectLoaded', { prospect: currentProspect });
+    
+    // Essayer de récupérer les données du prospect depuis le backend en arrière-plan
+    // sans bloquer l'affichage du formulaire
+    try {
+      // Construire l'URL avec le numéro de téléphone et l'ID du prospect si disponible
+      let url = `${apiBaseUrl}/agent/prospect-data?phone=${encodeURIComponent(phoneNumber)}`;
+      if (leadId) {
+        url += `&lead_id=${encodeURIComponent(leadId)}`;
+      }
+      
+      fetchWithAuth(url)
+        .then(response => {
+          if (response.ok) {
+            return response.json();
+          }
+          return null;
+        })
+        .then(data => {
+          if (data && data.prospect) {
+            console.log('Données du prospect récupérées depuis le backend:', data.prospect);
+            currentProspect = data.prospect;
+            prospectNotes = currentProspect.comments || '';
+            
+            // Informer le composant parent que les données du prospect ont été mises à jour
+            dispatch('prospectLoaded', { prospect: currentProspect });
+          }
+        })
+        .catch(error => {
+          console.warn('Erreur lors de la récupération des données du prospect en arrière-plan:', error);
+        });
+    } catch (error) {
+      console.warn('Erreur lors de la tentative de récupération des données du prospect:', error);
+    } finally {
+      isLoadingProspect = false;
+    }
+  }
+  
+  // Fonction pour vérifier s'il y a des appels entrants
+  function checkForIncomingCalls() {
+    if (!waitingForCall) return;
+    
+    fetch(`${apiBaseUrl}/agent/check-calls`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include'
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Erreur lors de la vérification des appels');
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.call) {
+        // Un appel a été trouvé
+        waitingForCall = false;
+        status = 'dialing';
+        
+        // Récupérer les informations du prospect
+        loadProspectData(data.call.phone_number, data.call.lead_id);
+        
+        // Informer le composant parent qu'un appel a été reçu
+        dispatch('callReceived', {
+          phoneNumber: data.call.phone_number,
+          callId: data.call.call_id,
+          leadId: data.call.lead_id
+        });
+        
+        // Également émettre l'événement callInitiated pour cohérence avec les appels manuels
+        dispatch('callInitiated', {
+          phoneNumber: data.call.phone_number,
+          callId: data.call.call_id,
+          contactName: data.call.contact_name || 'Client',
+          leadId: data.call.lead_id
+        });
+      }
+    })
+    .catch(error => {
+      console.error('Erreur lors de la vérification des appels:', error);
+      // Ne pas afficher cette erreur à l'utilisateur, juste logger
+    });
+  }
+  
+  // Gérer l'entrée du numéro de téléphone
+  function handleNumberInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    // Autoriser uniquement les chiffres, +, -, espaces et parenthèses
+    manualNumber = input.value.replace(/[^\d\+\-\s\(\)]/g, '');
+  }
+  
+  // Démarrer/arrêter le polling lors du montage/démontage du composant
+  onMount(() => {
+    // Vérifier les appels entrants toutes les 3 secondes
+    pollingInterval = window.setInterval(checkForIncomingCalls, 3000);
+  });
+  
+  onDestroy(() => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+    }
+  });
+  
+  // Réinitialiser l'état lorsque disabled change
+  $: if (disabled) {
+    waitingForCall = false;
+    status = 'waiting';
+  }
+  
+  // Réinitialiser l'état lorsqu'un appel se termine
+  $: if (callEnded && status === 'dialing') {
+    console.log('Appel terminé, réinitialisation de l\'interface');
+    resetCallState();
+  }
+  
+  // Mettre à jour l'état en fonction de callActive
+  $: if (callActive && status !== 'dialing') {
+    status = 'dialing';
+  }
+  
+  // Fonction pour réinitialiser l'état après la fin d'un appel
+  function resetCallState() {
+    waitingForCall = false;
+    status = 'waiting';
+    showProspectForm = false;
+    currentProspect = null;
+    prospectNotes = '';
+  }
+  
+  // Fonction pour afficher/masquer le composeur manuel
+  function toggleManualDialer() {
+    if (canManualDial && !disabled) {
+      showManualDialer = !showManualDialer;
+    }
+  }
+</script>
+
+<div class="bg-white rounded-lg shadow-lg p-4 border-l-4 border-blue-500 hover:shadow-xl transition-shadow duration-300">
+  <h2 class="text-lg font-bold text-blue-700 mb-4 border-b pb-2 flex items-center">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+    </svg>
+    Système d'appels
+  </h2>
+  
+  {#if errorMessage}
+    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-r-md shadow-sm">
+      <div class="flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+        <p>{errorMessage}</p>
+      </div>
+    </div>
+  {/if}
+  
+  <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="bg-gray-50 px-3 py-2 rounded-lg inline-flex items-center space-x-2 shadow-sm border border-gray-100">
+          <span class="font-medium text-gray-700">Statut:</span> 
+          {#if status === 'waiting'}
+            <span class="ml-2 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium shadow-sm flex items-center">
+              <span class="w-2 h-2 bg-gray-400 rounded-full mr-2 animate-pulse"></span>
+              En attente
+            </span>
+          {:else if status === 'ready'}
+            <span class="ml-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium shadow-sm flex items-center">
+              <span class="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span>
+              Prêt à recevoir
+            </span>
+          {:else if status === 'dialing'}
+            <span class="ml-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium shadow-sm flex items-center">
+              <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+              En appel
+            </span>
+          {:else if status === 'paused'}
+            <span class="ml-2 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium shadow-sm flex items-center">
+              <span class="w-2 h-2 bg-amber-500 rounded-full mr-2 animate-pulse"></span>
+              En pause
+            </span>
+          {/if}
+        </div>
+      </div>
+      {#if waitingForCall}
+        <div class="flex items-center text-blue-600">
+          <svg class="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          En attente d'appel...
+        </div>
+      {/if}
+    </div>
+    
+    <!-- Boutons de contrôle -->
+    <div class="flex flex-wrap gap-2">
+      {#if status === 'waiting' || status === 'paused'}
+        <button 
+          on:click={setReady} 
+          disabled={disabled || status === 'ready' || waitingForCall}
+          class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200 hover:shadow-md"
+        >
+          <div class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+            </svg>
+            Prêt à recevoir
+          </div>
+        </button>
+        
+        <button 
+          on:click={setPaused} 
+          disabled={disabled || status === 'paused'}
+          class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200 hover:shadow-md"
+        >
+          <div class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            Pause
+          </div>
+        </button>
+      {/if}
+      
+      {#if canManualDial && (status === 'waiting' || status === 'paused')}
+        <button 
+          on:click={toggleManualDialer}
+          disabled={disabled}
+          class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200 hover:shadow-md"
+        >
+          <div class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+            </svg>
+            Appel manuel
+          </div>
+        </button>
+      {/if}
+    </div>
+    
+    <!-- Composeur manuel (affiché uniquement si autorisé et activé) -->
+    {#if showManualDialer && canManualDial && (status === 'waiting' || status === 'paused')}
+      <div class="mt-4 p-4 border border-gray-200 rounded-lg shadow-sm">
+        <h3 class="text-md font-medium mb-2">Composeur manuel</h3>
+        
+        <div class="flex">
+          <input 
+            type="tel"
+            bind:value={manualNumber}
+            on:input={handleNumberInput}
+            placeholder="Entrez un numéro de téléphone"
+            class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button 
+            on:click={dialManually}
+            disabled={!manualNumber || disabled}
+            class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-r-md disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200 hover:shadow-md"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+            </svg>
+          </button>
+        </div>
+        
+        <div class="mt-2 text-xs text-gray-500">
+          <p>Entrez un numéro de téléphone valide pour effectuer un appel manuel.</p>
+        </div>
+      </div>
+    {/if}
+    
+    <!-- Affichage des logs d'appels -->
+    <div class="mt-6 border-t pt-4">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="text-md font-medium text-blue-700 flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+          </svg>
+          Historique des appels
+        </h3>
+        <div class="flex space-x-2">
+          <button 
+            on:click={refreshCallLogs}
+            class="p-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-md transition-colors shadow-sm"
+            title="Rafraîchir l'historique"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+            </svg>
+          </button>
+          <button 
+            on:click={() => showCallLogs = !showCallLogs}
+            class="p-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md transition-colors flex items-center space-x-1 shadow-sm"
+            title="Afficher l'historique"
+          >
+            <span class="text-xs font-medium">{showCallLogs ? 'Masquer' : 'Afficher'}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M{showCallLogs ? '5.293 7.293' : '14.707 12.707'} a1 1 0 01-1.414 0L10 {showCallLogs ? '10.586' : '9.414'}l-3.293 {showCallLogs ? '-3.293' : '3.293'} a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      {#if showCallLogs}
+        <CallLogs {callLogs} isLoading={isLoadingLogs} errorMessage={errorMessage} />
+      {/if}
+    </div>
+    
+    <!-- Affichage des numéros de la campagne -->
+    <div class="mt-6 border-t pt-4">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="text-md font-medium text-blue-700 flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+          </svg>
+          Numéros à appeler
+        </h3>
+        <div class="flex space-x-2">
+          <button 
+            on:click={refreshCampaignNumbers}
+            class="p-1 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-md transition-colors shadow-sm"
+            title="Rafraîchir les numéros"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+            </svg>
+          </button>
+          <button 
+            on:click={() => showCampaignNumbers = !showCampaignNumbers}
+            class="p-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md transition-colors flex items-center space-x-1 shadow-sm"
+            title="Afficher les numéros"
+          >
+            <span class="text-xs font-medium">{showCampaignNumbers ? 'Masquer' : 'Afficher'}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M{showCampaignNumbers ? '5.293 7.293' : '14.707 12.707'} a1 1 0 01-1.414 0L10 {showCampaignNumbers ? '10.586' : '9.414'}l-3.293 {showCampaignNumbers ? '-3.293' : '3.293'} a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      {#if showCampaignNumbers}
+        <CampaignNumberList
+          campaignNumbers={campaignNumbers}
+          isLoading={isLoadingNumbers}
+          errorMessage={errorMessage}
+          disabled={disabled}
+          status={status}
+          callFromList={callFromList}
+        />
+      {/if}
+    </div>
+  </div>
+</div>

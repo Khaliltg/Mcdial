@@ -16,9 +16,9 @@ const authenticateToken = (req, res, next) => {
         console.log('Using token from Authorization header');
     } 
     // 2. Cookies
-    else if (req.cookies && req.cookies.token) {
-        token = req.cookies.token;
-        console.log('Using token from cookies');
+    else if (req.cookies && req.cookies.jwt) {
+        token = req.cookies.jwt;
+        console.log('Using token from cookies (jwt)');
     }
     // 3. Custom header (for localStorage fallback)
     else if (req.headers['x-auth-token']) {

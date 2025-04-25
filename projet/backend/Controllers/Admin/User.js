@@ -508,3 +508,76 @@ exports.getUserStatistics = async (req, res) => {
         res.status(500).json({ message: 'An error occurred while retrieving user statistics.' });
     }
 };
+
+// Get active users count and recent user activity
+exports.getActiveUsersCount = async (req, res) => {
+    try {
+        // Get count of users by activity status
+        const [usersByStatus] = await db.execute(
+            `SELECT 
+                SUM(CASE WHEN active = 'Y' THEN 1 ELSE 0 END) as active_users_count,
+                SUM(CASE WHEN active = 'N' THEN 1 ELSE 0 END) as inactive_users_count,
+                COUNT(*) as total_users_count
+            FROM vicidial_users`
+        );
+        
+        // Get count of users logged in today
+        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD format
+        const [loggedInTodayCount] = await db.execute(
+            `SELECT COUNT(DISTINCT user) as logged_in_today 
+            FROM vicidial_user_log 
+            WHERE DATE(event_date) = ?`,
+            [today]
+        );
+        
+        // Get users currently logged in (last 30 minutes)
+        const thirtyMinutesAgo = new Date();
+        thirtyMinutesAgo.setMinutes(thirtyMinutesAgo.getMinutes() - 30);
+        const thirtyMinutesAgoStr = thirtyMinutesAgo.toISOString().slice(0, 19).replace('T', ' ');
+        
+        const [currentlyLoggedIn] = await db.execute(
+            `SELECT COUNT(DISTINCT user) as currently_logged_in
+            FROM vicidial_user_log
+            WHERE event_date > ? AND event = 'LOGIN'`,
+            [thirtyMinutesAgoStr]
+        );
+        
+        // Get recently active users (last 24 hours)
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().slice(0, 19).replace('T', ' ');
+        
+        const [recentlyActiveUsers] = await db.execute(
+            `SELECT DISTINCT vul.user, vu.full_name, vu.active, MAX(vul.event_date) as last_activity
+            FROM vicidial_user_log vul
+            JOIN vicidial_users vu ON vul.user = vu.user
+            WHERE vul.event_date > ?
+            GROUP BY vul.user
+            ORDER BY last_activity DESC
+            LIMIT 5`,
+            [yesterdayStr]
+        );
+        
+        res.json({
+            success: true,
+            data: {
+                activeUsersCount: parseInt(usersByStatus[0].active_users_count) || 0,
+                inactiveUsersCount: parseInt(usersByStatus[0].inactive_users_count) || 0,
+                totalUsersCount: parseInt(usersByStatus[0].total_users_count) || 0,
+                loggedInTodayCount: parseInt(loggedInTodayCount[0].logged_in_today) || 0,
+                currentlyLoggedIn: parseInt(currentlyLoggedIn[0].currently_logged_in) || 0,
+                recentlyActiveUsers: recentlyActiveUsers.map(user => ({
+                    ...user,
+                    status: user.active === 'Y' ? 'Actif' : 'Inactif'
+                }))
+            }
+        });
+    } catch (error) {
+        console.error('Error retrieving active users count:', error);
+        res.status(500).json({
+            success: false, 
+            message: 'An error occurred while retrieving active users count',
+            error: error.message
+        });
+    }
+};

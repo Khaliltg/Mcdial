@@ -1,0 +1,166 @@
+<!-- Interface agent avec intégration WebRTC -->
+<main class="min-h-screen bg-gray-100">
+  {#if isLoading}
+    <div class="flex items-center justify-center min-h-screen">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+        <p class="text-gray-600">Chargement de l'interface agent...</p>
+      </div>
+    </div>
+  {:else if error}
+    <div class="flex items-center justify-center min-h-screen">
+      <div class="text-center p-6 bg-white rounded-lg shadow-md">
+        <div class="text-red-500 text-5xl mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h2 class="text-xl font-semibold text-gray-800 mb-2">Erreur</h2>
+        <p class="text-gray-600 mb-4">{error}</p>
+        <button 
+          class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          on:click={() => window.location.reload()}
+        >
+          Réessayer
+        </button>
+      </div>
+    </div>
+  {:else}
+    <div class="flex flex-col h-screen">
+      <!-- En-tête -->
+      <AgentHeader 
+        agentName={agentInfo.name}
+        agentId={agentInfo.id}
+        agentExtension={agentInfo.extension}
+        campaignName={agentInfo.campaign}
+        agentStatus={agentInfo.status}
+        callsToday={callStats.today}
+        callsCompleted={callStats.completed}
+        successRate={callStats.successRate}
+        onPause={handlePause}
+        onResume={handleResume}
+        onLogout={handleLogout}
+        sipStatus={sipConnected ? (sipRegistered ? 'registered' : 'connected') : 'disconnected'}
+      />
+      
+      <!-- Contenu principal -->
+      <div class="flex flex-1 overflow-hidden">
+        <!-- Colonne gauche - Composeur prédictif -->
+        <div class="w-1/4 bg-white border-r border-gray-200 overflow-y-auto">
+          <PredictiveDialer 
+            apiBaseUrl={API_BASE_URL}
+            canManualDial={canManualDial}
+            on:dial={handleDial}
+            on:callInitiated={handleCallInitiated}
+            on:prospectLoaded={handleProspectLoaded}
+          />
+        </div>
+        
+        <!-- Colonne centrale - Contrôles d'appel et formulaire prospect -->
+        <div class="flex-1 bg-white overflow-y-auto p-4">
+          {#if callActive}
+            <!-- Informations sur l'appel en cours -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h3 class="text-lg font-medium text-gray-800">{customer.name || 'Client'}</h3>
+                  <p class="text-sm text-gray-600">{customer.phone}</p>
+                </div>
+                <div class="flex space-x-2">
+                  <button 
+                    on:click={handleToggleMute}
+                    class="p-2 rounded-full {callMuted ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'} hover:bg-gray-200"
+                    title={callMuted ? 'Activer le micro' : 'Couper le micro'}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                  <button 
+                    on:click={handleToggleHold}
+                    class="p-2 rounded-full {callOnHold ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-600'} hover:bg-gray-200"
+                    title={callOnHold ? 'Reprendre l\'appel' : 'Mettre en attente'}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                  <button 
+                    on:click={handleToggleRecording}
+                    class="p-2 rounded-full {recording ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'} hover:bg-gray-200"
+                    title={recording ? 'Arrêter l\'enregistrement' : 'Démarrer l\'enregistrement'}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <circle cx="10" cy="10" r="6" />
+                    </svg>
+                  </button>
+                  <button 
+                    on:click={handleHangup}
+                    class="p-2 rounded-full bg-red-500 text-white hover:bg-red-600"
+                    title="Raccrocher"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div class="mt-2 text-center">
+                <span class="text-sm font-medium bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                  {Math.floor(callDuration / 60)}:{(callDuration % 60).toString().padStart(2, '0')}
+                </span>
+              </div>
+            </div>
+            
+            <!-- Formulaire prospect quand un appel est actif -->
+            <ProspectForm 
+              currentProspect={currentProspect || {
+                lead_id: '',
+                phone_number: customer.phone || currentCall.phoneNumber,
+                first_name: '',
+                last_name: '',
+                status: '',
+                comments: ''
+              }}
+              {callActive}
+              apiBaseUrl={API_BASE_URL}
+            />
+          {:else}
+            <!-- Contrôles d'appel quand aucun appel n'est actif -->
+            <CallControls 
+              callActive={callActive}
+              callMuted={callMuted}
+              callOnHold={callOnHold}
+              callDuration={callDuration}
+              customerName={customer.name}
+              phoneNumber={customer.phone}
+              recording={recording}
+              currentProspect={currentProspect}
+              on:hangup={handleHangup}
+              on:toggleMute={handleToggleMute}
+              on:toggleHold={handleToggleHold}
+              on:toggleRecording={handleToggleRecording}
+              on:transfer={handleTransfer}
+              on:openDtmfPad={handleOpenDtmfPad}
+            />
+          {/if}
+        </div>
+        
+        <!-- La colonne droite a été fusionnée avec la colonne centrale -->
+      </div>
+    </div>
+  {/if}
+</main>
+
+<!-- Panneau de disposition -->
+<DispositionPanel 
+  show={showDisposition}
+  callData={{
+    callId: currentCall.callId,
+    phoneNumber: currentCall.phoneNumber,
+    customerName: currentCall.customerName,
+    duration: callDuration ? `${Math.floor(callDuration / 60)}:${(callDuration % 60).toString().padStart(2, '0')}` : '00:00'
+  }}
+  on:submit={handleDispositionSubmit}
+  on:cancel={handleDispositionCancel}
+/>
