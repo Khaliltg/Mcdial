@@ -1,6 +1,8 @@
 {
 	"/": [],
+	"/admin/carrier": [],
 	"/admin/conferences": [],
+	"/admin/server": [],
 	"/compagnes/add": [],
 	"/compagnes/auto_dial": [],
 	"/compagnes/copy": [],

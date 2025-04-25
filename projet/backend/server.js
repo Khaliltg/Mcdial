@@ -15,6 +15,8 @@ const authRoute = require('./Routes/auth');
 const { authenticateToken, requireAdmin } = require('./middleware/auth');
 const PORT = process.env.PORT || 8000; // Default to 8000 if PORT is not set
 const conferencesRoutes = require('./Routes/Admin/conferencesroute');
+const carriersRoutes = require('./Routes/Admin/carriersroute'); // adapte le chemin si besoin
+const serverRoutes = require('./Routes/Admin/serverRoute');
 
 // CORS configuration for cross-origin requests with credentials
 const corsOptions = {
@@ -41,6 +43,8 @@ app.use('/api/admin/user', authenticateToken, requireAdmin, AdminRoute);
 app.use('/api/admin/phone', authenticateToken, requireAdmin, phoneRoutes);
 app.use('/api/admin/compagnies', authenticateToken, requireAdmin, compagnieRoutes);
 app.use('/api/admin/usergroup', authenticateToken, requireAdmin, UserGroupRoute);
+app.use('/api/carriers', carriersRoutes);
+app.use('/api/servers',serverRoutes)
 
 // Middleware for error handling
 app.use((err, req, res, next) => {

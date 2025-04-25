@@ -180,28 +180,97 @@
 {/if}
 
 <style>
+  /* Base styles */
+  :global(body) {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    line-height: 1.6;
+  }
+
+  .page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    position: relative;
+  }
+
+  /* Table styles */
   table {
     width: 100%;
     border-collapse: collapse;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   th, td {
-    padding: 0.5rem;
-    border: 1px solid #ccc;
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
   }
 
-  input, select {
-    margin: 0.5rem 0;
-    padding: 0.4rem;
-    display: block;
+  th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #4b5563;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
   }
 
-  button {
-    margin-top: 0.5rem;
-    padding: 0.4rem 1rem;
+  th.sortable {
     cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
   }
 
+  th.sortable:hover {
+    background-color: #f3f4f6;
+  }
+
+  td {
+    font-size: 0.875rem;
+  }
+
+  .list-item:hover {
+    background-color: #f9fafb;
+  }
+
+  /* Form and input styles */
+  input, select {
+    padding: 0.625rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    display: block;
+    margin: 0.5rem 0;
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  /* Button styles */
+  button {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+  }
+
+  button:hover {
+    background-color: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Status message */
   p {
     margin-top: 1rem;
     color: green;
