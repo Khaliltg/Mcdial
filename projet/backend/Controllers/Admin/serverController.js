@@ -62,13 +62,33 @@ exports.addServer = async (req, res) => {
     } = req.body;
   
     try {
-      // Insertion sans spécifier server_id (auto-incrémenté par la base de données)
+      // Générer un ID de serveur unique
+      // D'abord, trouver le dernier ID numérique
+      const [lastServers] = await db.execute('SELECT server_id FROM servers ORDER BY server_id DESC LIMIT 1');
+      
+      let newServerId = 'S1001'; // ID par défaut si aucun serveur n'existe
+      
+      if (lastServers.length > 0) {
+        const lastId = lastServers[0].server_id;
+        // Si l'ID suit le format 'S' suivi d'un nombre
+        if (lastId.startsWith('S') && !isNaN(lastId.substring(1))) {
+          const lastNum = parseInt(lastId.substring(1));
+          newServerId = `S${lastNum + 1}`;
+        } else {
+          // Générer un timestamp unique
+          newServerId = `S${Date.now().toString().substring(7)}`;
+        }
+      }
+      
+      // Insérer avec l'ID généré
       const [result] = await db.execute(
         `INSERT INTO servers 
-        (server_description, server_ip, active, active_agent_login_server, asterisk_version, max_vicidial_trunks, local_gmt) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (server_id, server_description, server_ip, active, active_agent_login_server, asterisk_version, max_vicidial_trunks, local_gmt) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          server_description, server_ip,
+          newServerId,
+          server_description, 
+          server_ip,
           active ? 'Y' : 'N', // Convertir le booléen en 'Y'/'N' si nécessaire
           active_agent_login_server, 
           asterisk_version,
@@ -78,7 +98,7 @@ exports.addServer = async (req, res) => {
       );
       
       // Récupérer le serveur nouvellement créé pour le renvoyer au frontend
-      const [newServer] = await db.execute('SELECT * FROM servers WHERE server_id = ?', [result.insertId]);
+      const [newServer] = await db.execute('SELECT * FROM servers WHERE server_id = ?', [newServerId]);
   
       res.status(201).json(newServer[0]);
     } catch (error) {
