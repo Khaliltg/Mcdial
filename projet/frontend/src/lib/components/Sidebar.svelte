@@ -6,12 +6,13 @@
   
   const menuItems = [
     {
-      name : ' Rapport',
-      href: null, 
-      icon: 'file-text-fill',
-      description: 'Générer un rapport',
+          name : ' Rapport',
+          href: "/rapport/rapport", 
+          icon: 'file-text-fill',
+          description: 'Générer un rapport',
+          
+        },
       
-    },
   
     { 
       name: 'Utilisateurs', 
