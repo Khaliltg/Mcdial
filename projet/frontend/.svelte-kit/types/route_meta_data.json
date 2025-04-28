@@ -1,15 +1,10 @@
 {
-	"/": [
-		"src/routes/+page.server.js"
-	],
+	"/": [],
 	"/admin": [],
 	"/admin/carrier": [],
 	"/admin/conferences": [],
-	"/admin/dashboard": [
-		"src/routes/admin/dashboard/+page.js",
-		"src/routes/admin/dashboard/+page.server.js"
-	],
 	"/admin/login": [],
+	"/admin/server": [],
 	"/agent": [],
 	"/agent/calls/history": [],
 	"/agent/calls/new": [],

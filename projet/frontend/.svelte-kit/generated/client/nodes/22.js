@@ -1,2 +1,1 @@
-export { default as filedataComponent } from "../../../../src/routes/liste/Filedata/+page.svelte";
-export { default as afficherListComponent } from "../../../../src/routes/liste/afficherlist/+page.svelte";
+export { default as component } from "../../../../src/routes/liste/Filedata/+page.svelte";

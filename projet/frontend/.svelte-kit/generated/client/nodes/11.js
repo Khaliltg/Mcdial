@@ -1,2 +1,1 @@
-export { default as pauseCodeComponent } from "../../../../src/routes/compagnes/pause_code/+page.svelte";
-export { default as dashboardComponent } from "../../../../src/routes/agent/dashboard/+page.svelte";
+export { default as component } from "../../../../src/routes/agent/calls/new/+page.svelte";

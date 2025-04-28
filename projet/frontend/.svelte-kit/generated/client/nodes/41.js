@@ -1,2 +1,1 @@
-export { default as userListComponent } from "../../../../src/routes/users/list/+page.svelte";
-export { default as afficherComponent } from "../../../../src/routes/userGroupe/afficher/+page.svelte";
+export { default as component } from "../../../../src/routes/rapport/agent_time_detail/+page.svelte";

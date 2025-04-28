@@ -1,2 +1,1 @@
-export { default as corbeilleComponent } from "../../../../src/routes/liste/corbeille/+page.svelte";
-export { default as showComponent } from "../../../../src/routes/compagnes/show/+page.svelte";
+export { default as component } from "../../../../src/routes/compagnes/pause_code/+page.svelte";

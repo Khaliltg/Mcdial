@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const adminLogController = require('../../Controllers/Admin/AdminLogController');
+const { getRecentAdminLog } = require('../../Controllers/Admin/AdminLog');
 
-// Route to get recent activities
-router.get('/recent-activities', adminLogController.getRecentActivities);
+// Route to fetch recent admin activity
+router.get('/recent-activity', getRecentAdminLog);
 
 module.exports = router;

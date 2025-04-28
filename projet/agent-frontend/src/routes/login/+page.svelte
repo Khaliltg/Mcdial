@@ -3,7 +3,7 @@
   import { goto } from '$app/navigation';
   
   // URL de base de l'API
-  const API_BASE_URL = 'http://localhost:8000/api';
+  const API_BASE_URL = 'http://localhost:8000';
   
   // Étape actuelle du processus de connexion
   enum LoginStep {
@@ -52,7 +52,7 @@
       errorMessage = '';
       
       // Appel API au backend pour l'authentification téléphonique
-      const response = await fetch(`${API_BASE_URL}/agent/auth/phone-login`, {
+      const response = await fetch(`${API_BASE_URL}/api/agent/auth/phone-login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -102,7 +102,7 @@
       errorMessage = '';
       
       // Appel API au backend pour l'authentification utilisateur
-      const response = await fetch(`${API_BASE_URL}/agent/auth/user-login`, {
+      const response = await fetch(`${API_BASE_URL}/api/agent/auth/user-login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -159,25 +159,57 @@
       isLoading = true;
       errorMessage = '';
       
+      console.log('Début de la sélection de campagne avec ID:', selectedCampaignId);
+      console.log('Token de session utilisateur:', userSessionToken ? userSessionToken.substring(0, 20) + '...' : 'Non disponible');
+      
+      // Préparer les données pour l'appel API
+      const requestBody = { campaignId: selectedCampaignId };
+      console.log('Données envoyées:', requestBody);
+      
+      // URL complète pour débogage
+      const apiUrl = `${API_BASE_URL}/api/agent/auth/select-campaign`;
+      console.log('URL de l\'API appelée:', apiUrl);
+      
       // Appel API au backend pour finaliser la connexion avec la campagne sélectionnée
-      const response = await fetch(`${API_BASE_URL}/agent/auth/select-campaign`, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${userSessionToken}` // Utiliser le token de session utilisateur
         },
-        body: JSON.stringify({ campaignId: selectedCampaignId }),
+        body: JSON.stringify(requestBody),
         credentials: 'include'
+      }).catch(fetchError => {
+        console.error('Erreur fetch lors de la sélection de campagne:', fetchError);
+        throw new Error(`Erreur réseau: ${fetchError.message}`);
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Réponse de sélection de campagne:', data);
-        
+      console.log('Réponse du serveur:', response.status, response.statusText);
+      console.log('En-têtes de réponse:', [...response.headers.entries()]);
+      
+      // Tenter de lire le corps de la réponse pour débogage
+      const responseText = await response.text();
+      console.log('Corps de la réponse (brut):', responseText.substring(0, 200) + (responseText.length > 200 ? '...' : ''));
+      
+      let data;
+      try {
+        // Convertir la réponse texte en JSON
+        data = JSON.parse(responseText);
+        console.log('Réponse de sélection de campagne (JSON):', data);
+      } catch (jsonError) {
+        console.error('Erreur de parsing JSON:', jsonError);
+        errorMessage = 'Format de réponse invalide du serveur';
+        isLoading = false;
+        return;
+      }
+      
+      if (response.ok && data) {
         // Stocker le token final dans localStorage
         if (data.token) {
           console.log('Token reçu, stockage dans localStorage');
           localStorage.setItem('agent_token', data.token);
+          localStorage.setItem('agent_campaign_id', selectedCampaignId);
+          localStorage.setItem('agent_full_name', data.full_name || '');
           
           // Gérer l'option "Se souvenir de moi"
           if (rememberMe) {
@@ -186,30 +218,38 @@
             // Définir un cookie de longue durée (30 jours) si "Se souvenir de moi" est coché
             const expirationDate = new Date();
             expirationDate.setDate(expirationDate.getDate() + 30);
-            document.cookie = `remember_agent=true; expires=${expirationDate.toUTCString()}; path=/; SameSite=Lax;`;
+            document.cookie = `remember_agent=true; expires=${expirationDate.toUTCString()}; path=/;`;
           } else {
             localStorage.removeItem('agent_phone_login');
-            document.cookie = 'remember_agent=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax;';
+            document.cookie = 'remember_agent=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
           }
           
-          // Afficher un message de succès et rediriger vers la page agent
-          console.log('Connexion réussie, redirection vers la page agent');
+          // Vérifier si les cookies ont été correctement définis
+          console.log('Vérification des cookies après authentification:');
+          console.log('Cookies disponibles:', document.cookie);
+          console.log('JWT cookie présent:', document.cookie.includes('jwt='));
+          console.log('auth_success cookie présent:', document.cookie.includes('auth_success='));
           
           // Afficher un message de succès
           alert('Connexion réussie ! Bienvenue sur McDial.');
           
-          // Rediriger vers la page agent après un court délai
-          setTimeout(() => {
-            window.location.href = '/agent';
-          }, 500);
+          // Forcer une redirection directe sans utiliser goto
+          console.log('Redirection forcée vers la page d\'accueil...');
+          
+          // Utiliser window.location.href pour une redirection complète
+          window.location.href = '/';
         } else {
           console.error('Token final non reçu du serveur');
-          throw new Error('Token final non reçu du serveur');
+          errorMessage = 'Token d\'authentification non reçu du serveur';
         }
       } else {
         // Gérer les différents codes d'erreur
-        const errorData = await response.json().catch(() => ({}));
-        errorMessage = errorData.message || 'Échec de la sélection de campagne';
+        if (data && data.message) {
+          console.error('Erreur de sélection de campagne:', data);
+          errorMessage = data.message || 'Échec de la sélection de campagne';
+        } else {
+          errorMessage = `Échec de la sélection de campagne (${response.status}): ${response.statusText}`;
+        }
       }
     } catch (error: unknown) {
       console.error('Erreur lors de la sélection de campagne:', error);
@@ -233,13 +273,19 @@
   }
   
   onMount(() => {
+    console.log('Page de connexion chargée - Vérification de l\'authentification');
+    
     // Vérifier si l'utilisateur a déjà un token valide et un cookie JWT
     const token = localStorage.getItem('agent_token');
     const hasJwtCookie = document.cookie.split(';').some(item => item.trim().startsWith('jwt='));
     
+    console.log('État d\'authentification:', { token: !!token, hasJwtCookie });
+    
     if (token && hasJwtCookie) {
       // Si l'utilisateur est déjà authentifié, rediriger vers la page d'accueil
-      goto('/');
+      console.log('Utilisateur déjà authentifié, redirection vers la page d\'accueil');
+      window.location.href = '/';
+      return;
     }
     
     // Récupérer le nom d'utilisateur si "Se souvenir de moi" était coché
@@ -247,6 +293,7 @@
     const hasRememberCookie = document.cookie.split(';').some(item => item.trim().startsWith('remember_agent='));
     
     if (savedPhoneLogin && hasRememberCookie) {
+      console.log('Identifiants sauvegardés trouvés');
       phoneLogin = savedPhoneLogin;
       rememberMe = true;
     }
@@ -255,7 +302,8 @@
   // Fonction pour vérifier la validité du token
   async function verifyToken(token: string): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE_URL}/agent/auth/verify-token`, {
+      console.log('Vérification du token...');
+      const response = await fetch(`${API_BASE_URL}/api/agent/auth/verify-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -264,7 +312,9 @@
         credentials: 'include'
       });
       
-      return response.ok;
+      const result = response.ok;
+      console.log('Résultat de la vérification du token:', result);
+      return result;
     } catch (error) {
       console.error('Erreur lors de la vérification du token:', error);
       return false;

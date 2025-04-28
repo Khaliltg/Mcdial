@@ -11,8 +11,13 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
   
   // Vérifier si l'utilisateur est authentifié
   if (!isAuthenticated()) {
-    // Rediriger vers la page de connexion si non authentifié
-    window.location.href = '/login';
+    console.log('Utilisateur non authentifié lors d\'une requête API');
+    
+    // Rediriger vers la page de connexion si non authentifié et si nous ne sommes pas déjà sur cette page
+    if (!window.location.pathname.includes('/login')) {
+      console.log('Redirection vers la page de connexion');
+      window.location.href = '/login';
+    }
     throw new Error('Non authentifié');
   }
   
@@ -35,11 +40,16 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
   
   // Gérer les erreurs d'authentification (401)
   if (response.status === 401) {
-    // Supprimer le token expiré
+    console.log('Erreur d\'authentification 401 détectée');
+    
+    // Supprimer le token expiré et toutes les données d'authentification
     localStorage.removeItem('agent_token');
+    localStorage.removeItem('phone_session_token');
+    localStorage.removeItem('user_session_token');
     
     // Rediriger vers la page de connexion si nous ne sommes pas déjà sur cette page
     if (!window.location.pathname.includes('/login')) {
+      console.log('Redirection vers la page de connexion suite à une erreur 401');
       window.location.href = '/login';
     }
   }
@@ -56,10 +66,19 @@ export function isAuthenticated(): boolean {
   const token = localStorage.getItem('agent_token');
   
   // Vérifier si le cookie JWT existe
-  const hasCookie = document.cookie.split(';').some(item => item.trim().startsWith('jwt='));
+  const cookies = document.cookie;
+  const hasCookie = cookies.split(';').some(item => item.trim().startsWith('jwt='));
+  
+  console.log('Vérification d\'authentification:', { 
+    hasToken: !!token, 
+    hasCookie,
+    cookies: cookies.length > 0 ? 'Présents' : 'Aucun cookie'
+  });
   
   // L'utilisateur est authentifié s'il a soit un token, soit un cookie
-  return !!token || hasCookie;
+  const isAuth = !!token || hasCookie;
+  console.log('Utilisateur authentifié:', isAuth);
+  return isAuth;
 }
 
 /**

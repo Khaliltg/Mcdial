@@ -4,30 +4,31 @@
 const AsteriskManager = require('asterisk-manager');
 const config = require('../config/config');
 
-// Variable pour suivre l'état de connexion à Asterisk
+// Variables pour suivre l'état de connexion à Asterisk
 let isConnected = false;
-let isSimulationMode = false;
+let isSimulationMode = config.asterisk.simulationModeEnabled || false;
+let reconnectAttempts = 0;
+let reconnecting = false;
 
 // Créer une instance du gestionnaire Asterisk
 let ami;
 
 try {
+    // Créer une instance du gestionnaire Asterisk avec les options de configuration complètes
     ami = new AsteriskManager(
         config.asterisk.port,
         config.asterisk.host,
         config.asterisk.username,
         config.asterisk.password,
-        true
+        false // Désactiver les événements automatiques pour éviter les boucles de reconnexion
     );
 
-    // Gérer les événements AMI
-    ami.keepConnected();
+    console.log(`Tentative de connexion à Asterisk sur ${config.asterisk.host}:${config.asterisk.port} avec l'utilisateur ${config.asterisk.username}`);
+    
+    // Connexion simple sans keepConnected pour éviter les boucles
+    ami.connect();
 
-    ami.on('connect', () => {
-        console.log('Connecté à Asterisk Manager Interface');
-        isConnected = true;
-        isSimulationMode = false;
-    });
+    // Géré dans le gestionnaire d'événements global ci-dessous
 
     ami.on('error', (err) => {
         console.error('Erreur de connexion à Asterisk Manager Interface:', err);
@@ -65,11 +66,68 @@ try {
 
 ami.on('disconnect', () => {
   console.log('Déconnecté d\'Asterisk Manager Interface');
-  // Tenter de se reconnecter après un délai
-  setTimeout(() => {
-    console.log('Tentative de reconnexion à Asterisk Manager Interface...');
-    ami.connect();
-  }, 5000);
+  isConnected = false;
+  
+  // Éviter les reconnexions multiples simultanées
+  if (!reconnecting) {
+    reconnecting = true;
+    reconnectAttempts++;
+    
+    // Vérifier si le nombre maximal de tentatives est atteint
+    const maxAttempts = config.asterisk.maxReconnectAttempts || 3;
+    if (reconnectAttempts > maxAttempts) {
+      console.log(`Nombre maximal de tentatives de reconnexion atteint (${maxAttempts}). Activation du mode simulation.`);
+      isSimulationMode = true;
+      reconnecting = false;
+      return;
+    }
+    
+    const timeout = config.asterisk.reconnectTimeout || 60000;
+    console.log(`Tentative de reconnexion ${reconnectAttempts}/${maxAttempts} programmée dans ${timeout}ms...`);
+    
+    setTimeout(() => {
+      if (!isConnected) {
+        console.log('Tentative de reconnexion à Asterisk Manager Interface...');
+        try {
+          ami.connect();
+        } catch (error) {
+          console.error('Erreur lors de la tentative de reconnexion:', error);
+          reconnecting = false;
+          
+          // Si toutes les tentatives échouent, activer le mode simulation
+          if (reconnectAttempts >= maxAttempts) {
+            console.log('Activation du mode simulation après échec des reconnexions.');
+            isSimulationMode = true;
+          }
+        }
+      }
+    }, timeout);
+  }
+});
+
+ami.on('connect', () => {
+  console.log('Connecté à Asterisk Manager Interface');
+  isConnected = true;
+  isSimulationMode = false;
+  reconnecting = false;
+  reconnectAttempts = 0; // Réinitialiser le compteur de tentatives
+  
+  // Enregistrer les événements d'appel une fois connecté
+  try {
+    // Utiliser la bonne syntaxe pour l'action Events selon la documentation d'Asterisk-Manager
+    ami.action({
+      'Action': 'Events',
+      'EventMask': 'call'
+    }, (err, res) => {
+      if (err) {
+        console.error('Erreur lors de l\'enregistrement des événements d\'appel:', err);
+      } else {
+        console.log('Enregistrement des événements d\'appel réussi:', res);
+      }
+    });
+  } catch (error) {
+    console.error('Erreur lors de l\'enregistrement des événements:', error);
+  }
 });
 
 // Écouter les événements d'appel d'Asterisk

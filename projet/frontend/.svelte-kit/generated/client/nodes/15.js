@@ -1,2 +1,1 @@
-export { default as ajouterComponent } from "../../../../src/routes/liste/ajouter/+page.svelte";
-export { default as copyComponent } from "../../../../src/routes/compagnes/copy/+page.svelte";
+export { default as component } from "../../../../src/routes/compagnes/auto_dial/+page.svelte";

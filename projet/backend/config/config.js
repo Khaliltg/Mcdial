@@ -18,11 +18,15 @@ module.exports = {
   
   // Configuration Asterisk
   asterisk: {
-    host: process.env.ASTERISK_HOST || 'localhost',
-    port: process.env.ASTERISK_PORT || 5038,
-    username: process.env.ASTERISK_USERNAME || 'admin',
-    password: process.env.ASTERISK_PASSWORD || 'password',
-    webrtcPort: process.env.ASTERISK_WEBRTC_PORT || 8088
+    host: process.env.ASTERISK_HOST || '213.32.34.33',
+    port: process.env.ASTERISK_PORT || 5038, // Port AMI standard (5038) au lieu de 5060 (SIP)
+    username: process.env.ASTERISK_USERNAME || 'admin', // Utilisateur AMI standard
+    password: process.env.ASTERISK_PASSWORD || 'Mc@2025',
+    webrtcPort: process.env.ASTERISK_WEBRTC_PORT || 8088,
+    reconnect: false, // Désactiver la reconnexion automatique pour éviter les boucles
+    reconnectTimeout: 60000, // Délai de reconnexion plus long (60 secondes)
+    maxReconnectAttempts: 3, // Limiter le nombre de tentatives de reconnexion
+    simulationModeEnabled: true // Activer le mode simulation si la connexion échoue
   },
   
   // Configuration du serveur

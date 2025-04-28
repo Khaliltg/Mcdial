@@ -117,22 +117,13 @@
       return true;
     }
     
-    // Si l'ID n'est pas fourni en prop, essayer de le récupérer via l'API
+    // TEMPORAIREMENT DÉSACTIVÉ - API non implémentée
+    // Utiliser un ID simulé pour le développement
     try {
-      const response = await fetchWithAuth(`${apiBaseUrl}/agent/info`);
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      if (data && data.userInfo && data.userInfo.user_id) {
-        agentId = data.userInfo.user_id;
-        console.log('ID agent récupéré via API:', agentId);
-        return true;
-      } else {
-        console.error('Impossible de récupérer l\'ID de l\'agent');
-        return false;
-      }
+      // Simulation d'un ID agent récupéré
+      agentId = localStorage.getItem('agent_id') || '1001';
+      console.log('ID agent simulé pour le développement:', agentId);
+      return true;
     } catch (error) {
       console.error('Erreur lors de la récupération de l\'ID de l\'agent:', error);
       return false;
@@ -161,28 +152,16 @@
     errorMessage = '';
     
     try {
-      const response = await fetchWithAuth(`${apiBaseUrl}/agent/call-history?limit=20`);
+      // TEMPORAIREMENT DÉSACTIVÉ - API non implémentée
+      // Utiliser des données simulées pour le développement
+      console.log('Utilisation de données d\'historique d\'appels simulées');
       
-      if (!response.ok) {
-        throw new Error('Erreur lors de la récupération de l\'historique des appels');
-      }
-      
-      const data = await response.json();
-      callLogs = data.calls || [];
-      
-      // Enrichir les données des logs d'appels
-      callLogs = callLogs.map(call => ({
-        ...call,
-        // Ajouter des informations par défaut si elles n'existent pas
-        source: call.source || (call.is_manual ? 'manual' : 'system'),
-        contact_name: call.contact_name || '',
-        duration_formatted: call.duration_formatted || formatDuration(call.duration || 0)
-      }));
-      
-      showCallLogs = true;
-      
-      console.log('Historique des appels récupéré:', callLogs);
-    } catch (error: any) { // Type assertion pour corriger l'erreur TypeScript
+      // Données simulées
+      callLogs = [
+        { call_id: '1', phone_number: '0123456789', contact_name: 'Jean Dupont', duration: 120, date: new Date().toISOString(), status: 'COMPLETED' },
+        { call_id: '2', phone_number: '0987654321', contact_name: 'Marie Martin', duration: 45, date: new Date().toISOString(), status: 'NOANSWER' }
+      ];
+    } catch (error) {
       console.error('Erreur lors de la récupération de l\'historique:', error);
       errorMessage = `Erreur: ${error.message || 'Inconnue'}`;
     } finally {
@@ -203,31 +182,22 @@
     errorMessage = '';
     
     try {
-      const response = await fetchWithAuth(`${apiBaseUrl}/agent/campaign-numbers?limit=20`);
+      // TEMPORAIREMENT DÉSACTIVÉ - API non implémentée
+      // Utiliser des données simulées pour le développement
+      console.log('Utilisation de numéros de campagne simulés');
       
-      if (!response.ok) {
-        throw new Error('Erreur lors de la récupération des numéros de la campagne');
-      }
-      
-      const data = await response.json();
-      campaignNumbers = data.numbers || [];
-      
-      // Enrichir les données des numéros de campagne
-      campaignNumbers = campaignNumbers.map(number => ({
-        ...number,
-        // Ajouter des informations par défaut si elles n'existent pas
-        status: number.status || 'NEW',
-        called_count: number.called_count || 0,
-        first_name: number.first_name || '',
-        last_name: number.last_name || '',
-        list_id: number.list_id || '',
-        list_name: number.list_name || 'Liste principale'
-      }));
+      // Données simulées
+      campaignNumbers = [
+        { phone_number: '0123456789', first_name: 'Jean', last_name: 'Dupont', lead_id: '101' },
+        { phone_number: '0987654321', first_name: 'Marie', last_name: 'Martin', lead_id: '102' },
+        { phone_number: '0654321987', first_name: 'Pierre', last_name: 'Durand', lead_id: '103' },
+        { phone_number: '0612345678', first_name: 'Sophie', last_name: 'Leroy', lead_id: '104' }
+      ];
       
       showCampaignNumbers = true;
+      console.log(`${campaignNumbers.length} numéros simulés disponibles pour la campagne`);
       
-      console.log('Numéros de la campagne récupérés:', campaignNumbers);
-    } catch (error: any) { // Type assertion pour corriger l'erreur TypeScript
+    } catch (error: any) {
       console.error('Erreur lors de la récupération des numéros:', error);
       // Ne pas afficher cette erreur à l'utilisateur, juste logger
     } finally {
@@ -342,31 +312,17 @@
   // Fonction pour sortir l'agent de pause
   async function resumePredictive() {
     try {
-      // Utiliser la même route que le bouton principal de reprise
-      const response = await fetch(`${apiBaseUrl}/agent/resume`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          agentId,
-          campaignId
-        }),
-        credentials: 'include'
-      });
+      // TEMPORAIREMENT DÉSACTIVÉ - API non implémentée
+      // Simuler une sortie de pause réussie
+      console.log('Simulation de sortie de pause réussie');
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Agent sorti de pause', data);
-        // Réactiver la possibilité de passer des appels
-        dispatch('pauseStateChanged', { isPaused: false });
-        return true;
-      } else {
-        console.error('Erreur lors de la sortie de pause:', response.status);
-        errorMessage = 'Erreur lors de la sortie de pause';
-        return false;
-      }
-    } catch (err) {
+      // Simuler un délai réseau
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      status = 'waiting';
+      console.log('Agent sorti de pause avec succès (simulé)');
+      return true;
+    } catch (err: any) {
       console.error('Erreur lors de la sortie de pause:', err);
       errorMessage = err instanceof Error ? err.message : 'Erreur lors de la sortie de pause';
       return false;
@@ -395,26 +351,13 @@
     waitingForCall = true;
     errorMessage = '';
     
-    // Informer le backend que l'agent est prêt à recevoir des appels
-    fetch(`${apiBaseUrl}/agent/ready`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        agentId,
-        campaignId
-      }),
-      credentials: 'include'
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Erreur lors de la mise en attente d\'appels');
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log('Agent prêt à recevoir des appels', data);
+    // TEMPORAIREMENT DÉSACTIVÉ - API non implémentée
+    // Simuler une réponse réussie
+    try {
+      console.log('Simulation de mise en attente d\'appels réussie');
+      
+      // Simuler un délai réseau
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Charger l'historique des appels et les numéros de la campagne
       loadCallHistory();
@@ -426,13 +369,12 @@
       // Simuler un appel après un court délai (entre 3 et 10 secondes)
       const delay = Math.floor(Math.random() * 7000) + 3000;
       setTimeout(simulatePredictiveCall, delay);
-    })
-    .catch(error => {
+    } catch (error: any) {
       console.error('Erreur:', error);
       errorMessage = error.message;
       waitingForCall = false;
       status = 'waiting';
-    });
+    }
   }
   
   // Fonction pour mettre en pause le mode prédictif

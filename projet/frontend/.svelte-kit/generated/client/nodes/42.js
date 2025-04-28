@@ -1,2 +1,1 @@
-export { default as UserSearch } from "../../../../src/routes/users/search/+page.svelte";
-export { default as UserGroupAdd } from "../../../../src/routes/userGroupe/ajouter/+page.svelte";
+export { default as component } from "../../../../src/routes/rapport/export-calls/+page.svelte";
