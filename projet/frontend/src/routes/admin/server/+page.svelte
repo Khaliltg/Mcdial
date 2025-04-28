@@ -16,6 +16,13 @@
 
   async function updateServer(server) {
     try {
+      // Si c'est un nouveau serveur (ID temporaire)
+      if (server.server_id.toString().startsWith('temp-')) {
+        await createServer(server);
+        return;
+      }
+
+      // Sinon, mettre à jour un serveur existant
       const res = await fetchWithAuth(`http://localhost:8000/api/servers/${server.server_id}`, {
         method: 'PUT',
         headers: {
@@ -29,9 +36,11 @@
       } else {
         const err = await res.text();
         console.error('Erreur :', err);
+        alert('Erreur lors de la mise à jour du serveur');
       }
     } catch (error) {
       console.error('Erreur lors de la mise à jour :', error);
+      alert('Erreur lors de la mise à jour du serveur');
     }
   }
 
@@ -43,12 +52,52 @@
         server_description: '',
         server_ip: '',
         active: false,
-        active_agent_login_server: '',
+        active_agent_login_server: 'N',
         asterisk_version: '',
         max_vicidial_trunks: 0,
         local_gmt: 0
       }
     ];
+  }
+
+  // Fonction pour créer un nouveau serveur
+  async function createServer(server) {
+    try {
+      // Préparer les données à envoyer (sans l'ID temporaire)
+      const serverData = {
+        server_description: server.server_description,
+        server_ip: server.server_ip,
+        active: server.active,
+        active_agent_login_server: server.active_agent_login_server,
+        asterisk_version: server.asterisk_version,
+        max_vicidial_trunks: server.max_vicidial_trunks,
+        local_gmt: server.local_gmt
+      };
+
+      const res = await fetchWithAuth('http://localhost:8000/api/servers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(serverData)
+      });
+
+      if (res.ok) {
+        const newServer = await res.json();
+        // Remplacer le serveur temporaire par celui retourné par l'API
+        servers = servers.map(s => 
+          s.server_id === server.server_id ? newServer : s
+        );
+        alert('Nouveau serveur créé avec succès');
+      } else {
+        const err = await res.text();
+        console.error('Erreur lors de la création du serveur:', err);
+        alert('Erreur lors de la création du serveur');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la création du serveur:', error);
+      alert('Erreur lors de la création du serveur');
+    }
   }
 </script>
 
@@ -109,7 +158,7 @@
             <button 
               class="inline-flex items-center px-4 py-1.5 text-white bg-gradient-to-r from-blue-600 to-blue-500 rounded-lg hover:from-blue-700 hover:to-blue-600 transition font-semibold shadow-sm"
               on:click={() => updateServer(server)}>
-              💾 Modifier
+              {server.server_id.toString().startsWith('temp-') ? '✅ Créer' : '💾 Modifier'}
             </button>
           </td>
         </tr>

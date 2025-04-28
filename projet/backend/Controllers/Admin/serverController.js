@@ -56,24 +56,31 @@ exports.updateServer = async (req, res) => {
   
 exports.addServer = async (req, res) => {
     const {
-      server_id, server_description, server_ip,
-      active, agent, asterisk_version,
+      server_description, server_ip,
+      active, active_agent_login_server, asterisk_version,
       max_vicidial_trunks, local_gmt
     } = req.body;
   
     try {
+      // Insertion sans spécifier server_id (auto-incrémenté par la base de données)
       const [result] = await db.execute(
         `INSERT INTO servers 
-        (server_id, server_description, server_ip, active, agent, asterisk_version, max_vicidial_trunks, local_gmt) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (server_description, server_ip, active, active_agent_login_server, asterisk_version, max_vicidial_trunks, local_gmt) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
-          server_id, server_description, server_ip,
-          active, agent, asterisk_version,
-          max_vicidial_trunks, local_gmt
+          server_description, server_ip,
+          active ? 'Y' : 'N', // Convertir le booléen en 'Y'/'N' si nécessaire
+          active_agent_login_server, 
+          asterisk_version,
+          max_vicidial_trunks, 
+          local_gmt
         ]
       );
+      
+      // Récupérer le serveur nouvellement créé pour le renvoyer au frontend
+      const [newServer] = await db.execute('SELECT * FROM servers WHERE server_id = ?', [result.insertId]);
   
-      res.status(201).json({ message: 'Serveur ajouté avec succès', server_id });
+      res.status(201).json(newServer[0]);
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Erreur lors de l’ajout du serveur' });
