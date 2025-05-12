@@ -1,7 +1,8 @@
 <script>
     import { onMount } from 'svelte';
     import { page } from '$app/stores';
-  
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
+
     let users = [];
     let userData = null;
     let loadingUsers = true;
@@ -15,7 +16,7 @@
       loadingUsers = true;
       usersError = null;
       try {
-        const response = await fetch(`http://localhost:8000/api/admin/user/allUsers`);
+        const response = await fetchWithAuth(`http://localhost:8000/api/admin/user/allUsers`);
         if (!response.ok) {
           throw new Error('Failed to fetch users');
         }
@@ -32,7 +33,7 @@
       loadingUserData = true;
       error = null;
       try {
-        const response = await fetch(`http://localhost:8000/api/admin/user/userStats/${userId}`);
+        const response = await fetchWithAuth(`http://localhost:8000/api/admin/user/userStats/${userId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch user data');
         }

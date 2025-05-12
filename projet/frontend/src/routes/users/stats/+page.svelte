@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { fade, fly } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
   // State variables
   let startDate = '';
@@ -67,28 +68,42 @@
     setDefaultDates();
     
     const requestBody = {
-      user,
-      startDate,
-      endDate,
-      status
+        user,
+        startDate,
+        endDate,
+        status
     };
 
     loading = true;
     error = '';
 
     try {
-      const response = await axios.post('http://localhost:8000/api/admin/user/userStats', requestBody);
-      stats = response.data || [];
-      totalItems = stats.length;
-      currentPage = 1; // Reset to page 1 when new data is fetched
+        const response = await fetchWithAuth('http://localhost:8000/api/admin/user/userStats', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to fetch stats. Please try again.');
+        }
+
+        const data = await response.json();
+        stats = data || [];
+        totalItems = stats.length;
+        currentPage = 1; // Reset to page 1 when new data is fetched
     } catch (err) {
-      console.error('Axios error:', err);
-      error = err.response?.data?.message || 'Failed to fetch stats. Please try again.';
-      stats = [];
+        console.error('Fetch error:', err);
+        // @ts-ignore
+        error = err.message || 'Failed to fetch stats. Please try again.';
+        stats = [];
     } finally {
-      loading = false;
+        loading = false;
     }
-  }
+}
 
   // Navigation functions
   function goToPage(page) {
