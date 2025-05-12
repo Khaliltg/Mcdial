@@ -5,7 +5,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
-const connection = require('./config/bd');
+const connection = require('./config/bd'); // Database connection
 
 // Routes
 const AdminRoute = require('./Routes/Admin/userRoute');
@@ -35,34 +35,43 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177'],
     credentials: true,
   },
 });
 
 // Middlewares
 const corsOptions = {
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
-  credentials: true,
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177'], // Support both admin and agent frontends
+  credentials: true, // Critical for cookies to be accepted
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Set-Cookie'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Requested-With', 'x-auth-token'],
+  exposedHeaders: ['Set-Cookie'], // Allow Set-Cookie to be exposed
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true })); // Allows parsing of urlencoded bodies
+app.use(express.static('public'));
 
-// Routes
+// Authentication routes
 app.use('/api/login', loginRoute);
 app.use('/api/auth', authRoute);
+
+// Agent routes
 app.use('/api/agent/auth', agentAuthRoutes);
 app.use('/api/agent', agentRoutes);
-app.use('/api/agent', agentCallRoutes);
-app.use('/api/agent/end-call', endCallRoute);
-app.use('/api/callcard', callCardRoutes);
-app.use('/api/agent-time', agentTimeRoutes);
-app.use('/api/timeclock', timeclockRoutes);
+app.use('/api/agent/calls', authenticateToken, agentCallRoutes);
+// Register call routes directly under /api/agent as well for backward compatibility
+app.use('/api/agent', authenticateToken, agentCallRoutes);
+app.use('/api/agent/end-call', authenticateToken, endCallRoute);
+app.use('/api/callcard', authenticateToken, callCardRoutes);
+app.use('/api/agent-time', authenticateToken, agentTimeRoutes);
+app.use('/api/timeclock', authenticateToken, timeclockRoutes);
+
+// Protected routes
 app.use('/api/conferences', authenticateToken, conferencesRoutes);
 app.use('/api/lists', authenticateToken, listRoutes);
 app.use('/api/prospects', authenticateToken, prospectRoute);

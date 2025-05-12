@@ -1,7 +1,3 @@
-
-// this file is generated — do not edit it
-
-
 /// <reference types="@sveltejs/kit" />
 
 /**
@@ -42,6 +38,7 @@ declare module '$env/static/private' {
 	export const EDITOR: string;
 	export const EFC_12652_1262719628: string;
 	export const EFC_12652_1592913036: string;
+	export const EFC_21476_1592913036: string;
 	export const EFC_12652_2775293581: string;
 	export const EFC_12652_3789132940: string;
 	export const FPS_BROWSER_APP_PROFILE_STRING: string;
@@ -161,6 +158,7 @@ declare module '$env/dynamic/private' {
 		EDITOR: string;
 		EFC_12652_1262719628: string;
 		EFC_12652_1592913036: string;
+		EFC_21476_1592913036: string;
 		EFC_12652_2775293581: string;
 		EFC_12652_3789132940: string;
 		FPS_BROWSER_APP_PROFILE_STRING: string;

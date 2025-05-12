@@ -107,9 +107,118 @@
     class="px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition"
     on:click={addServer}
   >
-    ➕ Ajouter un serveur
+     Ajouter un serveur
   </button>
 </div>
+<style>
+ body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #f2f4f8;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+button {
+  transition: all 0.2s ease-in-out;
+  font-weight: 500;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.mb-4 button {
+  background: linear-gradient(to right, #00b894, #00cec9);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.mb-4 button:hover {
+  background: linear-gradient(to right, #00a383, #00b7b9);
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 12px;
+  margin-top: 24px;
+}
+
+thead {
+  background-color: transparent;
+}
+
+th {
+  text-align: left;
+  padding: 14px 20px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: #7f8c8d;
+  font-weight: 600;
+}
+
+td {
+  background-color: white;
+  padding: 18px 20px;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  vertical-align: middle;
+}
+
+tr:hover td {
+  background-color: #f9fbfd;
+  transition: background-color 0.3s;
+}
+
+input, select {
+  font-family: 'Poppins', sans-serif;
+  padding: 10px 14px;
+  border: 1px solid #dfe6e9;
+  border-radius: 8px;
+  background-color: #fdfefe;
+  font-size: 0.95rem;
+  width: 100%;
+  transition: border-color 0.3s, box-shadow 0.2s;
+}
+
+input:focus, select:focus {
+  border-color: #0984e3;
+  box-shadow: 0 0 0 3px rgba(9, 132, 227, 0.25);
+  outline: none;
+}
+
+input[type='checkbox'] {
+  transform: scale(1.2);
+  accent-color: #00cec9;
+}
+
+button.inline-flex {
+  background: linear-gradient(to right, #0984e3, #74b9ff);
+  color: white;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  transition: background 0.3s ease;
+}
+
+button.inline-flex:hover {
+  background: linear-gradient(to right, #0652dd, #4dabf7);
+}
+
+</style>
+
 
 <div class="overflow-x-auto rounded-xl shadow-lg border border-gray-200 bg-white">
   <table class="min-w-full divide-y divide-gray-200 text-sm">
@@ -158,7 +267,7 @@
             <button 
               class="inline-flex items-center px-4 py-1.5 text-white bg-gradient-to-r from-blue-600 to-blue-500 rounded-lg hover:from-blue-700 hover:to-blue-600 transition font-semibold shadow-sm"
               on:click={() => updateServer(server)}>
-              {server.server_id.toString().startsWith('temp-') ? '✅ Créer' : '💾 Modifier'}
+              {server.server_id.toString().startsWith('temp-') ? '✅ Créer' : ' Modifier'}
             </button>
           </td>
         </tr>

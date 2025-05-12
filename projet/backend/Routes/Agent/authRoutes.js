@@ -335,4 +335,64 @@ router.post('/verify-token', authenticateToken, (req, res) => {
     }
 });
 
+// Route pour rafraîchir le token
+router.post('/refresh', async (req, res) => {
+    try {
+        // Récupérer le token JWT depuis les cookies ou l'en-tête Authorization
+        let token = null;
+        
+        // Vérifier d'abord dans les cookies
+        if (req.cookies && req.cookies.jwt) {
+            token = req.cookies.jwt;
+        } 
+        // Sinon, vérifier dans l'en-tête Authorization
+        else {
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                token = authHeader.split(' ')[1];
+            }
+        }
+        
+        if (!token) {
+            return res.status(401).json({ message: 'Token non fourni' });
+        }
+        
+        // Vérifier et décoder le token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        // Créer un nouveau token avec les mêmes informations mais une nouvelle date d'expiration
+        const newToken = jwt.sign({
+            ...decoded,
+            iat: Math.floor(Date.now() / 1000) // Nouvelle date d'émission
+        }, process.env.JWT_SECRET, { expiresIn: '8h' });
+        
+        // Définir le nouveau token dans un cookie
+        res.cookie('jwt', newToken, {
+            httpOnly: true,
+            maxAge: 8 * 60 * 60 * 1000, // 8 heures
+            sameSite: 'lax',
+            secure: false, // Désactivé pour le développement local
+            path: '/'
+        });
+        
+        // Retourner le nouveau token
+        res.json({
+            success: true,
+            token: newToken,
+            message: 'Token rafraîchi avec succès'
+        });
+    } catch (err) {
+        console.error('Erreur lors du rafraîchissement du token:', err);
+        
+        if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+            return res.status(401).json({ message: 'Token expiré ou invalide' });
+        }
+        
+        res.status(500).json({ 
+            message: 'Erreur serveur', 
+            error: err.message 
+        });
+    }
+});
+
 module.exports = router;
