@@ -4,6 +4,7 @@
   import { fade, fly } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
   import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
+  import { onMount } from 'svelte';
 
   // State variables
   let startDate = '';
@@ -22,6 +23,8 @@
   let totalPages = 0;
   let sortedStats = [];
   let paginatedStats = [];
+  let users = [];
+  let loadingUsers = false;
 
   // Reactive declarations
   $: totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -64,45 +67,79 @@
   }
 
   // Fetch data
-  async function handleSubmit() {
-    setDefaultDates();
-    
-    const requestBody = {
-        user,
-        startDate,
-        endDate,
-        status
-    };
+  // Charger la liste des utilisateurs pour la sélection
+  async function fetchUsers() {
+    loadingUsers = true;
+    try {
+      const response = await fetchWithAuth('http://localhost:8000/api/admin/user/allUsers');
+      if (!response.ok) {
+        throw new Error('Échec du chargement de la liste des utilisateurs');
+      }
+      users = await response.json();
+    } catch (err) {
+      console.error('Erreur lors du chargement des utilisateurs:', err);
+      error = err.message;
+    } finally {
+      loadingUsers = false;
+    }
+  }
 
+  // Récupérer les statistiques pour un utilisateur spécifique
+  async function fetchUserStats(userId) {
+    if (!userId) {
+      error = 'Veuillez sélectionner un utilisateur';
+      return;
+    }
+    
     loading = true;
     error = '';
 
     try {
-        const response = await fetchWithAuth('http://localhost:8000/api/admin/user/userStats', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody),
-        });
+      // Utilisation de l'endpoint correct pour les statistiques utilisateur
+      const response = await fetchWithAuth(`http://localhost:8000/api/admin/user/userStats/${userId}`);
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to fetch stats. Please try again.');
+      if (!response.ok) {
+        // Gestion spécifique des codes d'erreur
+        if (response.status === 404) {
+          throw new Error('Statistiques non disponibles pour cet utilisateur');
+        } else if (response.status === 401) {
+          throw new Error('Non autorisé. Veuillez vous reconnecter.');
         }
+        
+        throw new Error(`Erreur ${response.status}: Échec de récupération des statistiques.`);
+      }
 
-        const data = await response.json();
-        stats = data || [];
-        totalItems = stats.length;
-        currentPage = 1; // Reset to page 1 when new data is fetched
-    } catch (err) {
-        console.error('Fetch error:', err);
-        // @ts-ignore
-        error = err.message || 'Failed to fetch stats. Please try again.';
+      const data = await response.json();
+      
+      // Transformer les données pour correspondre au format attendu par la page
+      if (data && data.callData) {
+        stats = data.callData.map(call => ({
+          entry_date: call.call_date,
+          user: data.userInfo.user,
+          full_name: data.userInfo.full_name,
+          status: call.status,
+          talk_sec: call.length_in_sec,
+          campaign_id: call.campaign_id || 'N/A',
+          phone_number: call.phone_number || 'N/A'
+        }));
+      } else {
         stats = [];
+      }
+      
+      totalItems = stats.length;
+      currentPage = 1; // Reset to page 1 when new data is fetched
+    } catch (err) {
+      console.error('Fetch error:', err);
+      error = err.message || 'Échec de récupération des statistiques. Veuillez réessayer.';
+      stats = [];
     } finally {
-        loading = false;
+      loading = false;
     }
+  }
+
+  async function handleSubmit() {
+    setDefaultDates();
+    fetchUserStats(user);
 }
 
   // Navigation functions
@@ -172,10 +209,15 @@
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
-  // Toggle filters visibility
+  // Toggle filters
   function toggleFilters() {
     showFilters = !showFilters;
   }
+  
+  // Initialiser la page
+  onMount(() => {
+    fetchUsers();
+  });
 
   // Export to CSV
   function exportToCSV() {
@@ -267,12 +309,16 @@
           
           <div class="form-group">
             <label for="user">Utilisateur</label>
-            <input 
-              type="text" 
+            <select 
               id="user"
               bind:value={user} 
-              placeholder="Utilisateur" 
-            />
+              class="form-select"
+            >
+              <option value="">Sélectionnez un utilisateur</option>
+              {#each users as userOption}
+                <option value={userOption.user}>{userOption.full_name || userOption.user}</option>
+              {/each}
+            </select>
           </div>
           
           <div class="form-group submit-group">

@@ -11,6 +11,7 @@
     let loading = false;
     let submissionResult = '';
     let reportData = [];
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
     const campaigns = ['-ALL CAMPAIGNS-', 'B2C', 'CANADA1'];
     const userGroups = ['-ALL USER GROUPS-', 'ALL', 'ADMIN', 'seddk', 'strategic'];
@@ -27,7 +28,7 @@
 
         loading = true;
         try {
-            const response = await fetch('http://localhost:8000/api/agent-time/submit', {
+            const response = await fetchWithAuth('http://localhost:8000/api/agent-time/submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

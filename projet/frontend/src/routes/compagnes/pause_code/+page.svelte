@@ -74,11 +74,22 @@
             }
 
             const data = await response.json();
-            if (!Array.isArray(data)) {
-                throw new Error('Format de données invalide');
+            
+            // Vérifier si la réponse a une propriété 'data' ou 'campagnes' ou si c'est directement un tableau
+            if (data.data && Array.isArray(data.data)) {
+                campaignsStore.set(data.data);
+            } else if (data.campagnes && Array.isArray(data.campagnes)) {
+                campaignsStore.set(data.campagnes);
+            } else if (Array.isArray(data)) {
+                campaignsStore.set(data);
+            } else if (data.message === "No token provided") {
+                // Gérer le cas où l'authentification a échoué
+                throw new Error('Session expirée. Veuillez vous reconnecter.');
+            } else {
+                console.error('Format de réponse inattendu:', data);
+                throw new Error('Format de données invalide. Vérifiez la structure de la réponse API.');
             }
-
-            campaignsStore.set(data);
+            
             currentPage = 1; // Reset to first page when fetching new data
         } catch (err) {
             console.error('Erreur lors de la récupération des campagnes:', err);

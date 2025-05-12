@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
+  import { fade, fly } from 'svelte/transition';
 
   let users = [];
   let filteredUsers = [];
@@ -10,6 +11,11 @@
   let searchQuery = '';
   let sortField = 'user';
   let sortDirection = 'asc';
+  
+  // Variables pour la notification
+  let showNotification = false;
+  let notificationType = 'success';
+  let notificationMessage = '';
 
   // Fetch the list of users when the component mounts
   onMount(async () => {
@@ -18,6 +24,9 @@
       if (response.ok) {
         users = await response.json();
         applyFilters();
+        
+        // Vérifier s'il y a une notification dans localStorage
+        checkForNotification();
       } else {
         console.error('Failed to fetch users');
       }
@@ -27,6 +36,36 @@
       isLoading = false;
     }
   });
+  
+  // Fonction pour vérifier et afficher les notifications stockées
+  function checkForNotification() {
+    const storedNotification = localStorage.getItem('userNotification');
+    
+    if (storedNotification) {
+      try {
+        const notification = JSON.parse(storedNotification);
+        
+        // Vérifier si la notification est récente (moins de 10 secondes)
+        const currentTime = new Date().getTime();
+        if (notification.timestamp && (currentTime - notification.timestamp < 10000)) {
+          notificationType = notification.type || 'success';
+          notificationMessage = notification.message || 'Opération réussie';
+          showNotification = true;
+          
+          // Masquer la notification après 5 secondes
+          setTimeout(() => {
+            showNotification = false;
+          }, 5000);
+        }
+        
+        // Supprimer la notification du localStorage après l'avoir affichée
+        localStorage.removeItem('userNotification');
+      } catch (error) {
+        console.error('Error parsing notification:', error);
+        localStorage.removeItem('userNotification');
+      }
+    }
+  };
 
   // Function to toggle between showing all users or just active ones
   function toggleShowAll() {
@@ -120,6 +159,25 @@
 </script>
 
 <div class="page-container">
+  {#if showNotification}
+    <div class="notification-toast {notificationType}" transition:fly={{ y: -50, duration: 300 }}>
+      <div class="notification-icon">
+        {#if notificationType === 'success'}
+          <i class="bi bi-check-circle-fill"></i>
+        {:else if notificationType === 'error'}
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        {:else}
+          <i class="bi bi-info-circle-fill"></i>
+        {/if}
+      </div>
+      <div class="notification-content">
+        {notificationMessage}
+      </div>
+      <button class="notification-close" on:click={() => showNotification = false}>
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+  {/if}
   <div class="page-header">
     <h1>Gestion des Utilisateurs</h1>
     <p class="subtitle">Consultez et gérez tous les utilisateurs du système</p>
@@ -580,6 +638,75 @@
     font-size: 0.875rem;
   }
 
+    /* Notification Toast */
+  .notification-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-width: 400px;
+    background-color: white;
+    border-left: 4px solid;
+  }
+  
+  .notification-toast.success {
+    border-left-color: #10b981;
+  }
+  
+  .notification-toast.error {
+    border-left-color: #ef4444;
+  }
+  
+  .notification-toast.info {
+    border-left-color: #3b82f6;
+  }
+  
+  .notification-icon {
+    margin-right: 0.75rem;
+    font-size: 1.25rem;
+  }
+  
+  .notification-toast.success .notification-icon {
+    color: #10b981;
+  }
+  
+  .notification-toast.error .notification-icon {
+    color: #ef4444;
+  }
+  
+  .notification-toast.info .notification-icon {
+    color: #3b82f6;
+  }
+  
+  .notification-content {
+    flex: 1;
+    font-size: 0.875rem;
+  }
+  
+  .notification-close {
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 0.25rem;
+    margin-left: 0.5rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+  }
+  
+  .notification-close:hover {
+    background-color: #f3f4f6;
+    color: #4b5563;
+  }
+
   /* Responsive Adjustments */
   @media (max-width: 768px) {
     .page-container {
@@ -598,6 +725,12 @@
     .header-actions {
       flex-direction: column;
       width: 100%;
+    }
+    
+    .notification-toast {
+      left: 20px;
+      right: 20px;
+      max-width: calc(100% - 40px);
     }
 
     .btn {

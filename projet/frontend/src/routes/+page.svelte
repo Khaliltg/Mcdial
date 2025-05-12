@@ -229,31 +229,7 @@
 
 <!-- Bootstrap Dashboard -->
 <div class="container-fluid">
-  <!-- Header -->
-  <div class="row bg-primary text-white py-3 mb-4">
-    <div class="col-md-6">
-      <h1 class="h3 mb-0">McDial Dashboard</h1>
-      <p class="mb-0">Gestion des campagnes d'appels</p>
-    </div>
-    <div class="col-md-6 text-md-end">
-      <div class="d-inline-block me-3">
-        <span class="text-white-50">Aujourd'hui:</span>
-        <span>{new Date().toLocaleDateString('fr-FR')}</span>
-      </div>
-      <div class="d-inline-block dropdown">
-        <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-          <i class="bi bi-person-circle me-1"></i>
-          Admin
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-          <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Paramètres</a></li>
-          <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profil</a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li><button class="dropdown-item" type="button" on:click|preventDefault={handleLogout}><i class="bi bi-box-arrow-right me-2"></i>Déconnexion</button></li>
-        </ul>
-      </div>
-    </div>
-  </div>
+
 
   <!-- Stats Cards -->
   <div class="row mb-4">

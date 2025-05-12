@@ -2,18 +2,105 @@
   import { onMount } from 'svelte';
   import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
+  // États et données
   let servers = [];
+  let loading = true;
+  let error = '';
+  let success = '';
+  let showSuccessToast = false;
+  let successMessage = '';
+  let searchTerm = '';
+  let filteredServers = [];
+  let sortField = 'server_id';
+  let sortDirection = 'asc';
+  let showDeleteConfirm = false;
+  let serverToDelete = null;
 
+  // Chargement initial des serveurs
   onMount(async () => {
     try {
       const res = await fetchWithAuth('http://localhost:8000/api/servers');
-      const data = await res.json();
-      servers = data;
-    } catch (error) {
-      console.error('Erreur de chargement des serveurs :', error);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      servers = await res.json();
+    } catch (err) {
+      error = err.message || 'Erreur de chargement des serveurs';
+    } finally {
+      loading = false;
     }
   });
 
+  // Filtrer et trier les serveurs
+  $: {
+    let filtered = servers;
+    
+    // Filtre par recherche
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(s => 
+        (s.server_description && s.server_description.toLowerCase().includes(term)) ||
+        (s.server_ip && s.server_ip.toLowerCase().includes(term)) ||
+        s.server_id.toString().includes(term)
+      );
+    }
+    
+    // Tri
+    filtered = [...filtered].sort((a, b) => {
+      let valA = a[sortField];
+      let valB = b[sortField];
+      
+      // Gestion des valeurs null ou undefined
+      if (valA === null || valA === undefined) valA = '';
+      if (valB === null || valB === undefined) valB = '';
+      
+      // Conversion en string pour comparaison
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+      
+      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    filteredServers = filtered;
+  }
+
+  // Changer le tri
+  function changeSort(field) {
+    if (sortField === field) {
+      sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortField = field;
+      sortDirection = 'asc';
+    }
+  }
+
+  // Afficher un toast de succès
+  function showToast(message) {
+    successMessage = message;
+    showSuccessToast = true;
+    setTimeout(() => {
+      showSuccessToast = false;
+    }, 3000);
+  }
+
+  // Ajouter un nouveau serveur
+  function addServer() {
+    servers = [
+      ...servers,
+      {
+        server_id: `temp-${Date.now()}`, // ID temporaire pour le front
+        server_description: '',
+        server_ip: '',
+        active: true,
+        active_agent_login_server: 'N',
+        asterisk_version: '',
+        max_vicidial_trunks: 0,
+        local_gmt: 0
+      }
+    ];
+  }
+
+  // Mettre à jour un serveur
   async function updateServer(server) {
     try {
       // Si c'est un nouveau serveur (ID temporaire)
@@ -32,35 +119,19 @@
       });
 
       if (res.ok) {
-        alert('Serveur mis à jour avec succès');
+        showToast('Serveur mis à jour avec succès');
       } else {
         const err = await res.text();
         console.error('Erreur :', err);
-        alert('Erreur lors de la mise à jour du serveur');
+        error = 'Erreur lors de la mise à jour du serveur';
       }
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour :', error);
-      alert('Erreur lors de la mise à jour du serveur');
+    } catch (err) {
+      console.error('Erreur lors de la mise à jour :', err);
+      error = 'Erreur lors de la mise à jour du serveur';
     }
   }
 
-  function addServer() {
-    servers = [
-      ...servers,
-      {
-        server_id: `temp-${Date.now()}`, // ID temporaire pour le front
-        server_description: '',
-        server_ip: '',
-        active: false,
-        active_agent_login_server: 'N',
-        asterisk_version: '',
-        max_vicidial_trunks: 0,
-        local_gmt: 0
-      }
-    ];
-  }
-
-  // Fonction pour créer un nouveau serveur
+  // Créer un nouveau serveur
   async function createServer(server) {
     try {
       // Préparer les données à envoyer (sans l'ID temporaire)
@@ -88,190 +159,440 @@
         servers = servers.map(s => 
           s.server_id === server.server_id ? newServer : s
         );
-        alert('Nouveau serveur créé avec succès');
+        showToast('Nouveau serveur créé avec succès');
       } else {
         const err = await res.text();
         console.error('Erreur lors de la création du serveur:', err);
-        alert('Erreur lors de la création du serveur');
+        error = 'Erreur lors de la création du serveur';
       }
-    } catch (error) {
-      console.error('Erreur lors de la création du serveur:', error);
-      alert('Erreur lors de la création du serveur');
+    } catch (err) {
+      console.error('Erreur lors de la création du serveur:', err);
+      error = 'Erreur lors de la création du serveur';
+    }
+  }
+
+  // Confirmer la suppression d'un serveur
+  function confirmDelete(server) {
+    serverToDelete = server;
+    showDeleteConfirm = true;
+  }
+
+  // Annuler la suppression
+  function cancelDelete() {
+    serverToDelete = null;
+    showDeleteConfirm = false;
+  }
+
+  // Supprimer un serveur
+  async function deleteServer() {
+    if (!serverToDelete) return;
+    
+    try {
+      // Si c'est un serveur temporaire, le supprimer localement
+      if (serverToDelete.server_id.toString().startsWith('temp-')) {
+        servers = servers.filter(s => s.server_id !== serverToDelete.server_id);
+        showDeleteConfirm = false;
+        serverToDelete = null;
+        return;
+      }
+
+      const res = await fetchWithAuth(`http://localhost:8000/api/servers/${serverToDelete.server_id}`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        servers = servers.filter(s => s.server_id !== serverToDelete.server_id);
+        showToast('Serveur supprimé avec succès');
+      } else {
+        const err = await res.text();
+        console.error('Erreur lors de la suppression:', err);
+        error = 'Erreur lors de la suppression du serveur';
+      }
+    } catch (err) {
+      console.error('Erreur lors de la suppression:', err);
+      error = 'Erreur lors de la suppression du serveur';
+    } finally {
+      showDeleteConfirm = false;
+      serverToDelete = null;
     }
   }
 </script>
 
-<!-- ✅ BOUTON AJOUTER -->
-<div class="mb-4">
-  <button
-    class="px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition"
-    on:click={addServer}
-  >
-     Ajouter un serveur
-  </button>
+<!-- Toast de succès -->
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1100">
+  <div class="toast align-items-center text-white bg-success border-0 fade {showSuccessToast ? 'show' : ''}" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        {successMessage}
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" on:click={() => showSuccessToast = false}></button>
+    </div>
+  </div>
 </div>
-<style>
- body {
-  font-family: 'Poppins', sans-serif;
-  background-color: #f2f4f8;
-  color: #2c3e50;
-  margin: 0;
-}
 
-.container {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 24px;
-}
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade {showDeleteConfirm ? 'show' : ''}" tabindex="-1" style="display: {showDeleteConfirm ? 'block' : 'none'}">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          Confirmer la suppression
+        </h5>
+        <button type="button" class="btn-close btn-close-white" on:click={cancelDelete}></button>
+      </div>
+      <div class="modal-body p-4">
+        <p>Êtes-vous sûr de vouloir supprimer ce serveur ?</p>
+        {#if serverToDelete}
+          <div class="alert alert-warning">
+            <strong>ID:</strong> {serverToDelete.server_id}<br>
+            <strong>Description:</strong> {serverToDelete.server_description || 'Non défini'}<br>
+            <strong>IP:</strong> {serverToDelete.server_ip || 'Non défini'}
+          </div>
+          <p class="text-danger mb-0"><strong>Cette action est irréversible.</strong></p>
+        {/if}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" on:click={cancelDelete}>
+          <i class="bi bi-x-lg me-2"></i>Annuler
+        </button>
+        <button type="button" class="btn btn-danger" on:click={deleteServer}>
+          <i class="bi bi-trash-fill me-2"></i>Supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{#if showDeleteConfirm}
+  <div class="modal-backdrop fade show"></div>
+{/if}
 
-button {
-  transition: all 0.2s ease-in-out;
-  font-weight: 500;
-}
+<div class="container-fluid py-4">
+  <!-- En-tête avec titre et bouton d'ajout -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="display-6 mb-0 fw-bold text-primary">
+        <i class="bi bi-hdd-rack-fill me-2"></i>Gestion des Serveurs
+      </h1>
+      <p class="text-muted mt-2">Configuration et administration des serveurs du système</p>
+    </div>
+    <button class="btn btn-primary btn-lg rounded-3 shadow-sm" on:click={addServer}>
+      <i class="bi bi-plus-lg me-2"></i>Nouveau serveur
+    </button>
+  </div>
 
-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.mb-4 button {
-  background: linear-gradient(to right, #00b894, #00cec9);
-  color: white;
-  padding: 12px 20px;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.mb-4 button:hover {
-  background: linear-gradient(to right, #00a383, #00b7b9);
-}
-
-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 12px;
-  margin-top: 24px;
-}
-
-thead {
-  background-color: transparent;
-}
-
-th {
-  text-align: left;
-  padding: 14px 20px;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  color: #7f8c8d;
-  font-weight: 600;
-}
-
-td {
-  background-color: white;
-  padding: 18px 20px;
-  border-radius: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-  vertical-align: middle;
-}
-
-tr:hover td {
-  background-color: #f9fbfd;
-  transition: background-color 0.3s;
-}
-
-input, select {
-  font-family: 'Poppins', sans-serif;
-  padding: 10px 14px;
-  border: 1px solid #dfe6e9;
-  border-radius: 8px;
-  background-color: #fdfefe;
-  font-size: 0.95rem;
-  width: 100%;
-  transition: border-color 0.3s, box-shadow 0.2s;
-}
-
-input:focus, select:focus {
-  border-color: #0984e3;
-  box-shadow: 0 0 0 3px rgba(9, 132, 227, 0.25);
-  outline: none;
-}
-
-input[type='checkbox'] {
-  transform: scale(1.2);
-  accent-color: #00cec9;
-}
-
-button.inline-flex {
-  background: linear-gradient(to right, #0984e3, #74b9ff);
-  color: white;
-  font-weight: 600;
-  padding: 10px 18px;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  transition: background 0.3s ease;
-}
-
-button.inline-flex:hover {
-  background: linear-gradient(to right, #0652dd, #4dabf7);
-}
-
-</style>
-
-
-<div class="overflow-x-auto rounded-xl shadow-lg border border-gray-200 bg-white">
-  <table class="min-w-full divide-y divide-gray-200 text-sm">
-    <thead class="bg-gray-50 text-xs uppercase text-gray-500 tracking-wider">
-      <tr>
-        <th class="px-6 py-4 text-left">ID</th>
-        <th class="px-6 py-4 text-left">Description</th>
-        <th class="px-6 py-4 text-left">IP</th>
-        <th class="px-6 py-4 text-center">Active</th>
-        <th class="px-6 py-4 text-left">Agent</th>
-        <th class="px-6 py-4 text-left">Version</th>
-        <th class="px-6 py-4 text-left">Trunks</th>
-        <th class="px-6 py-4 text-left">GMT</th>
-        <th class="px-6 py-4 text-center">Action</th>
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-gray-100 bg-white">
-      {#each servers as server (server.server_id)}
-        <tr class="hover:bg-gray-50 transition">
-          <td class="px-6 py-3 font-medium text-gray-700">{server.server_id}</td>
-          <td class="px-6 py-3">
-            <input class="w-full bg-gray-50 border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring focus:ring-blue-300" bind:value={server.server_description} />
-          </td>
-          <td class="px-6 py-3">
-            <input class="w-full bg-gray-50 border border-gray-300 rounded-md px-2 py-1" bind:value={server.server_ip} />
-          </td>
-          <td class="px-6 py-3 text-center">
-            <input type="checkbox" class="h-5 w-5 text-blue-600" bind:checked={server.active} />
-          </td>
-          <td class="px-6 py-3">
-            <select class="w-full bg-gray-50 border border-gray-300 rounded-md px-2 py-1" bind:value={server.active_agent_login_server}>
-              <option value="Y">Y</option>
-              <option value="N">N</option>
-            </select>
-          </td>
-          <td class="px-6 py-3">
-            <input class="w-full bg-gray-50 border border-gray-300 rounded-md px-2 py-1" bind:value={server.asterisk_version} />
-          </td>
-          <td class="px-6 py-3">
-            <input type="number" class="w-full bg-gray-50 border border-gray-300 rounded-md px-2 py-1" bind:value={server.max_vicidial_trunks} />
-          </td>
-          <td class="px-6 py-3">
-            <input type="number" class="w-full bg-gray-50 border border-gray-300 rounded-md px-2 py-1" bind:value={server.local_gmt} />
-          </td>
-          <td class="px-6 py-3 text-center">
-            <button 
-              class="inline-flex items-center px-4 py-1.5 text-white bg-gradient-to-r from-blue-600 to-blue-500 rounded-lg hover:from-blue-700 hover:to-blue-600 transition font-semibold shadow-sm"
-              on:click={() => updateServer(server)}>
-              {server.server_id.toString().startsWith('temp-') ? '✅ Créer' : ' Modifier'}
+  <!-- Carte principale -->
+  <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+    <!-- Barre d'outils -->
+    <div class="card-header bg-white border-0 py-3">
+      <div class="row g-3 align-items-center">
+        <!-- Recherche -->
+        <div class="col-md-6 col-lg-4">
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0">
+              <i class="bi bi-search text-muted"></i>
+            </span>
+            <input 
+              type="text" 
+              class="form-control border-start-0 ps-0" 
+              placeholder="Rechercher un serveur..." 
+              bind:value={searchTerm}
+            >
+            {#if searchTerm}
+              <button class="btn btn-outline-secondary border-start-0" type="button" on:click={() => searchTerm = ''}>
+                <i class="bi bi-x-lg"></i>
+              </button>
+            {/if}
+          </div>
+        </div>
+        
+        <!-- Compteur et informations -->
+        <div class="col-md-6 col-lg-8 text-md-end">
+          <span class="badge bg-primary rounded-pill px-3 py-2">
+            <i class="bi bi-hdd-stack me-1"></i>
+            {filteredServers.length} serveur{filteredServers.length !== 1 ? 's' : ''}
+          </span>
+          <span class="badge bg-success rounded-pill px-3 py-2 ms-2">
+            <i class="bi bi-check-circle me-1"></i>
+            {servers.filter(s => s.active).length} actif{servers.filter(s => s.active).length !== 1 ? 's' : ''}
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Alerte d'erreur -->
+    {#if error}
+      <div class="mx-3 mt-3">
+        <div class="alert alert-danger d-flex align-items-center border-0 rounded-3 shadow-sm" role="alert">
+          <div class="bg-danger bg-opacity-25 p-2 me-3 rounded-circle">
+            <i class="bi bi-exclamation-triangle-fill text-danger fs-4"></i>
+          </div>
+          <div>{error}</div>
+          <button type="button" class="btn-close ms-auto" on:click={() => error = ''}></button>
+        </div>
+      </div>
+    {/if}
+    
+    <!-- Corps de la carte -->
+    <div class="card-body p-0">
+      <!-- Indicateur de chargement -->
+      {#if loading}
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Chargement...</span>
+          </div>
+          <p class="mt-3 text-muted fs-5">Chargement des serveurs...</p>
+        </div>
+      {:else if filteredServers.length === 0}
+        <!-- État vide -->
+        <div class="text-center py-5">
+          <div class="mb-4">
+            <span class="display-1 text-muted">
+              <i class="bi bi-hdd-rack"></i>
+            </span>
+          </div>
+          {#if searchTerm}
+            <h3 class="text-muted">Aucun résultat pour "{searchTerm}"</h3>
+            <p class="text-muted mb-3">Essayez avec d'autres termes de recherche</p>
+            <button class="btn btn-outline-secondary" on:click={() => searchTerm = ''}>
+              <i class="bi bi-arrow-counterclockwise me-2"></i>Réinitialiser la recherche
             </button>
-          </td>
-        </tr>
-      {/each}
-    </tbody>
-  </table>
+          {:else}
+            <h3 class="text-muted">Aucun serveur disponible</h3>
+            <p class="text-muted mb-3">Commencez par ajouter votre premier serveur</p>
+            <button class="btn btn-primary" on:click={addServer}>
+              <i class="bi bi-plus-lg me-2"></i>Ajouter un serveur
+            </button>
+          {/if}
+        </div>
+      {:else}
+        <!-- Tableau des serveurs -->
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="border-0 py-3" style="cursor: pointer" on:click={() => changeSort('server_id')}>
+                  <div class="d-flex align-items-center">
+                    <span>ID</span>
+                    {#if sortField === 'server_id'}
+                      <i class="bi ms-1 {sortDirection === 'asc' ? 'bi-sort-up' : 'bi-sort-down'}"></i>
+                    {/if}
+                  </div>
+                </th>
+                <th class="border-0 py-3" style="cursor: pointer" on:click={() => changeSort('server_description')}>
+                  <div class="d-flex align-items-center">
+                    <span>Description</span>
+                    {#if sortField === 'server_description'}
+                      <i class="bi ms-1 {sortDirection === 'asc' ? 'bi-sort-up' : 'bi-sort-down'}"></i>
+                    {/if}
+                  </div>
+                </th>
+                <th class="border-0 py-3" style="cursor: pointer" on:click={() => changeSort('server_ip')}>
+                  <div class="d-flex align-items-center">
+                    <span>IP</span>
+                    {#if sortField === 'server_ip'}
+                      <i class="bi ms-1 {sortDirection === 'asc' ? 'bi-sort-up' : 'bi-sort-down'}"></i>
+                    {/if}
+                  </div>
+                </th>
+                <th class="border-0 py-3 text-center" style="cursor: pointer" on:click={() => changeSort('active')}>
+                  <div class="d-flex align-items-center justify-content-center">
+                    <span>Actif</span>
+                    {#if sortField === 'active'}
+                      <i class="bi ms-1 {sortDirection === 'asc' ? 'bi-sort-up' : 'bi-sort-down'}"></i>
+                    {/if}
+                  </div>
+                </th>
+                <th class="border-0 py-3" style="cursor: pointer" on:click={() => changeSort('active_agent_login_server')}>
+                  <div class="d-flex align-items-center">
+                    <span>Agent</span>
+                    {#if sortField === 'active_agent_login_server'}
+                      <i class="bi ms-1 {sortDirection === 'asc' ? 'bi-sort-up' : 'bi-sort-down'}"></i>
+                    {/if}
+                  </div>
+                </th>
+                <th class="border-0 py-3" style="cursor: pointer" on:click={() => changeSort('asterisk_version')}>
+                  <div class="d-flex align-items-center">
+                    <span>Version</span>
+                    {#if sortField === 'asterisk_version'}
+                      <i class="bi ms-1 {sortDirection === 'asc' ? 'bi-sort-up' : 'bi-sort-down'}"></i>
+                    {/if}
+                  </div>
+                </th>
+                <th class="border-0 py-3" style="cursor: pointer" on:click={() => changeSort('max_vicidial_trunks')}>
+                  <div class="d-flex align-items-center">
+                    <span>Trunks</span>
+                    {#if sortField === 'max_vicidial_trunks'}
+                      <i class="bi ms-1 {sortDirection === 'asc' ? 'bi-sort-up' : 'bi-sort-down'}"></i>
+                    {/if}
+                  </div>
+                </th>
+                <th class="border-0 py-3" style="cursor: pointer" on:click={() => changeSort('local_gmt')}>
+                  <div class="d-flex align-items-center">
+                    <span>GMT</span>
+                    {#if sortField === 'local_gmt'}
+                      <i class="bi ms-1 {sortDirection === 'asc' ? 'bi-sort-up' : 'bi-sort-down'}"></i>
+                    {/if}
+                  </div>
+                </th>
+                <th class="border-0 py-3 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each filteredServers as server (server.server_id)}
+                <tr class="border-bottom {server.server_id.toString().startsWith('temp-') ? 'table-info' : ''}">
+                  <td>
+                    {#if server.server_id.toString().startsWith('temp-')}
+                      <span class="badge bg-info text-dark">Nouveau</span>
+                    {:else}
+                      <span class="badge bg-secondary rounded-pill">{server.server_id}</span>
+                    {/if}
+                  </td>
+                  <td>
+                    <input 
+                      type="text" 
+                      class="form-control form-control-sm" 
+                      placeholder="Description du serveur"
+                      bind:value={server.server_description} 
+                    />
+                  </td>
+                  <td>
+                    <div class="input-group input-group-sm">
+                      <span class="input-group-text bg-light">
+                        <i class="bi bi-hdd-network text-primary"></i>
+                      </span>
+                      <input 
+                        type="text" 
+                        class="form-control" 
+                        placeholder="Adresse IP"
+                        bind:value={server.server_ip} 
+                      />
+                    </div>
+                  </td>
+                  <td class="text-center">
+                    <div class="form-check form-switch d-flex justify-content-center">
+                      <input 
+                        class="form-check-input" 
+                        type="checkbox" 
+                        style="transform: scale(1.5);"
+                        bind:checked={server.active} 
+                      />
+                    </div>
+                  </td>
+                  <td>
+                    <select class="form-select form-select-sm" bind:value={server.active_agent_login_server}>
+                      <option value="Y">Oui</option>
+                      <option value="N">Non</option>
+                    </select>
+                  </td>
+                  <td>
+                    <input 
+                      type="text" 
+                      class="form-control form-control-sm" 
+                      placeholder="Version Asterisk"
+                      bind:value={server.asterisk_version} 
+                    />
+                  </td>
+                  <td>
+                    <input 
+                      type="number" 
+                      class="form-control form-control-sm" 
+                      placeholder="0"
+                      bind:value={server.max_vicidial_trunks} 
+                    />
+                  </td>
+                  <td>
+                    <input 
+                      type="number" 
+                      class="form-control form-control-sm" 
+                      placeholder="0"
+                      bind:value={server.local_gmt} 
+                    />
+                  </td>
+                  <td>
+                    <div class="d-flex justify-content-center gap-2">
+                      <button 
+                        class="btn btn-sm btn-primary" 
+                        on:click={() => updateServer(server)}
+                        title={server.server_id.toString().startsWith('temp-') ? 'Créer le serveur' : 'Enregistrer les modifications'}
+                      >
+                        <i class="bi {server.server_id.toString().startsWith('temp-') ? 'bi-plus-lg' : 'bi-save'}"></i>
+                      </button>
+                      <button 
+                        class="btn btn-sm btn-danger" 
+                        on:click={() => confirmDelete(server)}
+                        title="Supprimer le serveur"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {/if}
+    </div>
+  </div>
 </div>
+
+<style>
+  /* Styles pour les modals */
+  .modal {
+    transition: opacity 0.15s linear;
+  }
+  
+  .modal.fade:not(.show) {
+    opacity: 0;
+  }
+  
+  .modal.show {
+    opacity: 1;
+  }
+  
+  /* Styles pour le toast */
+  .toast {
+    transition: opacity 0.15s linear;
+  }
+  
+  .toast:not(.show) {
+    display: none;
+  }
+  
+  /* Styles pour les badges */
+  .badge {
+    font-weight: 500;
+    letter-spacing: 0.3px;
+  }
+  
+  /* Styles pour les boutons */
+  .btn {
+    font-weight: 500;
+  }
+  
+  /* Styles pour les inputs */
+  .form-control:focus, .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+  
+  /* Styles pour le tableau */
+  .table {
+    vertical-align: middle;
+    font-size: 0.95rem;
+  }
+  
+  .table thead th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+  }
+  
+  /* Animation pour le spinner */
+  .spinner-border {
+    animation: spinner-border 0.75s linear infinite;
+  }
+</style>

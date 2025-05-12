@@ -52,7 +52,7 @@
   }
 </script>
 
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
   <div class="container-fluid px-4">
     <!-- Sidebar toggle for mobile -->
     <button 
@@ -65,8 +65,10 @@
 
     <!-- Logo with modern styling -->
     <a class="navbar-brand d-flex align-items-center" href="/">
-      <img src="logo blue.png" alt="Logo" class="me-2" style="height: 40px;">
-      <span class="fw-bold">Mcdial</span>
+      <div class="logo-container me-3">
+        <img src="/logoMC.jpeg" alt="Mcdial Logo" class="rounded-logo">
+      </div>
+      <span class="fw-bold mc-text">Mcdial</span>
     </a>
 
     <!-- Responsive toggle -->
@@ -103,8 +105,56 @@
 </nav>
 
 <style>
-  /* Additional styles if necessary */
-  .navbar-brand img {
-    max-height: 40px; /* Adjust height to fit your design */
+  /* Styles for the navbar */
+  .navbar {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+  }
+  
+  /* Logo styles */
+  .logo-container {
+    width: 90px;
+    height: 70px;
+    overflow: hidden;
+    border-radius: 10px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+  }
+  
+  .rounded-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .navbar-brand {
+    font-size: 1.6rem;
+    transition: transform 0.2s ease;
+  }
+  
+  .mc-text {
+    color: #F5921D; /* Couleur orange du logo MC Solution */
+    letter-spacing: 0.5px;
+  }
+  
+  .navbar-brand:hover {
+    transform: translateY(-2px);
+  }
+  
+  /* Button styling */
+  .btn-outline-danger {
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+  }
+  
+  .btn-outline-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.2);
   }
 </style>

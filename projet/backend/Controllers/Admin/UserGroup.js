@@ -468,3 +468,192 @@ exports.bulkChangeUserGroup = async (req, res) => {
         res.status(500).json(formatErrorResponse(err, 'Error changing user groups'));
     }
 };
+
+// Cache pour stocker les résultats des requêtes
+const statsCache = new Map();
+const statusCache = new Map();
+
+/**
+ * Obtenir les statistiques horaires pour un groupe d'utilisateurs
+ * Version ultra-rapide avec cache et requêtes optimisées
+ */
+exports.getHourlyStats = async (req, res) => {
+    try {
+        // Extraire les paramètres de la requête
+        const { group, status, dateWithHour } = req.body;
+        
+        // Validation des paramètres
+        if (!group || !status || !dateWithHour) {
+            return res.status(400).json({
+                success: false,
+                message: 'Paramètres manquants: groupe, statut et date avec heure sont requis'
+            });
+        }
+        
+        // Générer une clé de cache unique pour cette requête
+        const cacheKey = `${group}_${status}_${dateWithHour}`;
+        
+        // Vérifier si les résultats sont déjà en cache
+        if (statsCache.has(cacheKey)) {
+            console.log(`getHourlyStats - Résultats trouvés en cache pour ${cacheKey}`);
+            return res.json(statsCache.get(cacheKey));
+        }
+        
+        // Extraire la date sans l'heure pour les statistiques du jour
+        const dateOnly = dateWithHour.split(' ')[0];
+        
+        // Requête SQL unique et optimisée qui récupère toutes les données en une seule fois
+        const query = `
+            SELECT 
+                u.user, 
+                u.full_name,
+                COALESCE(hour_stats.hour_calls, 0) as hour_calls,
+                COALESCE(day_stats.day_calls, 0) as day_calls,
+                COALESCE(total_stats.total_calls, 0) as total_calls
+            FROM 
+                vicidial_users u
+            LEFT JOIN (
+                SELECT 
+                    user, 
+                    COUNT(*) as hour_calls 
+                FROM 
+                    vicidial_log 
+                WHERE 
+                    call_date >= '${dateWithHour}:00:00' AND 
+                    call_date <= '${dateWithHour}:59:59' AND 
+                    status = '${status}'
+                GROUP BY 
+                    user
+            ) hour_stats ON u.user = hour_stats.user
+            LEFT JOIN (
+                SELECT 
+                    user, 
+                    COUNT(*) as day_calls 
+                FROM 
+                    vicidial_log 
+                WHERE 
+                    call_date >= '${dateOnly} 00:00:00' AND 
+                    call_date <= '${dateOnly} 23:59:59' AND 
+                    status = '${status}'
+                GROUP BY 
+                    user
+            ) day_stats ON u.user = day_stats.user
+            LEFT JOIN (
+                SELECT 
+                    user, 
+                    COUNT(*) as total_calls 
+                FROM 
+                    vicidial_log 
+                WHERE 
+                    status = '${status}'
+                GROUP BY 
+                    user
+            ) total_stats ON u.user = total_stats.user
+            WHERE 
+                u.user_group = '${group}'
+            ORDER BY 
+                u.full_name
+        `;
+        
+        // Exécuter la requête optimisée
+        const [results] = await connection.query(query);
+        
+        // Préparer les résultats
+        const usersWithStats = [];
+        let totalHourCalls = 0;
+        let totalDayCalls = 0;
+        let totalAllCalls = 0;
+        
+        // Traiter les résultats
+        for (const row of results) {
+            const hourCalls = parseInt(row.hour_calls) || 0;
+            const dayCalls = parseInt(row.day_calls) || 0;
+            const totalCalls = parseInt(row.total_calls) || 0;
+            
+            totalHourCalls += hourCalls;
+            totalDayCalls += dayCalls;
+            totalAllCalls += totalCalls;
+            
+            usersWithStats.push({
+                user_id: row.user,
+                full_name: row.full_name,
+                hour_calls: hourCalls,
+                day_calls: dayCalls,
+                total_calls: totalCalls
+            });
+        }
+        
+        // Préparer la réponse
+        const response = {
+            success: true,
+            users: usersWithStats,
+            totals: {
+                hourCalls: totalHourCalls,
+                totalCalls: totalAllCalls,
+                dayCalls: totalDayCalls
+            }
+        };
+        
+        // Stocker les résultats dans le cache (expire après 5 minutes)
+        statsCache.set(cacheKey, response);
+        setTimeout(() => statsCache.delete(cacheKey), 5 * 60 * 1000);
+        
+        // Envoyer la réponse
+        return res.json(response);
+    } catch (err) {
+        console.error('Error in getHourlyStats:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Erreur lors de la récupération des statistiques horaires',
+            error: err.message
+        });
+    }
+};
+
+/**
+ * Récupérer la liste des statuts depuis la table vicidial_statuses
+ */
+exports.getStatusList = async (req, res) => {
+    try {
+        // Vérifier si les statuts sont en cache
+        if (statusCache.has('all_statuses')) {
+            return res.json({
+                success: true,
+                statuses: statusCache.get('all_statuses')
+            });
+        }
+        
+        // Récupérer les statuts depuis la base de données
+        const query = `
+            SELECT 
+                status, 
+                status_name, 
+                selectable, 
+                human_answered, 
+                category, 
+                sale 
+            FROM 
+                vicidial_statuses 
+            ORDER BY 
+                status
+        `;
+        
+        const [results] = await connection.query(query);
+        
+        // Mettre en cache les résultats (expire après 1 heure)
+        statusCache.set('all_statuses', results);
+        setTimeout(() => statusCache.delete('all_statuses'), 60 * 60 * 1000);
+        
+        return res.json({
+            success: true,
+            statuses: results
+        });
+    } catch (err) {
+        console.error('Error in getStatusList:', err);
+        return res.status(500).json({
+            success: false,
+            message: 'Erreur lors de la récupération des statuts',
+            error: err.message
+        });
+    }
+};

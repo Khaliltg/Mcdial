@@ -81,11 +81,19 @@
             }
 
             const data = await response.json();
-            if (!Array.isArray(data)) {
-                throw new Error('Format de données invalide');
+            
+            // Vérifier si la réponse a une propriété 'data' ou 'campagnes'
+            if (data.data && Array.isArray(data.data)) {
+                campaignsStore.set(data.data);
+            } else if (data.campagnes && Array.isArray(data.campagnes)) {
+                campaignsStore.set(data.campagnes);
+            } else if (Array.isArray(data)) {
+                campaignsStore.set(data);
+            } else {
+                console.error('Format de réponse inattendu:', data);
+                throw new Error('Format de données invalide. Vérifiez la structure de la réponse API.');
             }
-
-            campaignsStore.set(data);
+            
             currentPage = 1; // Reset to first page when fetching new data
         } catch (err) {
             console.error('Erreur lors de la récupération des campagnes:', err);
@@ -510,5 +518,143 @@
     .page-header {
         border-bottom: 1px solid #dee2e6;
         padding-bottom: 1rem;
+    }
+    
+    /* Styles pour le modal de suppression */
+    .modal-wrapper {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050;
+    }
+    
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1051;
+    }
+    
+    .modal-dialog {
+        position: relative;
+        width: 100%;
+        max-width: 500px;
+        margin: 1.75rem auto;
+        z-index: 1052;
+    }
+    
+    .modal-content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
+        outline: 0;
+    }
+    
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .modal-header-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .modal-title {
+        margin: 0;
+        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .modal-close {
+        background: transparent;
+        border: none;
+        font-size: 1.5rem;
+        color: white;
+        cursor: pointer;
+    }
+    
+    .modal-body {
+        position: relative;
+        flex: 1 1 auto;
+        padding: 1rem;
+    }
+    
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        padding: 1rem;
+        border-top: 1px solid #dee2e6;
+        gap: 0.5rem;
+    }
+    
+    .status-preview {
+        margin-top: 1rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        overflow: hidden;
+    }
+    
+    .preview-header {
+        display: flex;
+        align-items: center;
+        background-color: #f8f9fa;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .preview-code {
+        font-weight: bold;
+        padding: 0.25rem 0.5rem;
+        background-color: #e9ecef;
+        border-radius: 0.25rem;
+        margin-right: 0.75rem;
+    }
+    
+    .preview-name {
+        font-weight: 500;
+        color: #495057;
+    }
+    
+    .preview-details {
+        padding: 1rem;
+    }
+    
+    .preview-item {
+        display: flex;
+        margin-bottom: 0.5rem;
+    }
+    
+    .preview-label {
+        font-weight: 500;
+        width: 150px;
+        color: #6c757d;
+    }
+    
+    .preview-value {
+        color: #212529;
+    }
+    
+    .alert {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 </style>

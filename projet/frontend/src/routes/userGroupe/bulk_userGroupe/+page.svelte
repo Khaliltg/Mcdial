@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import { fade } from 'svelte/transition';
     import { goto } from '$app/navigation';
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
     
     let oldGroup = '';
     let newGroup = '';
@@ -18,7 +19,7 @@
     async function fetchUserGroups() {
       try {
         loading = true;
-        const response = await fetch(`${apiBaseUrl}/getUsersGroups`);
+        const response = await fetchWithAuth(`${apiBaseUrl}/getUsersGroups`);
         
         if (!response.ok) {
           throw new Error(`Erreur HTTP: ${response.status}`);
@@ -42,7 +43,7 @@
           return 0;
         }
         
-        const response = await fetch(`${apiBaseUrl}/getAffectedUsersCount?oldGroup=${oldGroup}&stage=${stage}`);
+        const response = await fetchWithAuth(`${apiBaseUrl}/getAffectedUsersCount?oldGroup=${oldGroup}&stage=${stage}`);
         
         if (!response.ok) {
           throw new Error('Erreur lors du comptage des utilisateurs');
@@ -88,7 +89,7 @@
       loading = true;
       
       try {
-        const response = await fetch(`${apiBaseUrl}/bulkChangeUserGroup`, {
+        const response = await fetchWithAuth(`${apiBaseUrl}/bulkChangeUserGroup`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

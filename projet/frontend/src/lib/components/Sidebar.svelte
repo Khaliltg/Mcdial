@@ -80,24 +80,7 @@
           icon: 'stop-circle',
           description: 'Gérer les états des campagnes'
         },
-        {
-          name : ' hotkeys',
-          href: '/campaigns/hotkeys', 
-          icon: 'keyboard',
-          description: 'Gérer les hotkeys'
-        },
-        {
-          name :'Recyclage Liste',
-          href: '/campaigns/lead-recycle', 
-          icon: 'trash',
-          description: 'Gérer la suppression des leads'
-        },
-        {
-          name :'Cadran automatique',
-          href: '/compagnes/auto_dial', 
-          icon: 'telephone',
-          description: 'Gérer le cadran automatique',
-        },
+       
         {
           name : ' List Mix',
           href: '/compagnes/list_mix/show_list_mix', 
@@ -115,12 +98,6 @@
           href: '/campaigns/presets', 
           icon: 'arrow-left-square',
           description: 'Gérer les Préréglages'
-        },
-        {
-          name : 'AC-CDI',
-          href: '/campaigns/ac-cdi', 
-          icon: 'file-code',
-          description: 'Gérer les AC-CDI'
         },
       ]
         
@@ -165,7 +142,7 @@
       },
       
       { name : 'Rapport horaire de groupe',
-      href: '/user-groups/group-hourly-report', 
+      href: '/userGroupe/hourlyStats', 
       icon: 'clock',
       description: 'Group hourly report',
       },

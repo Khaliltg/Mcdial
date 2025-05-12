@@ -9,7 +9,9 @@ const {
     getUsersByUserGroup,
     getCallTimes,
     getAffectedUsersCount,
-    bulkChangeUserGroup
+    bulkChangeUserGroup,
+    getHourlyStats,
+    getStatusList
 } = require("../../Controllers/Admin/UserGroup");
 
 // Routes pour les groupes d'utilisateurs
@@ -24,5 +26,11 @@ router.get('/getCallTimes', getCallTimes);
 // Nouvelles routes pour la modification en masse des groupes d'utilisateurs
 router.get('/getAffectedUsersCount', getAffectedUsersCount);
 router.post('/bulkChangeUserGroup', bulkChangeUserGroup);
+
+// Route pour les statistiques horaires des groupes d'utilisateurs
+router.post('/getHourlyStats', getHourlyStats);
+
+// Route pour récupérer la liste des statuts
+router.get('/getStatusList', getStatusList);
 
 module.exports = router;

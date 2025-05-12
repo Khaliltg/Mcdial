@@ -5,6 +5,7 @@
     let displayFormat = '';
     let orderBy = '';
     let selectedUser = '';
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
     const userGroups = [
         '-ALL-',
