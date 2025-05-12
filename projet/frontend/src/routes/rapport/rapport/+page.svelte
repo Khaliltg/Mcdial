@@ -8,7 +8,7 @@
             title: "System Summary",
             icon: "📊",
             reports: [
-                { name: "Real-Time Main Report", url: "/reports/real-time-main" }
+                { name: "Real-Time Main Report", url: "/rapport/RealTimeReport" }
             ],
             colSpan: 2
         },

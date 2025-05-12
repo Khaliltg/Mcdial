@@ -37,6 +37,7 @@
 	"/phone/ajouter": [],
 	"/phone/copy": [],
 	"/phone/detail": [],
+	"/rapport/RealTimeReport": [],
 	"/rapport/agent_time_detail": [],
 	"/rapport/export-calls": [],
 	"/rapport/export-leads": [],

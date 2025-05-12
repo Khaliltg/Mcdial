@@ -8,45 +8,64 @@
     let showParkHolds = false;
     let timeInSeconds = false;
     let searchArchivedData = false;
-    let loading = false; // Added loading state
-    let submissionResult = ''; // Added submission result message
+    let loading = false;
+    let submissionResult = '';
+    let reportData = [];
 
-    const campaigns = [
-        '-ALL CAMPAIGNS-',
-        'B2C',
-        'CANADA1'
-    ];
-
-    const userGroups = [
-        '-ALL USER GROUPS-',
-        'ALL',
-        'ADMIN',
-        'seddk',
-        'strategic'
-    ];
+    const campaigns = ['-ALL CAMPAIGNS-', 'B2C', 'CANADA1'];
+    const userGroups = ['-ALL USER GROUPS-', 'ALL', 'ADMIN', 'seddk', 'strategic'];
 
     async function handleSubmit() {
-        loading = true; // Start loading
-        submissionResult = ''; // Clear previous result
+        submissionResult = '';
+        reportData = [];
 
-        console.log('Form submitted with:', {
-            startDate,
-            endDate,
-            selectedCampaign,
-            selectedUserGroup,
-            shiftOption,
-            displayAs,
-            showParkHolds,
-            timeInSeconds,
-            searchArchivedData
-        });
+        // Validation front-end
+        if (!startDate || !endDate) {
+            submissionResult = 'Veuillez sélectionner une date de début et une date de fin.';
+            return;
+        }
 
-        // Simulate an API call (replace with your actual API call)
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate 1.5s delay
+        loading = true;
+        try {
+            const response = await fetch('http://localhost:8000/api/agent-time/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    startDate,
+                    endDate,
+                    selectedCampaign,
+                    selectedUserGroup,
+                    shiftOption,
+                    displayAs,
+                    showParkHolds,
+                    timeInSeconds,
+                    searchArchivedData
+                })
+            });
 
-        loading = false; // End loading
-        submissionResult = 'Form submitted successfully!'; // Set success message
-        // In a real application, handle errors and display appropriate messages
+            const payload = await response.json();
+            if (!response.ok) {
+                submissionResult = payload.message || 'Erreur du serveur';
+            } else {
+                submissionResult = 'Form submitted successfully!';
+                // Adapter selon la structure renvoyée par le backend
+                reportData = payload.reportData || payload;
+            }
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            submissionResult = 'Une erreur est survenue.';
+        } finally {
+            loading = false;
+        }
+    }
+
+    // Convertit des secondes en HH:MM:SS
+    function formatSeconds(sec) {
+        const s = Number(sec) || 0;
+        const hrs = Math.floor(s / 3600);
+        const mins = Math.floor((s % 3600) / 60);
+        const secs = s % 60;
+        return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
 </script>
 
@@ -109,19 +128,11 @@
                             <option value="TABLE">Table</option>
                         </select>
                     </td>
-                    <td>
-                        <button class="download-btn">Download</button>
-                    </td>
-                    <td>
-                        <button class="reports-btn">Reports</button>
-                    </td>
+                   
+                   
                     <td>
                         <button class="submit-btn" on:click={handleSubmit} disabled={loading}>
-                            {#if loading}
-                                Loading...
-                            {:else}
-                                Submit
-                            {/if}
+                            {#if loading}Loading...{:else}Submit{/if}
                         </button>
                     </td>
                 </tr>
@@ -131,16 +142,16 @@
                     <td>{selectedUserGroup === '-ALL USER GROUPS-' ? '' : selectedUserGroup}</td>
                     <td>
                         <label>
-                            <input type="checkbox" bind:checked={showParkHolds} id="park-holds"/>
-                            <label for="park-holds">Show Park Holds</label>
+                            <input type="checkbox" bind:checked={showParkHolds} id="park-holds" />
+                            <span>Show Park Holds</span>
                         </label>
                         <label>
-                            <input type="checkbox" bind:checked={timeInSeconds} id="time-seconds"/>
-                            <label for="time-seconds">Time in Seconds</label>
+                            <input type="checkbox" bind:checked={timeInSeconds} id="time-seconds" />
+                            <span>Time in Seconds</span>
                         </label>
                         <label>
-                            <input type="checkbox" bind:checked={searchArchivedData} id="archived-data"/>
-                            <label for="archived-data">Search Archived Data</label>
+                            <input type="checkbox" bind:checked={searchArchivedData} id="archived-data" />
+                            <span>Search Archived Data</span>
                         </label>
                     </td>
                     <td colspan="2"></td>
@@ -161,11 +172,39 @@
     {/if}
 
     <div class="results-section">
-        <!-- Report results will be displayed here -->
         {#if loading}
             <p>Loading data...</p>
+        {:else if reportData.length === 0}
+            <p>Aucune donnée disponible pour les critères sélectionnés.</p>
         {:else}
-            <p>Report results will appear here after submission.</p>
+            <table class="filter-table">
+                <thead>
+                    <tr>
+                        <th>User Name</th>
+                        <th>Calls</th>
+                        <th>Login Time</th>
+                        <th>Wait</th>
+                        <th>Talk</th>
+                        <th>Dispo</th>
+                        <th>Pause</th>
+                        <th>Dead</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {#each reportData as agent}
+                        <tr>
+                            <td>{agent.username}</td>
+                            <td>{agent.calls || 0}</td>
+                            <td>{agent.loginTime || '0'}</td>
+                            <td>{formatSeconds(agent.waitTime) || '0'}</td>
+                            <td>{formatSeconds(agent.talkTime) || '0'}</td>
+                            <td>{formatSeconds(agent.dispoTime) || '0'}</td>
+                            <td>{formatSeconds(agent.pauseTime) || '0'}</td>
+                            <td>{formatSeconds(agent.deadTime) || '0'}</td>
+                        </tr>
+                    {/each}
+                </tbody>
+            </table>
         {/if}
     </div>
 </main>
@@ -173,7 +212,7 @@
 <style>
     /* General Styles */
     body {
-        background-color: #f4f6f8; /* Light gray background */
+        background-color: #f4f6f8;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         line-height: 1.6;
         color: #333;
@@ -183,22 +222,19 @@
 
     .agent-time-report {
         max-width: 1200px;
-     
-        
         padding: 2rem;
         border-radius: 12px;
         background-color: #fff;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Softer shadow */
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
 
     h1 {
-        color: #2d3748; /* Darker heading color */
+        color: #2d3748;
         font-size: 2.5rem;
         margin-bottom: 1.5rem;
         text-align: center;
     }
 
-    /* Instructions */
     .instructions {
         margin-bottom: 1.5rem;
         text-align: center;
@@ -207,12 +243,7 @@
 
     .note {
         font-style: italic;
-        color: #718096; /* Muted note color */
-    }
-
-    /* Filter Form */
-    .filter-form {
-        margin-bottom: 2rem;
+        color: #718096;
     }
 
     .filter-table {
@@ -224,13 +255,13 @@
     .filter-table th,
     .filter-table td {
         padding: 1rem;
-        border: 1px solid #e2e8f0; /* Lighter border color */
+        border: 1px solid #e2e8f0;
         text-align: left;
         vertical-align: middle;
     }
 
     .filter-table th {
-        background-color: #edf2f7; /* Very light gray for header */
+        background-color: #edf2f7;
         font-weight: 600;
         color: #4a5568;
         text-transform: uppercase;
@@ -243,7 +274,6 @@
         color: #4a5568;
     }
 
-    /* Input and Select Styles */
     label {
         display: block;
         margin-bottom: 0.3rem;
@@ -256,23 +286,21 @@
         padding: 0.75rem;
         width: 100%;
         box-sizing: border-box;
-        border: 1px solid #cbd5e0; /* Light border */
+        border: 1px solid #cbd5e0;
         border-radius: 0.375rem;
         margin-top: 0.25rem;
         transition: border-color 0.2s ease-in-out;
         font-size: 1rem;
-        color: #4a5568;
         background-color: #fff;
     }
 
     input[type="date"]:focus,
     select:focus {
-        border-color: #63b3ed; /* Focus color */
+        border-color: #63b3ed;
         outline: none;
-        box-shadow: 0 0 0 2px rgba(99, 179, 237, 0.2); /* Subtle focus shadow */
+        box-shadow: 0 0 0 2px rgba(99, 179, 237, 0.2);
     }
 
-    /* Button Styles */
     button {
         padding: 0.75rem 1.25rem;
         cursor: pointer;
@@ -281,22 +309,21 @@
         font-weight: 600;
         transition: background-color 0.2s ease-in-out, transform 0.1s ease;
         font-size: 1rem;
-        line-height: 1.5;
         white-space: nowrap;
     }
 
     .submit-btn {
-        background-color: #48bb78; /* Green */
+        background-color: #48bb78;
         color: white;
     }
 
     .download-btn {
-        background-color: #4299e1; /* Blue */
+        background-color: #4299e1;
         color: white;
     }
 
     .reports-btn {
-        background-color: #ed8936; /* Orange */
+        background-color: #ed8936;
         color: white;
     }
 
@@ -308,48 +335,26 @@
     button:disabled {
         opacity: 0.7;
         cursor: not-allowed;
-        filter: none;
-        transform: none;
-    }
-
-    /* Checkbox Styles */
-    label {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        white-space: nowrap;
-        color: #4a5568;
-        font-weight: 500;
-    }
-
-    input[type="checkbox"] {
-        margin: 0;
-        width: auto;
-        height: auto;
-    }
-
-    /* Results Section */
-    .results-section {
-        margin-top: 2rem;
-        border: 1px solid #e2e8f0;
-        padding: 1.5rem;
-        min-height: 200px;
-        background-color: #f9fafb; /* Very light gray */
-        border-radius: 0.375rem;
-        text-align: center;
-        color: #718096;
     }
 
     .submission-result {
         margin-top: 1rem;
         padding: 1rem;
         border-radius: 0.375rem;
-        background-color: #48bb7820;
+        background-color: rgba(72, 187, 120, 0.2);
         color: #48bb78;
         text-align: center;
     }
 
-    /* Media Queries for Responsiveness */
+    .results-section {
+        margin-top: 2rem;
+        border: 1px solid #e2e8f0;
+        padding: 1.5rem;
+        min-height: 200px;
+        background-color: #f9fafb;
+        border-radius: 0.375rem;
+    }
+
     @media (max-width: 768px) {
         .filter-table {
             display: block;
@@ -359,12 +364,6 @@
         button {
             width: 100%;
             margin-bottom: 0.75rem;
-        }
-
-        .filter-table th,
-        .filter-table td {
-            padding: 0.75rem;
-            white-space: nowrap;
         }
     }
 </style>

@@ -60,7 +60,8 @@ export const nodes = [
 	() => import('./nodes/53'),
 	() => import('./nodes/54'),
 	() => import('./nodes/55'),
-	() => import('./nodes/56')
+	() => import('./nodes/56'),
+	() => import('./nodes/57')
 ];
 
 export const server_loads = [];
@@ -103,22 +104,23 @@ export const dictionary = {
 		"/phone/ajouter": [38],
 		"/phone/copy": [39],
 		"/phone/detail": [40],
+		"/rapport/RealTimeReport": [45],
 		"/rapport/agent_time_detail": [41],
 		"/rapport/export-calls": [42],
 		"/rapport/export-leads": [43],
 		"/rapport/rapport": [44],
-		"/rapport/timeclock-detail": [45],
-		"/stats/userStats": [46],
-		"/userGroupe/afficher": [47],
-		"/userGroupe/ajouter": [48],
-		"/userGroupe/bulk_userGroupe": [49],
-		"/userGroupe/details": [50],
-		"/users/add": [51],
-		"/users/copy": [52],
-		"/users/detail": [53],
-		"/users/list": [54],
-		"/users/search": [55],
-		"/users/stats": [56]
+		"/rapport/timeclock-detail": [46],
+		"/stats/userStats": [47],
+		"/userGroupe/afficher": [48],
+		"/userGroupe/ajouter": [49],
+		"/userGroupe/bulk_userGroupe": [50],
+		"/userGroupe/details": [51],
+		"/users/add": [52],
+		"/users/copy": [53],
+		"/users/detail": [54],
+		"/users/list": [55],
+		"/users/search": [56],
+		"/users/stats": [57]
 	};
 
 export const hooks = {
