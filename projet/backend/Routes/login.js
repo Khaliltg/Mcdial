@@ -50,7 +50,7 @@ router.post('/', async (req, res) => {
             user_level: foundUser.user_level,
             role: foundUser.user_level == 9 ? 'admin' : 'agent',
             full_name: foundUser.full_name || foundUser.user
-        }, process.env.JWT_SECRET, { expiresIn: '8h' });
+        }, process.env.JWT_SECRET);
         
         // Configuration du cookie HTTP-only pour l'authentification
         res.cookie('token', token, {
