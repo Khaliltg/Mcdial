@@ -1,9 +1,11 @@
 <script>
-  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
+// @ts-nocheck
+
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { fade, slide, fly, scale } from 'svelte/transition';
   import { quintOut, elasticOut, backOut } from 'svelte/easing';
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
 
   // Add Font Awesome
   let fontAwesomeLoaded = false;
@@ -115,7 +117,7 @@
   async function performDeleteList(list) {
     try {
       isLoading = true;
-      const response = await fetch(`http://localhost:8000/api/lists/supprimer/${list.list_id}`, {
+      const response = await fetchWithAuth(`http://localhost:8000/api/lists/supprimer/${list.list_id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -156,7 +158,7 @@
   async function performRestoreList(list_id) {
     try {
       isLoading = true;
-      const response = await fetch(`http://localhost:8000/api/lists/restaurer/${list_id}`, {
+      const response = await fetchWithAuth(`http://localhost:8000/api/lists/restaurer/${list_id}`, {
         method: 'PUT',
       });
       if (response.ok) {
@@ -188,7 +190,7 @@
   async function performPermanentDelete(list_id) {
     try {
       isLoading = true;
-      const response = await fetch(`http://localhost:8000/api/lists/supprimer/${list_id}`, {
+      const response = await fetchWithAuth(`http://localhost:8000/api/lists/supprimer/${list_id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -315,7 +317,7 @@
   async function saveEdit() {
     try {
       isLoading = true;
-      const response = await fetch(`http://localhost:8000/api/lists/modifier/${listId}`, {
+      const response = await fetchWithAuth(`http://localhost:8000/api/lists/modifier/${listId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editedList),
@@ -422,7 +424,7 @@
       let successCount = 0;
       
       for (const item of selectedItems) {
-        const response = await fetch(`http://localhost:8000/api/lists/restaurer/${item.list_id}`, {
+        const response = await fetchWithAuth(`http://localhost:8000/api/lists/restaurer/${item.list_id}`, {
           method: 'PUT',
         });
         
@@ -485,6 +487,8 @@
 
   <!-- Confirmation Dialog -->
   {#if showDialog}
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div class="dialog-overlay" transition:fade={{ duration: 200 }} on:click|self={() => showDialog = false}>
       <div class="dialog" transition:scale={{ duration: 300, start: 0.95, opacity: 0, easing: backOut }}>
         <div class="dialog-header {dialogType.includes('delete') ? 'dialog-header-danger' : dialogType.includes('restore') ? 'dialog-header-success' : ''}">
