@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const db = require('./config/bd'); // Ensure this path is correct
+const db = require('./config/bd'); // Database connection
 const AdminRoute = require('./Routes/Admin/userRoute');
 const listRoutes = require('./Routes/Admin/listRoutes');
 const phoneRoutes = require('./Routes/Admin/phoneRoutes');
@@ -22,7 +22,6 @@ const agentAuthRoutes = require('./Routes/Agent/authRoutes');
 const agentRoutes = require('./Routes/Agent/agentRoutes');
 const agentCallRoutes = require('./Routes/Agent/callRoutes');
 const callCardRoutes = require('./Routes/Agent/callCardRoutes');
-const endCallRoute = require('./Routes/Agent/endCallRoute');
 // Vicidial routes ont été supprimées
 
 // CORS configuration for cross-origin requests with credentials
@@ -47,9 +46,10 @@ app.use('/api/auth', authRoute);
 // Agent routes
 app.use('/api/agent/auth', agentAuthRoutes);
 app.use('/api/agent', agentRoutes);
-app.use('/api/agent', agentCallRoutes);
-app.use('/api/agent/end-call', endCallRoute);
-app.use('/api/callcard', callCardRoutes);
+app.use('/api/agent/calls', authenticateToken, agentCallRoutes);
+// Register call routes directly under /api/agent as well for backward compatibility
+app.use('/api/agent', authenticateToken, agentCallRoutes);
+app.use('/api/callcard', authenticateToken, callCardRoutes);
 
 // Route de test pour Vicidial a été supprimée
 
