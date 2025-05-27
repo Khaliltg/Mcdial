@@ -1,10 +1,6 @@
 const jwt = require('jsonwebtoken');
 
 const authenticateToken = (req, res, next) => {
-    // Debug logging
-    console.log('COOKIES:', req.cookies);
-    console.log('AUTH HEADER:', req.headers['authorization']);
-    console.log('X-AUTH-TOKEN:', req.headers['x-auth-token']);
     
     let token;
     
@@ -13,17 +9,14 @@ const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     if (authHeader && authHeader.startsWith('Bearer ')) {
         token = authHeader.split(' ')[1];
-        console.log('Using token from Authorization header');
     } 
     // 2. Cookies
     else if (req.cookies && req.cookies.jwt) {
         token = req.cookies.jwt;
-        console.log('Using token from cookies (jwt)');
     }
     // 3. Custom header (for localStorage fallback)
     else if (req.headers['x-auth-token']) {
         token = req.headers['x-auth-token'];
-        console.log('Using token from X-Auth-Token header');
     }
     
     if (!token) {
@@ -37,7 +30,6 @@ const authenticateToken = (req, res, next) => {
             return res.status(403).json({ message: 'Invalid token' });
         }
         req.user = user;
-        console.log('Token verified successfully for user:', user.user);
         next();
     });
 };
@@ -51,4 +43,17 @@ const requireAdmin = (req, res, next) => {
     }
 };
 
-module.exports = { authenticateToken, requireAdmin };
+/**
+ * Middleware pour valider que l'utilisateur a un ID utilisateur valide
+ */
+const validateUserId = (req, res, next) => {
+    if (!req.user || !req.user.user) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "ID utilisateur non disponible dans le token" 
+        });
+    }
+    next();
+};
+
+module.exports = { authenticateToken, requireAdmin, validateUserId };

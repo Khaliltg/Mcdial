@@ -1,0 +1,599 @@
+/**
+ * Service pour gérer la communication avec Asterisk et le softphone
+ */
+import { API_BASE_URL } from '../utils/config';
+import { agentState } from '../stores/agent';
+import { get } from 'svelte/store';
+
+// Configuration pour la connexion SIP
+export interface SipConfig {
+  extension: string;
+  server: string;
+  password: string;
+  websocketUrl: string;
+}
+
+// État de la connexion SIP
+export type SipStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+
+// Déclaration pour TypeScript
+declare global {
+  interface Window {
+    SIP: any;
+    softphoneUA: any;
+  }
+}
+
+// Classe pour gérer la connexion SIP
+class AsteriskService {
+  private sipUA: any = null; // Instance SIP User Agent
+  private sipStatus: SipStatus = 'disconnected';
+  private sipConfig: SipConfig | null = null;
+  private statusListeners: ((status: SipStatus) => void)[] = [];
+  private callListeners: ((callEvent: any) => void)[] = [];
+
+  /**
+   * Initialise le service Asterisk
+   */
+  constructor() {
+    // Vérifier si SIP.js est disponible globalement
+    if (typeof window !== 'undefined') {
+      // SIP.js sera chargé dynamiquement lors de l'initialisation
+      this.loadSipJs();
+    }
+  }
+
+  /**
+   * Charge dynamiquement la bibliothèque SIP.js
+   */
+  private async loadSipJs(): Promise<void> {
+    if (typeof window !== 'undefined' && !window.SIP) {
+      try {
+        // Créer un script pour charger SIP.js
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/sip.js@0.20.0/dist/sip.min.js';
+        script.async = true;
+        
+        // Attendre que le script soit chargé
+        await new Promise((resolve, reject) => {
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+        
+        console.log('SIP.js chargé avec succès');
+      } catch (error) {
+        console.error('Erreur lors du chargement de SIP.js:', error);
+      }
+    }
+  }
+
+  /**
+   * Synchronise l'authentification avec Asterisk
+   * @param credentials Identifiants de l'agent
+   * @returns Promise avec le résultat de la synchronisation
+   */
+  async synchronizeAuthentication(credentials: {
+    phoneLogin: string;
+    phonePassword: string;
+    userLogin: string;
+    campaignId: string;
+    extension: string;
+  }): Promise<{ success: boolean; message: string }> {
+    try {
+      // 1. Vérifier l'état actuel de la synchronisation
+      const statusResponse = await fetch(`${API_BASE_URL}/agent/asterisk-status?extension=${credentials.extension}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('agent_token') || localStorage.getItem('token')}`
+        },
+        credentials: 'include'
+      });
+
+      let currentStatus = { sipStatus: 'UNREGISTERED', asteriskStatus: 'DÉCONNECTÉ' };
+      if (statusResponse.ok) {
+        currentStatus = await statusResponse.json();
+        console.log('État actuel de la synchronisation:', currentStatus);
+      }
+
+      console.log('Tentative de synchronisation avec Asterisk via:', `${API_BASE_URL}/agent/sync-asterisk`);
+      
+      let response;
+      let data;
+      
+      console.log('Débogage: Appel direct de la route de test-sync');
+      
+      try {
+        // Appel direct à la route de test
+        console.log('Appel de la route de test avec les paramètres:', {
+          extension: credentials.extension,
+          phoneLogin: credentials.phoneLogin,
+          campaignId: credentials.campaignId,
+          // Mot de passe masqué pour la sécurité
+        });
+        
+        response = await fetch(`${API_BASE_URL}/agent/test-sync`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('agent_token') || localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({
+            extension: credentials.extension,
+            phoneLogin: credentials.phoneLogin,
+            phonePassword: credentials.phonePassword,
+            userLogin: credentials.userLogin,
+            campaignId: credentials.campaignId
+          }),
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          console.warn(`La requête a échoué avec le statut ${response.status}`);
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Échec de la synchronisation avec Asterisk');
+        } else {
+          data = await response.json();
+          console.log('Réponse de la route de test:', data);
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'appel à la route de test:', error);
+        throw error;
+      }
+          response = await fetch(`${API_BASE_URL}/agent/test-sync`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('agent_token') || localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              extension: credentials.extension,
+              phoneLogin: credentials.phoneLogin,
+              phonePassword: credentials.phonePassword,
+              userLogin: credentials.userLogin,
+              campaignId: credentials.campaignId
+            }),
+            credentials: 'include'
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Échec de la synchronisation avec la route de secours');
+          }
+          
+          data = await response.json();
+          console.log('Réponse de la route de secours:', data);
+        } catch (fallbackError) {
+          console.error('Erreur avec la route de secours:', fallbackError);
+          throw fallbackError;
+        }
+      }
+
+      console.log('Réponse de synchronisation:', data);
+      
+      // 3. Stocker la configuration SIP
+      if (data) {
+        this.sipConfig = {
+          server: data.asteriskServer || '127.0.0.1',
+          extension: credentials.extension,
+          password: data.sipPassword || credentials.phonePassword,
+          websocketUrl: data.websocketUrl || 'ws://127.0.0.1:8088/ws'
+        };
+        
+        console.log('Configuration SIP enregistrée:', this.sipConfig);
+        
+        // 4. Initialiser la connexion SIP si nécessaire
+        const sipStatus = data.sipStatus || 'UNKNOWN';
+        const asteriskStatus = data.asteriskStatus || 'UNKNOWN';
+        
+        if (sipStatus !== 'REGISTERED' || asteriskStatus !== 'READY') {
+          console.log('Initialisation de la connexion SIP...');
+          await this.initializeSoftphone();
+        } else {
+          console.log('Agent déjà enregistré dans Asterisk, pas besoin d\'initialiser la connexion SIP');
+        }
+      } else {
+        console.warn('Aucune donnée reçue de la synchronisation, utilisation des valeurs par défaut');
+        this.sipConfig = {
+          server: '127.0.0.1',
+          extension: credentials.extension,
+          password: credentials.phonePassword,
+          websocketUrl: 'ws://127.0.0.1:8088/ws'
+        };
+        console.log('Configuration SIP par défaut:', this.sipConfig);
+        await this.initializeSoftphone();
+      }
+      
+      // Construire la configuration SIP avec les valeurs fournies ou par défaut
+      this.sipConfig = {
+        extension: credentials.extension,
+        server: data.asteriskServer || 'localhost',
+        password: data.sipPassword || credentials.phonePassword,
+        websocketUrl: data.websocketUrl || 'wss://localhost:8089/ws'
+      };
+      
+      console.log('Configuration SIP finale:', {
+        extension: this.sipConfig.extension,
+        server: this.sipConfig.server,
+        hasPassword: !!this.sipConfig.password,
+        websocketUrl: this.sipConfig.websocketUrl
+      });
+
+      // 4. Initialiser le softphone
+      await this.initializeSoftphone();
+
+      return { 
+        success: true, 
+        message: 'Synchronisation avec Asterisk réussie' 
+      };
+    } catch (error: any) {
+      console.error('Erreur de synchronisation Asterisk:', error);
+      return { 
+        success: false, 
+        message: error.message || 'Erreur de synchronisation avec Asterisk' 
+      };
+    }
+  }
+
+  /**
+   * Initialise le softphone avec SIP.js
+   */
+  private async initializeSoftphone(): Promise<void> {
+    if (!this.sipConfig) {
+      throw new Error('Configuration SIP non disponible');
+    }
+
+    try {
+      // Mettre à jour le statut
+      this.updateSipStatus('connecting');
+      
+      // Vérifier si nous devons utiliser le mode de compatibilité (sans WebSocket)
+      const useCompatMode = this.shouldUseCompatibilityMode();
+      
+      if (useCompatMode) {
+        console.log('Utilisation du mode de compatibilité (sans WebSocket)');
+        await this.initializeCompatibilityMode();
+        return;
+      }
+
+      // Mode normal avec WebSocket - Attendre que SIP.js soit chargé
+      if (!window.SIP) {
+        await this.loadSipJs();
+        if (!window.SIP) {
+          throw new Error('SIP.js n\'a pas pu être chargé');
+        }
+      }
+
+      // Créer une nouvelle instance SIP User Agent avec une configuration plus complète
+      console.log('Initialisation du User Agent SIP avec la configuration:', {
+        uri: `sip:${this.sipConfig.extension}@${this.sipConfig.server}`,
+        hasPassword: !!this.sipConfig.password,
+        wsServers: this.sipConfig.websocketUrl
+      });
+      
+      // Essayer différentes configurations WebSocket
+      const wsConfigs = [
+        this.sipConfig.websocketUrl,                                       // URL fournie par le serveur
+        `ws://${this.sipConfig.server}:8088/ws`,                           // Non sécurisé, port standard
+        `wss://${this.sipConfig.server}:8089/ws`,                          // Sécurisé, port standard
+        `ws://${this.sipConfig.server === 'localhost' ? '127.0.0.1' : this.sipConfig.server}:8088/ws` // Adresse IP locale
+      ];
+      
+      console.log('Tentative de connexion avec les configurations WebSocket suivantes:', wsConfigs);
+      
+      this.sipUA = new window.SIP.UA({
+        uri: `sip:${this.sipConfig.extension}@${this.sipConfig.server}`,
+        password: this.sipConfig.password,
+        wsServers: wsConfigs,
+        register: true,
+        userAgentString: 'McDial Agent Interface',
+        traceSip: true,
+        logLevel: 'debug',
+        // Options supplémentaires pour améliorer la compatibilité avec Asterisk
+        registerExpires: 120,          // Durée d'enregistrement en secondes
+        registerOptions: {             // Options d'enregistrement
+          extraContactHeaderParams: ['X-Vicidial-Agent']
+        },
+        hackIpInContact: true,         // Permet de résoudre certains problèmes de NAT
+        hackViaTcp: true,              // Force l'utilisation de TCP dans les en-têtes Via
+        hackWssInTransport: true,      // Corrige le transport WSS dans les en-têtes
+        allowLegacyNotifications: true, // Compatibilité avec les anciennes notifications
+        sessionDescriptionHandlerFactoryOptions: {
+          peerConnectionOptions: {
+            rtcConfiguration: {
+              iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            },
+            iceCheckingTimeout: 5000    // Délai pour la négociation ICE
+          }
+        }
+      });
+      
+      // Stocker l'instance UA dans window pour le débogage
+      window.softphoneUA = this.sipUA;
+      console.log('User Agent SIP initialisé');
+
+      // Configurer les événements SIP
+      this.setupSipEvents();
+
+      console.log('Softphone initialisé avec succès');
+    } catch (error) {
+      console.error('Erreur lors de l\'initialisation du softphone:', error);
+      this.updateSipStatus('error');
+      
+      // Essayer le mode de compatibilité en cas d'échec
+      console.log('Tentative de basculement vers le mode de compatibilité...');
+      try {
+        await this.initializeCompatibilityMode();
+      } catch (compatError) {
+        console.error('Erreur également en mode de compatibilité:', compatError);
+        throw error; // Renvoyer l'erreur originale
+      }
+    }
+  }
+  
+  /**
+   * Vérifie si nous devons utiliser le mode de compatibilité
+   */
+  private shouldUseCompatibilityMode(): boolean {
+    // Vérifier si nous sommes sur un appareil mobile (où Zoiper est probablement installé)
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // Vérifier si le navigateur supporte WebRTC
+    const hasWebRTC = !!window.RTCPeerConnection;
+    
+    // Vérifier si un paramètre d'URL force le mode de compatibilité
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceCompat = urlParams.get('compat') === 'true';
+    
+    // Utiliser le mode de compatibilité si nous sommes sur mobile, si WebRTC n'est pas supporté, ou si forcé par l'URL
+    return isMobile || !hasWebRTC || forceCompat;
+  }
+  
+  /**
+   * Initialise le mode de compatibilité qui utilise Zoiper comme solution de secours
+   */
+  private async initializeCompatibilityMode(): Promise<void> {
+    console.log('Initialisation du mode de compatibilité (Zoiper)');
+    
+    // Simuler une connexion réussie pour l'interface utilisateur
+    this.updateSipStatus('connected');
+    
+    // Mettre à jour l'état de l'agent
+    agentState.update(state => ({
+      ...state,
+      phoneConnected: true
+    }));
+    
+    // Afficher une notification pour l'utilisateur
+    this.showBrowserNotification(
+      'Mode de compatibilité activé', 
+      'Utilisez Zoiper pour recevoir les appels. Vérifiez que Zoiper est configuré avec le même compte SIP.'
+    );
+    
+    // Vérifier si Zoiper est installé et essayer de l'ouvrir
+    try {
+      // Essayer d'ouvrir Zoiper via un lien profond (fonctionne sur mobile)
+      const zoiperUri = `zoiper://${this.sipConfig?.extension}@${this.sipConfig?.server}`;
+      const link = document.createElement('a');
+      link.href = zoiperUri;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('Tentative d\'ouverture de Zoiper avec:', zoiperUri);
+    } catch (error) {
+      console.warn('Impossible d\'ouvrir Zoiper automatiquement:', error);
+    }
+    
+    return Promise.resolve();
+  }
+
+  /**
+   * Configure les événements SIP
+   */
+  private setupSipEvents(): void {
+    if (!this.sipUA) return;
+
+    // Événement d'enregistrement réussi
+    this.sipUA.on('registered', () => {
+      console.log('Softphone enregistré avec succès');
+      this.updateSipStatus('connected');
+      
+      // Mettre à jour l'état de l'agent
+      agentState.update(state => ({
+        ...state,
+        phoneConnected: true
+      }));
+      
+      // Afficher une notification pour l'utilisateur
+      this.showBrowserNotification('Softphone connecté', 'Vous êtes maintenant prêt à recevoir des appels.');
+    });
+
+    // Événement d'échec d'enregistrement
+    this.sipUA.on('registrationFailed', (response: any) => {
+      console.error('Échec d\'enregistrement du softphone', response);
+      this.updateSipStatus('error');
+      
+      // Mettre à jour l'état de l'agent
+      agentState.update(state => ({
+        ...state,
+        phoneConnected: false
+      }));
+      
+      // Afficher une notification d'erreur
+      this.showBrowserNotification('Erreur de connexion', 'Impossible de se connecter au serveur téléphonique. Vérifiez votre connexion et vos identifiants.');
+    });
+
+    // Événement de déconnexion
+    this.sipUA.on('unregistered', () => {
+      console.log('Softphone déconnecté');
+      this.updateSipStatus('disconnected');
+      
+      // Mettre à jour l'état de l'agent
+      agentState.update(state => ({
+        ...state,
+        phoneConnected: false
+      }));
+    });
+    
+    // Événement d'erreur de connexion
+    this.sipUA.on('transportError', (error: any) => {
+      console.error('Erreur de transport SIP:', error);
+      this.updateSipStatus('error');
+      
+      // Mettre à jour l'état de l'agent
+      agentState.update(state => ({
+        ...state,
+        phoneConnected: false
+      }));
+      
+      // Afficher une notification d'erreur
+      this.showBrowserNotification('Erreur de connexion', 'Problème de connexion au serveur téléphonique. Vérifiez votre réseau.');
+    });
+
+    // Événement d'appel entrant
+    this.sipUA.on('invite', (session: any) => {
+      console.log('Appel entrant reçu', session);
+      
+      // Extraire les informations de l'appel
+      const callerNumber = session.remoteIdentity?.uri?.user || 'Inconnu';
+      const callerName = session.remoteIdentity?.displayName || 'Appel entrant';
+      
+      // Afficher une notification pour l'appel entrant
+      this.showBrowserNotification(
+        `Appel de ${callerName}`, 
+        `Numéro: ${callerNumber}`,
+        true // Prioritaire
+      );
+      
+      // Configurer les événements de session
+      session.on('accepted', () => {
+        console.log('Appel accepté');
+        agentState.update(state => ({
+          ...state,
+          callActive: true
+        }));
+      });
+      
+      session.on('terminated', () => {
+        console.log('Appel terminé');
+        agentState.update(state => ({
+          ...state,
+          callActive: false
+        }));
+      });
+      
+      // Notifier les écouteurs d'appels
+      this.notifyCallListeners({
+        type: 'incoming',
+        session: session,
+        callerNumber,
+        callerName
+      });
+    });
+  }
+  
+  /**
+   * Affiche une notification dans le navigateur
+   */
+  private showBrowserNotification(title: string, message: string, priority: boolean = false): void {
+    // Vérifier si les notifications sont supportées
+    if (!('Notification' in window)) {
+      console.log('Les notifications ne sont pas supportées par ce navigateur');
+      return;
+    }
+    
+    // Vérifier si l'autorisation est déjà accordée
+    if (Notification.permission === 'granted') {
+      // Créer et afficher la notification
+      const notification = new Notification(title, {
+        body: message,
+        icon: '/logo.png',
+        requireInteraction: priority // Garder la notification ouverte pour les appels
+      });
+      
+      // Ajouter un gestionnaire de clic pour les appels entrants
+      if (priority) {
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+      }
+    } else if (Notification.permission !== 'denied') {
+      // Demander l'autorisation
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          this.showBrowserNotification(title, message, priority);
+        }
+      });
+    }
+  }
+
+  /**
+   * Met à jour le statut SIP et notifie les écouteurs
+   */
+  private updateSipStatus(status: SipStatus): void {
+    this.sipStatus = status;
+    
+    // Notifier tous les écouteurs de statut
+    this.statusListeners.forEach(listener => listener(status));
+  }
+
+  /**
+   * Ajoute un écouteur de statut SIP
+   */
+  public addStatusListener(listener: (status: SipStatus) => void): void {
+    this.statusListeners.push(listener);
+  }
+
+  /**
+   * Supprime un écouteur de statut SIP
+   */
+  public removeStatusListener(listener: (status: SipStatus) => void): void {
+    this.statusListeners = this.statusListeners.filter(l => l !== listener);
+  }
+
+  /**
+   * Ajoute un écouteur d'événements d'appel
+   */
+  public addCallListener(listener: (callEvent: any) => void): void {
+    this.callListeners.push(listener);
+  }
+
+  /**
+   * Supprime un écouteur d'événements d'appel
+   */
+  public removeCallListener(listener: (callEvent: any) => void): void {
+    this.callListeners = this.callListeners.filter(l => l !== listener);
+  }
+
+  /**
+   * Notifie tous les écouteurs d'appels
+   */
+  private notifyCallListeners(callEvent: any): void {
+    this.callListeners.forEach(listener => listener(callEvent));
+  }
+
+  /**
+   * Obtient le statut actuel de la connexion SIP
+   */
+  public getSipStatus(): SipStatus {
+    return this.sipStatus;
+  }
+
+  /**
+   * Déconnecte le softphone
+   */
+  public disconnect(): void {
+    if (this.sipUA) {
+      this.sipUA.stop();
+      this.sipUA = null;
+    }
+    this.updateSipStatus('disconnected');
+  }
+}
+
+// Exporter une instance singleton du service
+export const asteriskService = new AsteriskService();

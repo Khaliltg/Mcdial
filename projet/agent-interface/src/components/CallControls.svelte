@@ -1,549 +1,373 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-  import { agentState, updateAgentStatus, endCall } from '../stores/agent';
-  import { API_BASE_URL } from '../utils/config';
-  import { fade } from 'svelte/transition';
-
-  // Create event dispatcher
-  const dispatch = createEventDispatcher();
-
-  // Local state
-  let isLoading = false;
-  let isMuted = false;
-  let isOnHold = false;
-  let isRecording = false;
-  let showPauseReasonModal = false;
-  let pauseReason = '';
+  import { onMount } from 'svelte';
+  import { agentState, updateAgentStatus } from '../stores/agent';
+  import { CallService } from '../services/CallService';
+  import { formatTime } from '../utils/timeUtils';
+  import { get } from 'svelte/store';
+  
+  // Variables pour le formulaire d'appel
+  let phoneNumber = '';
+  let contactName = '';
+  let notes = '';
+  
+  // Variables d'état
+  let isDialing = false;
   let errorMessage = '';
   let successMessage = '';
   
-  // Individual loading states for each button
-  let loadingStates = {
-    pause: false,
-    resume: false,
-    endCall: false,
-    mute: false,
-    hold: false,
-    record: false
-  };
-
-  // Function to show pause reason modal
-  function handlePause() {
-    // Reset the form when opening the modal
-    pauseReason = '';
-    errorMessage = '';
-    showPauseReasonModal = true;
-  }
-
-  // Function to cancel pause modal
-  function cancelPause() {
-    showPauseReasonModal = false;
-    pauseReason = '';
-    errorMessage = '';
-  }
-
-  // Direct API call function to avoid issues with api utility
-  function callApi(url, method, body) {
-    // Set a safety timeout to reset loading state in case the API call hangs
-    const safetyTimeout = setTimeout(() => {
-      console.log('SAFETY TIMEOUT: Forcing reset of loading state');
-      isLoading = false;
-    }, 5000); // 5 seconds timeout
+  // Fonction pour gérer l'initiation d'un appel
+  async function handleCall() {
+    if (!phoneNumber) {
+      errorMessage = 'Veuillez saisir un numéro de téléphone';
+      return;
+    }
     
-    return fetch(`${API_BASE_URL}${url}`, {
-      method: method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('agent_token') || localStorage.getItem('token')}`
-      },
-      body: JSON.stringify(body)
-    })
-    .finally(() => {
-      // Clear the safety timeout if the API call completes normally
-      clearTimeout(safetyTimeout);
-    });
-  }
-
-  // Function to submit pause with reason
-  function submitPause() {
-    // Prevent multiple submissions
-    if (loadingStates.pause) return;
-
-    // Make sure we have a pause reason
-    if (!pauseReason) {
-      errorMessage = 'Veuillez sélectionner une raison de pause';
-      setTimeout(() => { errorMessage = ''; }, 3000);
-      return;
-    }
-
-    console.log('Submitting pause with reason:', pauseReason);
-
-    // Set specific loading state for pause button
-    loadingStates.pause = true;
-    isLoading = true;
-
-    // Set a safety timeout to reset loading state in case the API call hangs
-    const safetyTimeout = setTimeout(() => {
-      console.log('SAFETY TIMEOUT: Forcing reset of pause loading state');
-      loadingStates.pause = false;
-      isLoading = false;
-    }, 5000); // 5 seconds timeout
-
-    // Close the modal immediately to prevent multiple submissions
-    showPauseReasonModal = false;
-
-    // Use our callApi function
-    callApi('/agent/status', 'POST', {
-      status: 'PAUSED',
-      pauseCode: pauseReason
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Failed with status: ${response.status}`);
-      }
-      return response.text();
-    })
-    .then(data => {
-      console.log('Pause success:', data);
-
-      // Update local state after successful API call
-      updateAgentStatus('PAUSED');
-
-      // Reset the form
-      pauseReason = '';
+    try {
+      isDialing = true;
       errorMessage = '';
-
-      // Show success message
-      successMessage = 'Statut mis à jour: En pause';
-      setTimeout(() => { successMessage = ''; }, 3000);
-    })
-    .catch(error => {
-      console.error('Pause error:', error);
-      errorMessage = 'Échec de la mise à jour du statut';
-      setTimeout(() => { errorMessage = ''; }, 3000);
-
-      // If the modal was closed but the API call failed, reopen it
-      if (!showPauseReasonModal) {
-        showPauseReasonModal = true;
+      successMessage = '';
+      
+      // Utiliser le service d'appel pour initier l'appel
+      const result = await CallService.initiateCall({
+        phoneNumber,
+        contactName
+      });
+      
+      if (result.success) {
+        successMessage = result.message || 'Appel en cours...';
+      } else {
+        errorMessage = result.message || 'Échec de l\'appel';
       }
-    })
-    .finally(() => {
-      console.log('FORCE RESETTING LOADING STATE');
-      loadingStates.pause = false;
-      isLoading = false;
-      clearTimeout(safetyTimeout);
-    });
-  }
-
-  // Function to resume from pause
-  function handleResume() {
-    // Prevent action if not in PAUSED state or already loading
-    if ($agentState.status !== 'PAUSED' || loadingStates.resume) {
-      return;
+    } catch (error: any) {
+      console.error('Erreur lors de l\'initiation de l\'appel:', error);
+      errorMessage = error.message || 'Une erreur est survenue lors de l\'initiation de l\'appel';
+    } finally {
+      isDialing = false;
     }
-
-    console.log('Resuming from pause, setting status to READY');
-
-    // Set loading state
-    loadingStates.resume = true;
-    isLoading = true;
-
-    // Set a safety timeout to reset loading state in case the API call hangs
-    const safetyTimeout = setTimeout(() => {
-      console.log('SAFETY TIMEOUT: Forcing reset of resume loading state');
-      loadingStates.resume = false;
-      isLoading = false;
-    }, 5000); // 5 seconds timeout
-
-    // Use our callApi function
-    callApi('/agent/status', 'POST', { status: 'READY' })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Failed with status: ${response.status}`);
-      }
-      return response.text();
-    })
-    .then(data => {
-      console.log('Resume success:', data);
-
-      // Update local state after successful API call
-      updateAgentStatus('READY');
-
-      // Show success message
-      successMessage = 'Statut mis à jour: Prêt';
-      setTimeout(() => { successMessage = ''; }, 3000);
-    })
-    .catch(error => {
-      console.error('Resume error:', error);
-      errorMessage = 'Échec de la mise à jour du statut';
-      setTimeout(() => { errorMessage = ''; }, 3000);
-    })
-    .finally(() => {
-      console.log('FORCE RESETTING LOADING STATE');
-      loadingStates.resume = false;
-      isLoading = false;
-      clearTimeout(safetyTimeout);
-    });
   }
-
-  // Function to handle ending a call
-  function handleEndCall() {
-    if (!$agentState.callActive || isLoading) {
-      return;
+  
+  // Fonction pour gérer la fin d'un appel
+  async function handleEndCall() {
+    try {
+      errorMessage = '';
+      successMessage = '';
+      
+      // Utiliser le service d'appel pour terminer l'appel
+      const result = await CallService.endCall(get(agentState).callId || '');
+      
+      if (result.success) {
+        successMessage = result.message || 'Appel terminé avec succès';
+        
+        // Réinitialiser les champs du formulaire
+        phoneNumber = '';
+        contactName = '';
+        notes = '';
+      } else {
+        errorMessage = result.message || 'Échec de la fin de l\'appel';
+      }
+    } catch (error: any) {
+      console.error('Erreur lors de la fin de l\'appel:', error);
+      errorMessage = error.message || 'Une erreur est survenue lors de la fin de l\'appel';
     }
-
-    console.log('Ending call with ID:', $agentState.callId);
-
-    // Set loading state
-    isLoading = true;
-    loadingStates.endCall = true;
-
-    // Set a safety timeout to reset loading state in case the API call hangs
-    const safetyTimeout = setTimeout(() => {
-      console.log('SAFETY TIMEOUT: Forcing reset of end call loading state');
-      loadingStates.endCall = false;
-      isLoading = false;
-    }, 5000); // 5 seconds timeout
-
-    // Essayer d'abord avec le nouvel endpoint
-    fetch(`${API_BASE_URL}/agent/calls/end-call`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('agent_token') || localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({
-        callId: $agentState.callId,
-        agentId: $agentState.user || $agentState.extension || $agentState.phoneLogin
-      })
-    })
-    .then(response => {
-      if (!response.ok) {
-        console.log(`Nouvel endpoint a échoué avec le statut: ${response.status}, essai avec l'ancien endpoint`);
-        // Si le nouvel endpoint échoue, essayer l'ancien
-        return fetch(`${API_BASE_URL}/agent/end-call`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('agent_token') || localStorage.getItem('token')}`
-          },
-          body: JSON.stringify({
-            callId: $agentState.callId,
-            agentId: $agentState.user || $agentState.extension || $agentState.phoneLogin
-          })
-        });
-      }
-      return response;
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Les deux endpoints ont échoué avec le statut: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log('End call success:', data);
-
-      // Update local state after successful API call
-      endCall();
-
-      // Notify parent component that call has ended
-      dispatch('callEnded');
-
-      // Reset call control states
-      isMuted = false;
-      isOnHold = false;
-      isRecording = false;
-
-      // Show success message
-      successMessage = 'Appel terminé avec succès';
-      setTimeout(() => { successMessage = ''; }, 3000);
-    })
-    .catch(error => {
-      console.error('End call error:', error);
-      errorMessage = 'Échec de la fin d\'appel';
-      setTimeout(() => { errorMessage = ''; }, 3000);
-    })
-    .finally(() => {
-      console.log('FORCE RESETTING LOADING STATE FOR END CALL');
-      loadingStates.endCall = false;
-      isLoading = false;
-      clearTimeout(safetyTimeout);
-    });
   }
-
-  // Toggle mute function
-  function toggleMute() {
-    if (!$agentState.callActive || isLoading) return;
-
-    isLoading = true;
-    loadingStates.mute = true;
-    const action = isMuted ? 'unmute' : 'mute';
-
-    // Set a safety timeout to reset loading state in case the API call hangs
-    const safetyTimeout = setTimeout(() => {
-      console.log(`SAFETY TIMEOUT: Forcing reset of ${action} loading state`);
-      loadingStates.mute = false;
-      isLoading = false;
-    }, 5000); // 5 seconds timeout
-
-    callApi('/agent/call-action', 'POST', {
-      action,
-      callId: $agentState.callId,
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Failed with status: ${response.status}`);
+  
+  // Fonction pour mettre à jour le statut de l'agent
+  async function changeAgentStatus(status: string) {
+    try {
+      const result = await CallService.updateStatus(status as any);
+      
+      if (!result) {
+        errorMessage = 'Échec de la mise à jour du statut';
       }
-      return response.json();
-    })
-    .then(data => {
-      console.log(`${action} success:`, data);
-      isMuted = !isMuted;
-      successMessage = isMuted ? 'Micro coupé' : 'Micro activé';
-      setTimeout(() => { successMessage = ''; }, 3000);
-    })
-    .catch(error => {
-      console.error(`Error toggling ${action}:`, error);
-      errorMessage = `Échec de l'action ${action}`;
-      setTimeout(() => { errorMessage = ''; }, 3000);
-    })
-    .finally(() => {
-      loadingStates.mute = false;
-      isLoading = false;
-      clearTimeout(safetyTimeout);
-    });
+    } catch (error: any) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      errorMessage = error.message || 'Une erreur est survenue lors de la mise à jour du statut';
+    }
   }
-
-  // Toggle hold function
-  function toggleHold() {
-    if (!$agentState.callActive || isLoading) return;
-
-    isLoading = true;
-    loadingStates.hold = true;
-    const action = isOnHold ? 'unhold' : 'hold';
-
-    // Set a safety timeout to reset loading state in case the API call hangs
-    const safetyTimeout = setTimeout(() => {
-      console.log(`SAFETY TIMEOUT: Forcing reset of ${action} loading state`);
-      loadingStates.hold = false;
-      isLoading = false;
-    }, 5000); // 5 seconds timeout
-
-    callApi('/agent/call-action', 'POST', {
-      action,
-      callId: $agentState.callId,
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Failed with status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log(`${action} success:`, data);
-      isOnHold = !isOnHold;
-      successMessage = isOnHold ? 'Appel mis en attente' : 'Appel repris';
-      setTimeout(() => { successMessage = ''; }, 3000);
-    })
-    .catch(error => {
-      console.error(`Error toggling ${action}:`, error);
-      errorMessage = `Échec de l'action ${action}`;
-      setTimeout(() => { errorMessage = ''; }, 3000);
-    })
-    .finally(() => {
-      loadingStates.hold = false;
-      isLoading = false;
-      clearTimeout(safetyTimeout);
-    });
-  }
-
-  // Toggle recording function
-  function toggleRecording() {
-    if (!$agentState.callActive || isLoading) return;
-
-    isLoading = true;
-    loadingStates.record = true;
-    const action = isRecording ? 'stop_record' : 'record';
-
-    // Set a safety timeout to reset loading state in case the API call hangs
-    const safetyTimeout = setTimeout(() => {
-      console.log(`SAFETY TIMEOUT: Forcing reset of ${action} loading state`);
-      loadingStates.record = false;
-      isLoading = false;
-    }, 5000); // 5 seconds timeout
-
-    callApi('/agent/call-action', 'POST', {
-      action,
-      callId: $agentState.callId,
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Failed with status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log(`${action} success:`, data);
-      isRecording = !isRecording;
-      successMessage = isRecording ? 'Enregistrement démarré' : 'Enregistrement arrêté';
-      setTimeout(() => { successMessage = ''; }, 3000);
-    })
-    .catch(error => {
-      console.error(`Error toggling ${action}:`, error);
-      errorMessage = `Échec de l'action ${action}`;
-      setTimeout(() => { errorMessage = ''; }, 3000);
-    })
-    .finally(() => {
-      loadingStates.record = false;
-      isLoading = false;
-      clearTimeout(safetyTimeout);
-    });
-  }
+  
+  // Récupérer les statistiques de l'agent au chargement du composant
+  onMount(async () => {
+    await CallService.getAgentStats();
+  });
 </script>
 
-<div class="card mb-3">
-  <div class="card-header bg-light">
-    <h5 class="mb-0">Contrôles d'appel</h5>
+<div class="call-controls">
+  <!-- Messages d'erreur et de succès -->
+  {#if errorMessage}
+    <div class="alert alert-danger mb-4 fade show d-flex align-items-center" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      <div class="flex-grow-1">{errorMessage}</div>
+      <button type="button" class="btn-close" aria-label="Close" on:click={() => errorMessage = ''}></button>
+    </div>
+  {/if}
+  
+  {#if successMessage}
+    <div class="alert alert-success mb-4 fade show d-flex align-items-center" role="alert">
+      <i class="bi bi-check-circle-fill me-2"></i>
+      <div class="flex-grow-1">{successMessage}</div>
+      <button type="button" class="btn-close" aria-label="Close" on:click={() => successMessage = ''}></button>
+    </div>
+  {/if}
+  
+  <!-- Contrôles de statut -->
+  <div class="status-controls mb-4">
+    <div class="status-buttons">
+      <button 
+        class="btn status-btn {$agentState.status === 'READY' ? 'active' : ''}" 
+        on:click={() => changeAgentStatus('READY')}
+        disabled={get(agentState).callActive}
+      >
+        <i class="bi bi-check-circle-fill"></i>
+        <span>Prêt</span>
+      </button>
+      
+      <button 
+        class="btn status-btn {$agentState.status === 'PAUSED' ? 'active' : ''}" 
+        on:click={() => changeAgentStatus('PAUSED')}
+        disabled={get(agentState).callActive}
+      >
+        <i class="bi bi-pause-circle-fill"></i>
+        <span>Pause</span>
+      </button>
+      
+      <button 
+        class="btn status-btn {$agentState.status === 'OFFLINE' ? 'active' : ''}" 
+        on:click={() => changeAgentStatus('OFFLINE')}
+        disabled={get(agentState).callActive}
+      >
+        <i class="bi bi-power"></i>
+        <span>Hors ligne</span>
+      </button>
+    </div>
   </div>
   
-  <div class="card-body">
-    {#if errorMessage}
-      <div class="alert alert-danger" role="alert" transition:fade>
-        {errorMessage}
-      </div>
-    {/if}
-    
-    {#if successMessage}
-      <div class="alert alert-success" role="alert" transition:fade>
-        {successMessage}
-      </div>
-    {/if}
-    
-    <!-- Status Controls -->
-    <div class="mb-3">
-      <h6 class="text-muted mb-2">Statut</h6>
-      <div class="d-flex gap-2">
-        {#if $agentState.status === 'PAUSED'}
-          <button 
-            class="btn btn-primary" 
-            on:click={handleResume}
-            disabled={$agentState.callActive || isLoading}
-          >
-            {#if isLoading}
-              <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-            {/if}
-            <i class="bi bi-play-fill me-1"></i>
-            Reprendre
-          </button>
-        {:else}
-          <button 
-            class="btn btn-warning" 
-            on:click={handlePause}
-            disabled={$agentState.callActive || isLoading}
-          >
-            {#if isLoading}
-              <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-            {/if}
-            <i class="bi bi-pause-fill me-1"></i>
-            Pause
-          </button>
-        {/if}
-      </div>
-    </div>
-    
-    <!-- Call Controls (only visible during active calls) -->
-    {#if $agentState.callActive}
-      <div>
-        <h6 class="text-muted mb-2">Appel en cours</h6>
-        <div class="d-flex flex-wrap gap-2">
-          <button 
-            class="btn {isMuted ? 'btn-danger' : 'btn-outline-secondary'}" 
-            on:click={toggleMute}
-            title="{isMuted ? 'Réactiver le micro' : 'Couper le micro'}"
-          >
-            <i class="bi {isMuted ? 'bi-mic-mute-fill' : 'bi-mic-fill'}"></i>
-            <span class="ms-1 d-none d-md-inline">{isMuted ? 'Unmute' : 'Mute'}</span>
-          </button>
-          
-          <button 
-            class="btn {isOnHold ? 'btn-info' : 'btn-outline-secondary'}" 
-            on:click={toggleHold}
-            title="{isOnHold ? 'Reprendre l\'appel' : 'Mettre en attente'}"
-          >
-            <i class="bi {isOnHold ? 'bi-play-fill' : 'bi-pause-fill'}"></i>
-            <span class="ms-1 d-none d-md-inline">{isOnHold ? 'Reprendre' : 'Attente'}</span>
-          </button>
-          
-          <button 
-            class="btn {isRecording ? 'btn-danger' : 'btn-outline-secondary'}" 
-            on:click={toggleRecording}
-            title="{isRecording ? 'Arrêter l\'enregistrement' : 'Démarrer l\'enregistrement'}"
-          >
-            <i class="bi {isRecording ? 'bi-record-fill' : 'bi-record'}"></i>
-            <span class="ms-1 d-none d-md-inline">{isRecording ? 'Stop' : 'Enregistrer'}</span>
-          </button>
-          
-          <button 
-            class="btn btn-danger ms-auto" 
-            on:click={handleEndCall}
-            disabled={isLoading}
-          >
-            {#if isLoading}
-              <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-            {/if}
-            <i class="bi bi-telephone-x-fill me-1"></i>
-            Raccrocher
-          </button>
-        </div>
-      </div>
-    {/if}
-  </div>
-</div>
-
-<!-- Pause Reason Modal -->
-{#if showPauseReasonModal}
-  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Raison de la pause</h5>
-          <button type="button" class="btn-close" on:click={cancelPause}></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="pauseReason" class="form-label">Sélectionnez une raison</label>
-            <select 
-              id="pauseReason" 
-              class="form-select" 
-              bind:value={pauseReason}
-            >
-              <option value="">Choisir une raison</option>
-              <option value="BREAK">Pause</option>
-              <option value="LUNCH">Déjeuner</option>
-              <option value="MEETING">Réunion</option>
-              <option value="TRAINING">Formation</option>
-              <option value="OTHER">Autre</option>
-            </select>
+  <!-- Formulaire d'appel -->
+  {#if !get(agentState).callActive}
+    <form on:submit|preventDefault={handleCall} class="call-form">
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label for="phoneNumber" class="form-label">Numéro de téléphone</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+            <input 
+              type="tel" 
+              class="form-control" 
+              id="phoneNumber" 
+              placeholder="Entrez un numéro de téléphone" 
+              bind:value={phoneNumber}
+              disabled={isDialing || get(agentState).status === 'OFFLINE' || get(agentState).status === 'PAUSED'}
+              required
+            />
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" on:click={cancelPause}>
-            Annuler
-          </button>
-          <button 
-            type="button" 
-            class="btn btn-primary" 
-            on:click={submitPause}
-            disabled={!pauseReason || isLoading}
-          >
-            {#if isLoading}
-              <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-            {/if}
-            Valider
-          </button>
+        
+        <div class="col-md-6">
+          <label for="contactName" class="form-label">Nom du contact</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-person"></i></span>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="contactName" 
+              placeholder="Entrez le nom du contact" 
+              bind:value={contactName}
+              disabled={isDialing || get(agentState).status === 'OFFLINE' || get(agentState).status === 'PAUSED'}
+            />
+          </div>
         </div>
       </div>
+      
+      <div class="mb-4">
+        <label for="notes" class="form-label">Notes</label>
+        <textarea 
+          class="form-control" 
+          id="notes" 
+          rows="3" 
+          placeholder="Entrez des notes pour cet appel"
+          bind:value={notes}
+          disabled={isDialing || get(agentState).status === 'OFFLINE' || get(agentState).status === 'PAUSED'}
+        ></textarea>
+      </div>
+      
+      <button 
+        type="submit" 
+        class="btn btn-primary btn-lg w-100 call-button" 
+        disabled={isDialing || !phoneNumber || get(agentState).status === 'OFFLINE' || get(agentState).status === 'PAUSED'}
+      >
+        {#if isDialing}
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          Appel en cours...
+        {:else}
+          <i class="bi bi-telephone-outbound-fill me-2"></i>
+          Appeler
+        {/if}
+      </button>
+    </form>
+  {:else}
+    <!-- Informations d'appel en cours -->
+    <div class="active-call-info">
+      <div class="call-header mb-4">
+        <h4 class="mb-1">Appel en cours</h4>
+        <div class="call-timer">{formatTime(get(agentState).callDuration)}</div>
+      </div>
+      
+      <div class="call-details mb-4">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="detail-item">
+              <div class="detail-label">Numéro</div>
+              <div class="detail-value">{get(agentState).phoneNumber || 'Non disponible'}</div>
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <div class="detail-item">
+              <div class="detail-label">Contact</div>
+              <div class="detail-value">{get(agentState).contactName || 'Non disponible'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mb-4">
+        <label for="activeNotes" class="form-label">Notes d'appel</label>
+        <textarea 
+          class="form-control" 
+          id="activeNotes" 
+          rows="3" 
+          placeholder="Entrez des notes pour cet appel"
+          bind:value={notes}
+        ></textarea>
+      </div>
+      
+      <button 
+        type="button" 
+        class="btn btn-danger btn-lg w-100 end-call-button" 
+        on:click={handleEndCall}
+      >
+        <i class="bi bi-telephone-x-fill me-2"></i>
+        Terminer l'appel
+      </button>
     </div>
-  </div>
-{/if}
+  {/if}
+</div>
+
+<style>
+  .call-controls {
+    padding: 1rem;
+  }
+  
+  .status-controls {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 1rem;
+  }
+  
+  .status-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .status-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    border-radius: 8px;
+    background-color: white;
+    border: 1px solid #dee2e6;
+    transition: all 0.2s ease;
+  }
+  
+  .status-btn i {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .status-btn.active {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+    font-weight: 600;
+  }
+  
+  .status-btn:hover:not(:disabled) {
+    background-color: #f1f3f5;
+    transform: translateY(-2px);
+  }
+  
+  .status-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .call-button {
+    height: 60px;
+    font-size: 1.2rem;
+    border-radius: 10px;
+    background: linear-gradient(45deg, #1a56db, #4f46e5);
+    border: none;
+    transition: all 0.3s ease;
+  }
+  
+  .call-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(26, 86, 219, 0.4);
+    background: linear-gradient(45deg, #164fc6, #4338ca);
+  }
+  
+  .end-call-button {
+    height: 60px;
+    font-size: 1.2rem;
+    border-radius: 10px;
+    background: linear-gradient(45deg, #e11d48, #f43f5e);
+    border: none;
+    transition: all 0.3s ease;
+  }
+  
+  .end-call-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(225, 29, 72, 0.4);
+    background: linear-gradient(45deg, #be123c, #e11d48);
+  }
+  
+  .active-call-info {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+  }
+  
+  .call-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .call-timer {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #1a56db;
+    background-color: rgba(26, 86, 219, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+  }
+  
+  .detail-item {
+    background-color: white;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .detail-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+  }
+  
+  .detail-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+</style>
