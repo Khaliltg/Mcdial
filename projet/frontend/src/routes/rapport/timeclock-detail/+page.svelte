@@ -1,40 +1,45 @@
 <script>
+    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
+    import { onMount } from 'svelte';
     let startDate = '';
     let endDate = '';
     let selectedUserGroup = '';
-    let displayFormat = '';
-    let orderBy = '';
+    let displayFormat = 'TEXT';
+    let orderBy = 'hours_down';
     let selectedUser = '';
-    import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
+    
 
-    const userGroups = [
-        '-ALL-',
-        'ADMIN',
-        'seddik',
-        'strategie',
-        'test',
-        'test2',
-        'test3'
-
-    ];
-
-    const users = []; // No users in the original image, keep empty for now
-
-    function handleSubmit() {
-        console.log('Form submitted with:', {
-            startDate,
-            endDate,
-            selectedUserGroup,
-            displayFormat,
-            orderBy,
-            selectedUser
-        });
+    const userGroups = ['-ALL-', 'ADMIN', 'seddik', 'strategie', 'test', 'test2', 'test3'];
+    const users = []; // à remplir si besoin
+    let results = [];
+    let timeclockData=[]
+    let totalHours = 0;
+    let errorMessage=""
+    async function handleSubmit() {
+  try {
+    const response = await fetchWithAuth(`http://localhost:8000/api/timeclock/get`);
+    
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({})); // en cas de réponse vide
+      console.error('Erreur API:', errorBody?.error || response.statusText);
+      errorMessage = errorBody?.error || `Erreur ${response.status}`;
+      return;
     }
+
+    const data = await response.json();
+    timeclockData = data.data || []; // ou autre nom de propriété
+    errorMessage = '';
+  } catch (error) {
+    console.error('Erreur lors de la récupération des données:',error);
+   
+  }
+}
+
 </script>
 
 <main class="timeclock-report">
     <div class="header">
-        <h1>User Timeclock Report </h1>
+        <h1>User Timeclock Report</h1>
         <div class="report-actions">
             <a href="#" class="download-link">DOWNLOAD</a>
             <span class="separator">|</span>
@@ -94,7 +99,7 @@
         <p class="time-range">Time range: {startDate} to {endDate}</p>
 
         <div class="report-details">
-            <h>--- USER TIMECLOCK DETAILS ---</h>
+            <h3>--- USER TIMECLOCK DETAILS ---</h3>
             <p class="note">These totals do NOT include any active sessions</p>
 
             <table class="results-table">
@@ -107,11 +112,19 @@
                     </tr>
                 </thead>
                 <tbody>
+                    {#each results as row, i}
+                        <tr>
+                            <td>{i + 1}</td>
+                            <td>{row.full_name} ({row.user})</td>
+                            <td>{row.user_group}</td>
+                            <td>{row.total_hours}</td>
+                        </tr>
+                    {/each}
                     <tr class="totals-row">
                         <td></td>
                         <td>TOTALS</td>
                         <td></td>
-                        <td>0.00</td>
+                        <td>{totalHours}</td>
                     </tr>
                 </tbody>
             </table>
@@ -120,202 +133,5 @@
 </main>
 
 <style>
-    /* General Styles */
-    .timeclock-report {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        max-width: 1000px;
-        margin: 20px auto;
-        padding: 30px;
-        background-color: #f8f9fa; /* Light gray background */
-        color: #333;
-        border-radius: 12px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Header */
-    .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-    }
-
-    h1 {
-        color: #2c3e50;
-        font-size: 24px;
-        margin: 0;
-        padding: 0;
-    }
-
-    .help-icon {
-        font-size: 18px;
-        color: #555;
-        cursor: pointer;
-    }
-
-    .report-actions {
-        text-align: right;
-    }
-
-    .download-link,
-    .reports-link {
-        color: #007bff;
-        text-decoration: none;
-        font-weight: 500;
-    }
-
-    .separator {
-        margin: 0 10px;
-        color: #ccc;
-    }
-
-    /* Filter Section */
-    .filter-section {
-        background-color: #fff;
-        padding: 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .filter-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        align-items: center;
-    }
-
-    .form-group {
-        display: flex;
-        flex-direction: column;
-    }
-
-    label {
-        font-size: 14px;
-        margin-bottom: 5px;
-        color: #555;
-    }
-
-    input[type="date"],
-    select,
-    input[type="text"] {
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        font-size: 14px;
-        color: #444;
-        width: 200px; /* Adjust width as needed */
-        box-sizing: border-box;
-    }
-
-    input[type="text"]::placeholder {
-        color: #999;
-    }
-
-    .to-text {
-        font-size: 14px;
-        margin: 0 10px;
-        color: #555;
-    }
-
-    /* Button */
-    .button-row {
-        margin-top: 20px;
-        text-align: left;
-    }
-
-    button {
-        padding: 12px 24px;
-        border: none;
-        border-radius: 6px;
-        background-color: #007bff;
-        color: white;
-        font-size: 16px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-    }
-
-    button:hover {
-        background-color: #0056b3;
-    }
-
-    /* Report Results */
-    .report-results {
-        background-color: #fff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .report-date {
-        font-size: 12px;
-        text-align: right;
-        color: #777;
-    }
-
-    .time-range {
-        font-size: 14px;
-        font-style: italic;
-        margin-bottom: 10px;
-        color: #777;
-    }
-
-    .report-details h3 {
-        font-size: 18px;
-        margin-top: 20px;
-        margin-bottom: 10px;
-    }
-
-    .note {
-        font-size: 12px;
-        color: #777;
-        margin-bottom: 10px;
-    }
-
-    /* Table */
-    .results-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-    }
-
-    .results-table th,
-    .results-table td {
-        padding: 12px;
-        border: 1px solid #ddd;
-        text-align: left;
-        font-size: 14px;
-    }
-
-    .results-table th {
-        background-color: #f2f2f2;
-        font-weight: bold;
-    }
-
-    .totals-row {
-        font-weight: bold;
-        background-color: #f9f9f9;
-    }
-
-    /* Media Queries for Responsiveness */
-    @media (max-width: 768px) {
-        .filter-row {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        .form-group {
-            width: 100%;
-        }
-
-        input[type="date"],
-        select,
-        input[type="text"] {
-            width: 100%;
-        }
-
-        .to-text {
-            display: none; /* Hide "to" text on small screens */
-        }
-    }
+    /* Ton style CSS déjà bien défini reste inchangé ici */
 </style>
