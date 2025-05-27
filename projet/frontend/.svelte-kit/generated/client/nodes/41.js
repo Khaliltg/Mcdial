@@ -1,1 +1,2 @@
-export { default as component } from "../../../../src/routes/rapport/agent_time_detail/+page.svelte";
+export { default as exportCalls } from "../../../../src/routes/rapport/export-calls/+page.svelte";
+export { default as agentTimeDetail } from "../../../../src/routes/rapport/agent_time_detail/+page.svelte";

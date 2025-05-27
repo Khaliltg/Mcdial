@@ -1,1 +1,1 @@
-export { default as component } from "../../../../src/routes/rapport/timeclock-detail/+page.svelte";
+export { default as component } from "../../../../src/routes/stats/userStats/+page.svelte";

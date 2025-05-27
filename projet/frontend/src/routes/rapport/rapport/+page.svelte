@@ -5,37 +5,37 @@
     // Données des rapports avec URLs
     const reportCategories = [
         {
-            title: "System Summary",
+            title: "Résumé du système",
             icon: "📊",
             reports: [
-                { name: "Real-Time Main Report", url: "/rapport/RealTimeReport" }
+                { name: "Rapport principal en temps réel", url: "/rapport/RealTimeReport" }
             ],
             colSpan: 2
         },
         {
-            title: "Agent Reports",
+            title: "Rapports d'agent",
             icon: "👤",
             reports: [
-                { name: "Agent Time Detail", url: "/rapport/agent_time_detail" },
-                { name: "User Stats", url: "/users/stats" },
+                { name: "Détail du temps de l'agent", url: "/rapport/agent_time_detail" },
+                { name: "Statistiques des utilisateurs", url: "/users/stats" },
                 
             ],
             colSpan: 1
         },
         {
-            title: "Time Clock Reports",
+            title: "Rapports d'horloge de pointage",
             icon: "⏱️",
             reports: [
-                { name: "User Timeclock Detail Report", url: "/rapport/timeclock-detail" }
+                { name: "Rapport détaillé de l'horloge utilisateur", url: "/rapport/timeclock-detail" }
             ],
             colSpan: 1
         },
         {
-            title: "Inbound and Outbound Calling Reports",
+            title: "Rapports d'appels entrants et sortants",
             icon: "📞",
             reports: [
-                { name: "Export Calls Report", url: "/rapport/export-calls" },
-                { name: "Export Leads Report", url: "/rapport/export-leads" }
+                { name: "Rapport d'appels d'exportation", url: "/rapport/export-calls" },
+                { name: "Rapport sur les prospects à l'exportation", url: "/rapport/export-leads" }
             ],
             colSpan: 2
         }

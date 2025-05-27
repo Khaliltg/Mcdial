@@ -250,6 +250,7 @@
   onDestroy(() => {
     if (socket) socket.disconnect();
   });
+  
 </script>
 
 <div class="container-fluid py-4">

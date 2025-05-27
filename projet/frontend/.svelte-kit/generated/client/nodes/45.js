@@ -1,1 +1,2 @@
-export { default as component } from "../../../../src/routes/rapport/RealTimeReport/+page.svelte";
+export { default as timeclockDetail } from "../../../../src/routes/rapport/timeclock-detail/+page.svelte";
+export { default as realTimeReport } from "../../../../src/routes/rapport/RealTimeReport/+page.svelte";

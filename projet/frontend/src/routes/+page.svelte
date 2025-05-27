@@ -1,135 +1,51 @@
-
 <script lang="ts">
   import { onMount } from 'svelte';
   import Chart from 'chart.js/auto';
   import type { Chart as ChartType } from 'chart.js/auto';
+  import { fetchWithAuth } from '$lib/utils/fetchWithAuth.js';
+  import { goto } from '$app/navigation';
 
-  // Simulated data (replace with actual API calls later)
   let stats = {
-    totalCalls: 1250,
-    activeCampaigns: 5,
-    completedCalls: 875,
-    successRate: 70
+    totalCalls: 0,
+    activeCampaigns: 0,
+    completedCalls: 0,
+    successRate: 0
   };
 
-  type ActivityItem = {
-    id: string;
-    type: 'call' | 'campaign' | 'system';
-    description: string;
-    target: string;
-    timestamp: Date;
-    status: 'success' | 'warning' | 'error' | 'info';
-  };
-
-  let activities: ActivityItem[] = [
-    {
-      id: '1',
-      type: 'call',
-      description: 'Appel terminé avec succès',
-      target: 'Jean Dupont',
-      timestamp: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
-      status: 'success'
-    },
-    {
-      id: '2',
-      type: 'campaign',
-      description: 'Nouvelle campagne créée',
-      target: 'Prospection Q2',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
-      status: 'info'
-    },
-    {
-      id: '3',
-      type: 'call',
-      description: 'Appel sans réponse',
-      target: 'Marie Martin',
-      timestamp: new Date(Date.now() - 1000 * 60 * 90), // 1.5 hours ago
-      status: 'warning'
-    },
-    {
-      id: '4',
-      type: 'system',
-      description: 'Mise à jour du système',
-      target: 'v1.2.5',
-      timestamp: new Date(Date.now() - 1000 * 60 * 120), // 2 hours ago
-      status: 'info'
-    },
-    {
-      id: '5',
-      type: 'call',
-      description: 'Appel échoué',
-      target: 'Pierre Dubois',
-      timestamp: new Date(Date.now() - 1000 * 60 * 240), // 4 hours ago
-      status: 'error'
-    }
-  ];
-
-  let campaigns = [
-    {
-      id: 'c1',
-      name: 'Prospection Clients',
-      status: 'active',
-      progress: 65,
-      callsToday: 125,
-      successRate: 72
-    },
-    {
-      id: 'c2',
-      name: 'Suivi Prospects',
-      status: 'active',
-      progress: 42,
-      callsToday: 87,
-      successRate: 58
-    },
-    {
-      id: 'c3',
-      name: 'Enquête Satisfaction',
-      status: 'paused',
-      progress: 30,
-      callsToday: 0,
-      successRate: 65
-    },
-    {
-      id: 'c4',
-      name: 'Relance Impayés',
-      status: 'completed',
-      progress: 100,
-      callsToday: 0,
-      successRate: 82
-    },
-    {
-      id: 'c5',
-      name: 'Présentation Nouveau Produit',
-      status: 'scheduled',
-      progress: 0,
-      callsToday: 0,
-      successRate: 0
-    }
-  ];
-
-  // Chart data
-  let performanceChart: ChartType;
-  let performanceData = {
-    labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
-    datasets: [
-      {
-        label: 'Appels',
-        data: [65, 78, 52, 91, 43, 23, 36],
-        borderColor: '#0d6efd',
-        backgroundColor: 'rgba(13, 110, 253, 0.1)',
-        tension: 0.3,
-        fill: true
-      },
-      {
-        label: 'Succès',
-        data: [42, 55, 40, 70, 32, 18, 29],
-        borderColor: '#198754',
-        backgroundColor: 'rgba(25, 135, 84, 0.1)',
-        tension: 0.3,
-        fill: true
+  let activities = [];
+  let campaigns = [];
+async function loadRealtimeStats() {
+  try {
+    const res = await fetchWithAuth('http://localhost:8000/api/admin/compagnies/dashboard', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
       }
-    ]
-  };
+    });
+
+    if (!res.ok) throw new Error('Erreur API');
+
+    const data = await res.json();
+    console.log("data ",data);
+    
+
+    stats.totalCalls = data.totalCalls;
+   
+    stats.completedCalls = data.completedCalls;
+    stats.successRate = data.successRate;
+    activities = data.activities || [];
+
+    // 🟢 Filtrage des campagnes actives seulement
+    campaigns = (data || []).filter((c: { status: string; }) => c.status === 'Y');
+     stats.activeCampaigns = campaigns.length
+console.log(campaigns)
+  } catch (error) {
+    console.error('Erreur chargement stats backend :', error);
+  }
+}
+
+
+  let performanceChart: ChartType;
 
   function getStatusBadgeClass(status: string) {
     switch (status) {
@@ -160,10 +76,11 @@
     }
   }
 
-  function formatDate(date: Date) {
+  function formatDate(dateString: string) {
+    const date = new Date(dateString);
     const now = new Date();
     const diffMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+
     if (diffMinutes < 60) {
       return `il y a ${diffMinutes} min`;
     } else if (diffMinutes < 24 * 60) {
@@ -176,42 +93,51 @@
   }
 
   onMount(() => {
+    loadRealtimeStats();
+    const interval = setInterval(loadRealtimeStats, 10000);
+
     const ctx = document.getElementById('performanceChart') as HTMLCanvasElement;
     if (ctx) {
       performanceChart = new Chart(ctx, {
         type: 'line',
-        data: performanceData,
+        data: {
+          labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+          datasets: [
+            {
+              label: 'Appels',
+              data: [65, 78, 52, 91, 43, 23, 36],
+              borderColor: '#0d6efd',
+              backgroundColor: 'rgba(13, 110, 253, 0.1)',
+              tension: 0.3,
+              fill: true
+            },
+            {
+              label: 'Succès',
+              data: [42, 55, 40, 70, 32, 18, 29],
+              borderColor: '#198754',
+              backgroundColor: 'rgba(25, 135, 84, 0.1)',
+              tension: 0.3,
+              fill: true
+            }
+          ]
+        },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: {
-              display: true,
-              position: 'top'
-            },
-            tooltip: {
-              mode: 'index',
-              intersect: false
-            }
+            legend: { display: true, position: 'top' },
+            tooltip: { mode: 'index', intersect: false }
           },
           scales: {
-            y: {
-              beginAtZero: true,
-              grid: {
-                display: true
-              }
-            },
-            x: {
-              grid: {
-                display: false
-              }
-            }
+            y: { beginAtZero: true, grid: { display: true } },
+            x: { grid: { display: false } }
           }
         }
       });
     }
+
+    return () => clearInterval(interval);
   });
-  import { goto } from '$app/navigation';
 
   async function handleLogout() {
     try {
@@ -226,6 +152,7 @@
     }
   }
 </script>
+
 
 <!-- Bootstrap Dashboard -->
 <div class="container-fluid">

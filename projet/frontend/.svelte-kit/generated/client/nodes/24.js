@@ -1,1 +1,2 @@
-export { default as component } from "../../../../src/routes/liste/ajouterListe/+page.svelte";
+export { default as ajouterprospect } from "../../../../src/routes/liste/ajouterprospect/+page.svelte";
+export { default as ajouterListe } from "../../../../src/routes/liste/ajouterListe/+page.svelte";

@@ -1,6 +1,4 @@
-
 // this file is generated — do not edit it
-
 
 /// <reference types="@sveltejs/kit" />
 
@@ -27,7 +25,10 @@
  */
 declare module '$env/static/private' {
 	export const ALLUSERSPROFILE: string;
+	export const AMDRMSDKPATH: string;
 	export const APPDATA: string;
+	export const ChocolateyInstall: string;
+	export const ChocolateyLastPathUpdate: string;
 	export const CHROME_CRASHPAD_PIPE_NAME: string;
 	export const COLOR: string;
 	export const COLORTERM: string;
@@ -118,7 +119,9 @@ declare module '$env/static/private' {
  * ```
  */
 declare module '$env/static/public' {
-	
+	export const env: {
+		[key: `PUBLIC_${string}`]: string | undefined;
+	}
 }
 
 /**
@@ -138,7 +141,10 @@ declare module '$env/static/public' {
 declare module '$env/dynamic/private' {
 	export const env: {
 		ALLUSERSPROFILE: string;
+		AMDRMSDKPATH: string;
 		APPDATA: string;
+		ChocolateyInstall: string;
+		ChocolateyLastPathUpdate: string;
 		CHROME_CRASHPAD_PIPE_NAME: string;
 		COLOR: string;
 		COLORTERM: string;
