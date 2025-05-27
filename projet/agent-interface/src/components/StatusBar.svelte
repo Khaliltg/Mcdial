@@ -1,287 +1,422 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { agentState } from '../stores/agent';
-  import { formatTime, formatTimeDisplay, formatDate } from '../utils/timeUtils';
-  import { formatCurrency } from '../utils/formatUtils';
-  import { clearAuthData } from '../utils/fetchWithAuth';
-
-  // Agent status definitions
-  const agentStatuses = {
-    READY: {
-      color: '#28a745',
-      icon: 'bi-check-circle',
-      description: 'Prêt à recevoir des appels'
-    },
-    PAUSED: {
-      color: '#ffc107',
-      icon: 'bi-pause-circle',
-      description: 'En pause'
-    },
-    DIALING: {
-      color: '#17a2b8',
-      icon: 'bi-telephone-outbound',
-      description: 'Appel en cours...'
-    },
-    INCALL: {
-      color: '#dc3545',
-      icon: 'bi-telephone',
-      description: 'En communication'
-    },
-    WAITING: {
-      color: '#6c757d',
-      icon: 'bi-hourglass-split',
-      description: 'En attente'
-    },
-    OFFLINE: {
-      color: '#6c757d',
-      icon: 'bi-x-circle',
-      description: 'Hors ligne'
-    }
-  };
-
-  // Time tracking variables
-  let callStartTime = 0;
-  let callDuration = 0;
-  let callCost = 0;
-  let callTimer: number;
-  let statusTimer: number;
-  let statusDuration = 0;
-  let statusStartTime = Date.now();
+  import { agentState, AGENT_STATUSES } from '../stores/agent';
+  import { logout, api } from '../utils/fetchWithAuth';
+  import SipStatus from './SipStatus.svelte';
+  import { sipConnectionState } from '../services/SipService';
+  import ConfirmDialog from './ConfirmDialog.svelte';
+  import StatusButtons from './StatusButtons.svelte';
+  import { agentStatus, setAgentPaused } from '../stores/agentStatus';
+  import { get } from 'svelte/store';
+  import dialerStore from '../stores/dialerStore';
+  
+  // Variables d'état UI
   let currentDateTime = new Date();
   let dateTimeInterval: number;
-
-  // Update current date and time
+  let showLogoutDialog = false;
+  let showPauseModal = false;
+  let pauseReason = '';
+  let selectedPauseCode = 'BREAK';
+  let pauseCodes = [
+    { pause_code: 'BREAK', pause_code_name: 'Pause standard' },
+    { pause_code: 'LUNCH', pause_code_name: 'Pause déjeuner' },
+    { pause_code: 'MEETING', pause_code_name: 'Réunion' }
+  ];
+  let loadingPauseCodes = false;
+  let pauseCodeError = '';
+  
+  // Constante pour le serveur SIP (normalement définie dans SipService.ts)
+  const SIP_SERVER = '213.32.34.33';
+  
+  // Fonction pour mettre à jour l'horloge
   function updateDateTime() {
     currentDateTime = new Date();
   }
-
-  // Update call duration
-  function updateCallDuration() {
-    if ($agentState.callActive) {
-      const now = Date.now();
-      callDuration = Math.floor((now - callStartTime) / 1000);
-      // Cost calculation (example: 0.02€ per second)
-      callCost = callDuration * 0.02;
+  
+  // Fonction pour ouvrir la boîte de dialogue de déconnexion
+  function openLogoutDialog() {
+    showLogoutDialog = true;
+  }
+  
+  // Fonction pour ouvrir le modal de pause
+  function openPauseModal() {
+    // Réinitialiser les valeurs
+    pauseReason = '';
+    selectedPauseCode = 'BREAK';
+    
+    // Charger les codes de pause
+    loadPauseCodes();
+    
+    // Afficher le modal
+    showPauseModal = true;
+    
+    // Arrêter le mode prédictif si actif
+    const stopPredictiveMode = get(dialerStore).stopPredictiveMode;
+    if (stopPredictiveMode) {
+      console.log('Arrêt du mode prédictif depuis la StatusBar - ouverture du modal');
+      stopPredictiveMode();
     }
   }
-
-  // Update status duration
-  function updateStatusDuration() {
-    const now = Date.now();
-    statusDuration = Math.floor((now - statusStartTime) / 1000);
-  }
-
-  // Handle status change
-  function handleStatusChange() {
-    statusStartTime = Date.now();
-    statusDuration = 0;
-  }
-
-  // Handle call start
-  function handleCallStart() {
-    callStartTime = Date.now();
-    callDuration = 0;
-    callCost = 0;
-    callTimer = window.setInterval(updateCallDuration, 1000);
-  }
-
-  // Handle call end
-  function handleCallEnd() {
-    if (callTimer) {
-      clearInterval(callTimer);
+  
+  // Fonction pour récupérer les codes de pause disponibles
+  async function loadPauseCodes() {
+    loadingPauseCodes = true;
+    pauseCodeError = '';
+    
+    try {
+      const response = await api.get('/agent/pause-codes');
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          pauseCodes = data;
+        }
+      } else {
+        pauseCodeError = 'Erreur lors du chargement des codes de pause';
+      }
+    } catch (err) {
+      console.error('Erreur lors du chargement des codes de pause:', err);
+      pauseCodeError = 'Erreur de connexion';
+    } finally {
+      loadingPauseCodes = false;
     }
   }
-
-  // Get current agent status
-  function getCurrentStatus() {
-    const status = $agentState.status;
-    return agentStatuses[status] || agentStatuses.OFFLINE;
+  
+  // Fonction pour mettre l'agent en pause
+  async function handlePauseAgent() {
+    try {
+      console.log('Tentative de mise en pause de l\'agent');
+      
+      // Utiliser le code de pause sélectionné par l'utilisateur
+      const pauseCode = selectedPauseCode;
+      const reason = pauseReason || 'Pause agent';
+      
+      // Arrêter le mode prédictif si actif
+      const stopPredictiveMode = get(dialerStore).stopPredictiveMode;
+      if (stopPredictiveMode) {
+        console.log('Arrêt du mode prédictif depuis la StatusBar - confirmation de pause');
+        stopPredictiveMode();
+      }
+      
+      // Mettre à jour le statut dans le store
+      setAgentPaused(pauseCode, reason);
+      
+      // Fermer le modal
+      showPauseModal = false;
+      
+      // Envoyer le statut au serveur
+      const response = await api.post('/agent/status', {
+        status: AGENT_STATUSES.PAUSED,
+        pauseCode: pauseCode,
+        pauseReason: reason
+      });
+      
+      if (!response.ok) {
+        console.error('Erreur lors de la mise à jour du statut côté serveur:', response.status);
+      }
+    } catch (err) {
+      console.error('Erreur lors de la mise en pause:', err);
+    }
   }
-
-  // Logout function
-  function handleLogout() {
-    // Remove all authentication data
-    clearAuthData();
-    
-    // Update agent state
-    agentState.update(state => ({
-      ...state,
-      status: 'OFFLINE',
-      callActive: false
-    }));
-    
-    // Redirect to login page
-    window.location.href = '/';
+  
+  // Fonction pour gérer la confirmation de déconnexion
+  async function confirmLogout() {
+    try {
+      console.log('Déconnexion en cours...');
+      
+      // Appel API pour déconnecter l'agent
+      // La fonction logout() gère maintenant la redirection
+      await logout();
+      
+      // Note: La redirection est maintenant gérée par la fonction logout()
+      // donc cette ligne ne sera jamais exécutée
+      console.log('Déconnexion réussie');
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      // Nous gérerons l'erreur dans l'interface plutôt qu'avec une alerte
+    }
   }
-
-  // Watch for status and call changes
-  $: if ($agentState.status) {
-    handleStatusChange();
-  }
-
-  $: if ($agentState.callActive) {
-    handleCallStart();
-  } else {
-    handleCallEnd();
-  }
-
-  // Set up timers on component mount
+  
+  // Configurer les minuteries au montage du composant
   onMount(() => {
-    statusTimer = window.setInterval(updateStatusDuration, 1000);
+    // Mettre à jour l'horloge
     dateTimeInterval = window.setInterval(updateDateTime, 1000);
     updateDateTime();
   });
 
-  // Clean up timers on component destroy
+  // Nettoyer les minuteries à la destruction du composant
   onDestroy(() => {
-    if (statusTimer) clearInterval(statusTimer);
-    if (callTimer) clearInterval(callTimer);
     if (dateTimeInterval) clearInterval(dateTimeInterval);
   });
 </script>
 
-<div class="container-fluid py-2 bg-light border-bottom shadow-sm">
-  <div class="row">
-    <!-- User Information Section -->
-    <div class="col-md-3 mb-2 mb-md-0">
-      <div class="d-flex align-items-center">
-        <div class="avatar-container me-2">
-          <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center">
-            {$agentState.fullName ? $agentState.fullName.charAt(0).toUpperCase() : 'A'}
-          </div>
-          <div class="status-dot" style="background-color: {getCurrentStatus().color};"></div>
-        </div>
-        <div>
-          <div class="fw-bold">{$agentState.fullName || 'Agent'}</div>
-          <div class="small text-muted">{$agentState.user || 'Utilisateur'}</div>
-        </div>
-      </div>
+<div class="status-bar">
+  <div class="status-bar-content">
+    <!-- Section gauche: Horloge et date -->
+    <div class="datetime">
+      <div class="time">{currentDateTime.toLocaleTimeString('fr-FR')}</div>
+      <div class="date">{currentDateTime.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
     </div>
-
-    <!-- Status and Time Section -->
-    <div class="col-md-2 mb-2 mb-md-0">
-      <div class="card h-100 border-0 bg-light">
-        <div class="card-body p-2">
-          <div class="d-flex align-items-center mb-1">
-            <i class="bi {getCurrentStatus().icon} me-2" style="color: {getCurrentStatus().color};"></i>
-            <span class="fw-bold">{$agentState.status}</span>
+    
+    <!-- Section centrale: Campagne uniquement -->
+    <div class="status-campaign">
+        <!-- Informations de campagne -->
+        <div class="campaign-info">
+          <div class="info-item">
+            <div class="info-label">Campagne</div>
+            <div class="info-value">{$agentState.campaignName || 'Non sélectionnée'}</div>
           </div>
-          <div class="small text-muted">{formatTime(statusDuration)}</div>
-          <div class="small text-muted mt-1">{formatTimeDisplay(currentDateTime)}</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Campaign and Extension Section -->
-    <div class="col-md-3 mb-2 mb-md-0">
-      <div class="card h-100 border-0 bg-light">
-        <div class="card-body p-2">
-          <div class="row g-2">
-            <div class="col-6">
-              <div class="small text-muted">Campagne</div>
-              <div class="fw-bold text-truncate">{$agentState.campaignName || 'N/A'}</div>
-            </div>
-            <div class="col-6">
-              <div class="small text-muted">Extension</div>
-              <div class="fw-bold">{$agentState.extension || 'N/A'}</div>
-            </div>
+          
+          <!-- Extension téléphonique -->
+          <div class="info-item">
+            <div class="info-label">Extension</div>
+            <div class="info-value">{$agentState.extension || 'Non définie'}</div>
+          </div>
+          
+          <!-- Serveur SIP -->
+          <div class="info-item">
+            <div class="info-label">Serveur</div>
+            <div class="info-value">{SIP_SERVER}</div>
+          </div>
+          
+          <!-- État de la connexion SIP -->
+          <div class="info-item sip-status-wrapper">
+            <SipStatus />
           </div>
         </div>
-      </div>
     </div>
-
-    <!-- Statistics Section -->
-    <div class="col-md-3 mb-2 mb-md-0">
-      <div class="card h-100 border-0 bg-light">
-        <div class="card-body p-2">
-          <div class="row g-2">
-            <div class="col-4">
-              <div class="small text-muted">Appels</div>
-              <div class="fw-bold">{$agentState.callsToday || 0}</div>
-            </div>
-            <div class="col-4">
-              <div class="small text-muted">Répondus</div>
-              <div class="fw-bold">{$agentState.callsAnswered || 0}</div>
-            </div>
-            <div class="col-4">
-              <div class="small text-muted">Temps moy.</div>
-              <div class="fw-bold">{$agentState.avgTalkTime ? formatTime($agentState.avgTalkTime) : '00:00'}</div>
-            </div>
-          </div>
-        </div>
+    
+    <!-- Section droite: Boutons de statut et déconnexion -->
+    <div class="stats-notifications">
+      <!-- Boutons de statut -->
+      <div class="status-buttons-container">
+        <StatusButtons onPauseClick={openPauseModal} />
       </div>
-    </div>
-
-    <!-- Logout Button Section -->
-    <div class="col-md-1 text-end">
-      <button class="btn btn-sm btn-outline-danger" on:click={handleLogout}>
+      
+      <!-- Bouton de déconnexion -->
+      <button class="logout-button" on:click={openLogoutDialog}>
         <i class="bi bi-box-arrow-right"></i>
-        <span class="d-none d-md-inline ms-1">Déconnexion</span>
+        <span>Déconnexion</span>
       </button>
+      
+      <!-- Boîte de dialogue de confirmation de déconnexion -->
+      <ConfirmDialog
+        bind:isOpen={showLogoutDialog}
+        title="Confirmation de déconnexion"
+        message="Êtes-vous sûr de vouloir vous déconnecter ?"
+        confirmButtonText="Déconnexion"
+        on:confirm={confirmLogout}
+      />
+      
+      <!-- Modal de pause intégré dans la barre de statut -->
     </div>
   </div>
-
-  <!-- Call Information Bar (only shown when call is active) -->
-  {#if $agentState.callActive}
-    <div class="row mt-2 py-1 bg-danger bg-opacity-10 rounded">
-      <div class="col-md-2">
-        <div class="d-flex align-items-center">
-          <i class="bi bi-telephone-fill text-danger me-2"></i>
-          <div>
-            <div class="small text-muted">Durée</div>
-            <div class="fw-bold">{formatTime(callDuration)}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="d-flex align-items-center">
-          <i class="bi bi-person-fill me-2"></i>
-          <div>
-            <div class="small text-muted">Contact</div>
-            <div class="fw-bold">{$agentState.contactName || 'Inconnu'}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="d-flex align-items-center">
-          <i class="bi bi-telephone me-2"></i>
-          <div>
-            <div class="small text-muted">Numéro</div>
-            <div class="fw-bold">{$agentState.phoneNumber || 'N/A'}</div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-2">
-        <div class="d-flex align-items-center">
-          <i class="bi bi-currency-euro me-2"></i>
-          <div>
-            <div class="small text-muted">Coût</div>
-            <div class="fw-bold">{formatCurrency(callCost)}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  {/if}
 </div>
 
+<!-- Modal de pause -->
+{#if showPauseModal}
+<div class="modal fade show" style="display: block; background-color: rgba(0,0,0,0.5);" tabindex="-1" aria-modal="true" role="dialog">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Mettre en pause</h5>
+        <button type="button" class="btn-close" aria-label="Close" on:click={() => showPauseModal = false}></button>
+      </div>
+      <div class="modal-body">
+        <!-- Sélection du code de pause -->
+        <div class="mb-3">
+          <label for="pauseCode" class="form-label">Code de pause</label>
+          {#if loadingPauseCodes}
+            <div class="d-flex align-items-center mb-2">
+              <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                <span class="visually-hidden">Chargement...</span>
+              </div>
+              <span class="text-muted">Chargement des codes de pause...</span>
+            </div>
+          {/if}
+          
+          {#if pauseCodeError}
+            <div class="alert alert-warning py-2">{pauseCodeError}</div>
+          {/if}
+          
+          <select class="form-select" id="pauseCode" bind:value={selectedPauseCode}>
+            {#each pauseCodes as code}
+              <option value={code.pause_code}>{code.pause_code_name}</option>
+            {/each}
+          </select>
+          
+          <div class="d-flex justify-content-end mt-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" on:click={loadPauseCodes} disabled={loadingPauseCodes}>
+              <i class="bi bi-arrow-clockwise me-1"></i> Actualiser
+            </button>
+          </div>
+        </div>
+        
+        <!-- Raison de la pause -->
+        <div class="mb-3">
+          <label for="pauseReason" class="form-label">Raison de la pause</label>
+          <input type="text" class="form-control" id="pauseReason" bind:value={pauseReason} placeholder="Saisir la raison de la pause...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" on:click={() => showPauseModal = false}>Annuler</button>
+        <button type="button" class="btn btn-primary" on:click={handlePauseAgent}>
+          <i class="bi bi-pause-circle me-1"></i> Confirmer la pause
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{/if}
+
 <style>
-  .avatar {
-    width: 40px;
-    height: 40px;
-    font-size: 1.2rem;
+  .status-bar {
+    background-color: #1e293b;
+    color: #f8fafc;
+    padding: 0.5rem 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    width: 100%;
+    box-sizing: border-box;
   }
   
-  .avatar-container {
-    position: relative;
+  .status-bar-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1600px;
+    margin: 0 auto;
   }
   
-  .status-dot {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    border: 2px solid white;
+  /* Section gauche: Horloge et date */
+  .datetime {
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+  }
+  
+  .time {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  
+  .date {
+    font-size: 0.8rem;
+    color: #cbd5e1;
+  }
+  
+  /* Section centrale: Campagne */
+  .status-campaign {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-grow: 1;
+    max-width: 600px;
+  }
+  
+  /* Informations de campagne */
+  .campaign-info {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+  }
+  
+  .info-item {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .info-label {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+  }
+  
+  .info-value {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  
+  /* Styles pour les informations de téléphonie */
+  .info-item {
+    margin: 0 0.5rem;
+  }
+  
+  /* État de la connexion SIP */
+  .sip-status-wrapper {
+    margin-left: auto;
+  }
+  
+  /* Section droite: Boutons de statut et déconnexion */
+  .stats-notifications {
+    display: flex;
+    align-items: center;
+    min-width: 300px;
+    justify-content: flex-end;
+    gap: 1rem;
+  }
+  
+  /* Container pour les boutons de statut */
+  .status-buttons-container {
+    display: flex;
+    align-items: center;
+  }
+  
+  /* Bouton de déconnexion */
+  .logout-button {
+    display: flex;
+    align-items: center;
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .logout-button:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+  }
+  
+  .logout-button i {
+    margin-right: 0.5rem;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 1200px) {
+    .status-bar-content {
+      flex-wrap: wrap;
+    }
+    
+    .datetime, .stats-notifications {
+      width: 50%;
+      margin-bottom: 0.5rem;
+    }
+    
+    .status-campaign {
+      width: 100%;
+      order: 3;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .datetime, .stats-notifications {
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+    
+    .stats-notifications {
+      order: 2;
+    }
+    
+    .status-campaign {
+      order: 3;
+    }
   }
 </style>

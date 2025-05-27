@@ -1,4 +1,10 @@
 require('dotenv').config();
+
+// Configuration JWT
+const JWT_SECRET = process.env.JWT_SECRET || 'votre_secret_jwt';
+const JWT_EXPIRE_PHONE = '1h'; // Durée de vie du token téléphone
+const JWT_EXPIRE_USER = '24h'; // Durée de vie du token utilisateur
+
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
@@ -6,6 +12,28 @@ const { Server } = require('socket.io');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const connection = require('./config/bd'); // Database connection
+
+// Middleware d'erreur global
+const errorHandler = (err, req, res, next) => {
+    console.error('Erreur:', err);
+    
+    if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({
+            message: 'Session expirée',
+            error: 'Le token JWT a expiré',
+            details: err
+        });
+    }
+
+    res.status(500).json({
+        message: 'Erreur serveur',
+        error: err.message
+    });
+};
+
+// Application
+const app = express();
+app.use(errorHandler); // Utiliser le middleware d'erreur global
 
 // Routes
 const AdminRoute = require('./Routes/Admin/userRoute');
@@ -23,6 +51,10 @@ const agentRoutes = require('./Routes/Agent/agentRoutes');
 const agentCallRoutes = require('./Routes/Agent/callRoutes');
 const callCardRoutes = require('./Routes/Agent/callCardRoutes');
 const endCallRoute = require('./Routes/Agent/endCallRoute');
+const sipRoutes = require('./Routes/Agent/sipRoutes');
+const sipStatusRoutes = require('./Routes/Agent/sipStatusRoutes');
+const predictiveRoutes = require('./Routes/Agent/predictiveRoutes');
+const syncRoutes = require('./Routes/Agent/syncRoutes');
 const agentTimeRoutes = require('./Routes/Admin/agentTimeRoutes');
 const timeclockRoutes = require('./Routes/Admin/timeclockRoutes');
 const realtimeRoute = require('./Routes/Admin/realtimeRoute');
@@ -31,7 +63,6 @@ const authRoute = require('./Routes/auth');
 const { authenticateToken, requireAdmin } = require('./middleware/auth');
 
 const PORT = process.env.PORT || 8000;
-const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -64,6 +95,10 @@ app.use('/api/auth', authRoute);
 app.use('/api/agent/auth', agentAuthRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/agent/calls', authenticateToken, agentCallRoutes);
+app.use('/api/agent/sip', authenticateToken, sipRoutes);
+app.use('/api/agent/sip-status', authenticateToken, sipStatusRoutes);
+app.use('/api/predictive', authenticateToken, predictiveRoutes);
+app.use('/api/agent/sync', authenticateToken, syncRoutes);
 // Register call routes directly under /api/agent as well for backward compatibility
 app.use('/api/agent', authenticateToken, agentCallRoutes);
 app.use('/api/agent/end-call', authenticateToken, endCallRoute);

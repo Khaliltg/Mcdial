@@ -1,750 +1,770 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { agentState, updateAgentStatus, startCall, endCall, resetCall, type AgentState, type AgentStatus } from '../../../stores/agent';
+  import { fade, fly, slide, scale } from 'svelte/transition';
+  import { quintOut } from 'svelte/easing';
+  import { get } from 'svelte/store';
+  import { agentState, startCall as startAgentCall, endCall as endAgentCall, resetCall, callDuration as agentCallDuration, AGENT_STATUSES } from '../../../stores/agent';
   import { api } from '../../../utils/fetchWithAuth';
-  import ProspectForm from '../prospect/ProspectForm.svelte';
+  import { setAgentReady, setAgentPaused } from '../../../stores/agentStatus';
   
-  // Import configuration
-  import { CHECK_CALLS_INTERVAL, API_BASE_URL } from '../../../utils/config';
-  
-  // Props for communication with parent components
+  // Props pour la communication avec les composants parents
   export let callEnded = false;
-  // We don't directly use callActive, but we'll keep it for future use
-  // and to maintain the component API
   
-  // State variables
-  let waitingForCall = false;
-  let checkCallsInterval: number | undefined;
+  // Exporter une méthode pour arrêter le mode prédictif depuis l'extérieur
+  export function stopPredictiveMode() {
+    if (predictiveMode) togglePredictiveMode();
+  }
+  
+  // Variables d'état locales
   let predictiveMode = false;
-  let manualDialNumber = '';
-  let manualDialLeadId = '';
-  let manualDialName = '';
+  let waitingForCall = false;
   let errorMessage = '';
   let successMessage = '';
   let prospectData: any = null;
-  
-  // Campaign numbers for simulation (in real app, these would come from the API)
-  interface CampaignNumber {
-    phone_number: string;
-    first_name: string;
-    last_name: string;
-    lead_id: string;
-    called: boolean;
+  let predictiveCheckInterval: number;
+  let lastCheckTime = new Date();
+  let showCallStats = false;
+  let callTimer: number | null = null;
+  let selectedCampaign = '';
+  let availableCampaigns = [];
+  let dialLevel = 'AUTO';
+  let campaignName = '';
+  let callStats = {
+    callsToday: 0,
+    successfulCalls: 0,
+    averageDuration: '0s',
+    currentCalls: 0,
+    totalCalls: 0,
+    callRatio: 0
+  };
+
+  // Observer les changements dans l'état d'appel pour gérer le timer
+  $: if (get(agentState).callActive) {
+    if (!callTimer) callTimer = window.setInterval(() => {}, 1000);
+  } else if (callTimer) {
+    clearInterval(callTimer);
+    callTimer = null;
   }
   
-  let campaignNumbers: CampaignNumber[] = [];
+  // Observer les changements dans la propriété callEnded
+  $: if (callEnded) handleEndCall();
   
-  // Function to check for incoming calls
+  // Fonction pour formater le temps écoulé
+  function formatElapsedTime(date) {
+    if (!date) return '0s';
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+    const mins = Math.floor(diff / 60);
+    const secs = diff % 60;
+    return `${mins}m ${secs}s`;
+  }
+  
+  // Fonction pour formater la durée d'un appel
+  function formatCallDuration(seconds) {
+    if (!seconds) return '00:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+  
+  // Fonction pour vérifier les appels entrants
   async function checkForIncomingCalls() {
-    if ($agentState.callActive) {
-      console.log('Call active, not checking for incoming calls');
-      return;
-    }
-    
     try {
-      console.log('Checking for incoming calls...');
+      lastCheckTime = new Date();
+      const response = await api.get('/agent/calls/check-calls');
       
-      // Use direct fetch with proper API base URL
-      const response = await fetch(`${API_BASE_URL}/agent/calls/check-calls`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('agent_token') || localStorage.getItem('token')}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error checking for calls: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('Check calls response:', data);
-      
-      // If there's an incoming call, update the agent state
-      if (data.incomingCalls) {
-        const call = data.incomingCalls;
-        console.log('Incoming call detected:', call);
-        
-        // Get prospect data if we have a lead ID
-        if (call.lead_id) {
-          await getProspectData(call.lead_id);
-        }
-        
-        startCall({
-          leadId: call.lead_id,
-          phoneNumber: call.phone_number || '',
-          callId: call.call_id
-        });
-        
-        successMessage = `Incoming call from ${call.phone_number}`;
-      } else if (data.outgoingCalls) {
-        const call = data.outgoingCalls;
-        console.log('Outgoing call detected:', call);
-        
-        // Only update if we're not already in a call
-        if (!$agentState.callActive) {
-          // Get prospect data if we have a lead ID
-          if (call.lead_id) {
-            await getProspectData(call.lead_id);
-          }
-          
-          startCall({
-            leadId: call.lead_id,
-            phoneNumber: call.phone_number || '',
-            callId: call.call_id
+      if (response.ok) {
+        const data = await response.json();
+        if (data.incomingCalls && !get(agentState).callActive) {
+          // Mettre à jour l'état de l'agent
+          startAgentCall({
+            callId: data.incomingCalls.uniqueid,
+            leadId: data.incomingCalls.lead_id,
+            phoneNumber: data.incomingCalls.phone_number,
+            contactName: data.incomingCalls.contact_name || 'Contact entrant',
+            direction: 'inbound'
           });
           
-          successMessage = `Outgoing call to ${call.phone_number}`;
+          // Charger les données du prospect
+          if (data.incomingCalls.lead_id) loadProspectData(data.incomingCalls.lead_id);
         }
       }
-      
-      errorMessage = '';
-    } catch (error) {
-      console.error('Error checking for calls:', error);
-      errorMessage = 'Error checking for calls';
+    } catch (err) {
+      console.error('Erreur lors de la vérification des appels entrants:', err);
     }
   }
   
-  // Function to get prospect data
-  async function getProspectData(leadId: string | null, phoneNumber?: string) {
+  // Fonction pour charger les données d'un prospect
+  async function loadProspectData(leadId: string) {
     try {
-      console.log('Getting prospect data with:', { leadId, phoneNumber });
-      
-      // Build query string for params
-      let queryParams = new URLSearchParams();
-      if (leadId) queryParams.append('leadId', leadId);
-      if (phoneNumber) queryParams.append('phoneNumber', phoneNumber);
-      
-      // If no parameters, return null
-      if (queryParams.toString() === '') {
-        console.log('No parameters provided for prospect data fetch');
-        return null;
+      const response = await api.get(`/agent/prospect/${leadId}`);
+      if (response.ok) {
+        prospectData = await response.json();
       }
-      
-      console.log('API request params:', queryParams.toString());
-      
-      // Use direct fetch with proper API base URL
-      const response = await fetch(`${API_BASE_URL}/agent/prospect-data?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('agent_token') || localStorage.getItem('token')}`
-        }
-      });
-      
-      console.log('API response status:', response.status, response.ok);
-      
-      if (!response.ok) {
-        throw new Error(`Error fetching prospect data: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('Prospect data received:', data);
-      
-      // Update contact name in agent state if available
-      if (data.first_name || data.last_name) {
-        const contactName = [data.first_name, data.last_name]
-          .filter(Boolean)
-          .join(' ');
-        
-        if (contactName) {
-          console.log('Updating contact name in agent state:', contactName);
-          // Update the agent state with the contact name
-          // Don't use startCall which expects a different parameter shape
-          $agentState = {
-            ...$agentState,
-            contactName
-          };
-        }
-      }
-      
-      // Update local prospect data
-      console.log('Setting prospectData variable:', data);
-      prospectData = data;
-      console.log('prospectData after assignment:', prospectData);
-      
-      return data;
-    } catch (error) {
-      console.error('Error fetching prospect data:', error);
-      return null;
+    } catch (err) {
+      console.error('Erreur lors du chargement des données du prospect:', err);
     }
   }
   
-  // Function to initiate a manual call
-  async function callFromList(phoneNumber?: string, contactName?: string, leadId?: string | null) {
-    console.log(`Call from list with status: ${$agentState.status}`);
-    
-    // Check if we have at least a phone number or a lead ID
-    if ((!phoneNumber || phoneNumber.trim() === '') && (!leadId || leadId.trim() === '')) {
-      errorMessage = 'Phone number or Lead ID is required';
-      return;
-    }
-    
-    // Get agent ID from store
-    const agentId = $agentState.extension || $agentState.phoneLogin;
-    if (!agentId) {
-      errorMessage = 'Agent ID not available';
-      return;
-    }
-    
-    // Ne pas changer le statut si l'agent est déjà en INCALL (mode prédictif)
-    // sinon mettre en DIALING
-    if ($agentState.status !== 'INCALL') {
-      await updateAgentStatusWithBackend('DIALING');
-    }
-    
-    console.log(`Statut actuel avant l'appel: ${$agentState.status}`);
-    
-    const payload = {
-      agentId,
-      campaignId: $agentState.campaignId || 'DEFAULT',
-      phoneNumber,
-      contactName,
-      leadId
-    };
-    
-    console.log('Initiation d\'appel avec:', payload);
-    
-    try {
-      // Use direct fetch with proper API base URL
-      const response = await fetch(`${API_BASE_URL}/agent/calls/manual-call`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('agent_token') || localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(payload)
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error initiating call: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('Call initiated:', data);
-      
-      // Update agent state with call information
-      startCall({
-        leadId: leadId || null,
-        phoneNumber: phoneNumber || data.phoneNumber || '', // Use the phone number from response if not provided
-        contactName,
-        callId: data.callId
-      });
-      
-      successMessage = `Call initiated to ${phoneNumber || data.phoneNumber}`;
-      errorMessage = '';
-      
-      // Always try to get prospect data when a call is initiated
-      // First try with leadId if available
-      if (leadId) {
-        console.log('Fetching prospect data using leadId:', leadId);
-        const prospectResult = await getProspectData(leadId);
-        if (prospectResult) {
-          console.log('Successfully fetched prospect data using leadId');
-        } else if (phoneNumber) {
-          // If leadId doesn't work, try with phoneNumber
-          console.log('Fetching prospect data using phoneNumber as fallback:', phoneNumber);
-          await getProspectData(null, phoneNumber);
-        }
-      } else if (phoneNumber) {
-        // If no leadId, try with phoneNumber
-        console.log('Fetching prospect data using phoneNumber:', phoneNumber);
-        await getProspectData(null, phoneNumber);
-      }
-      
-      return data;
-    } catch (error) {
-      console.error('Error initiating call:', error);
-      errorMessage = 'Error initiating call';
-      setTimeout(() => { errorMessage = ''; }, 3000);
-      await updateAgentStatusWithBackend('WAITING');
-      return null;
-    }
-  }
-  
-  // Function to handle manual dialing
-  async function handleManualDial() {
-    if ($agentState.callActive) {
-      errorMessage = 'Cannot dial while on a call';
-      return;
-    }
-    
-    if (!manualDialNumber && !manualDialLeadId) {
-      errorMessage = 'Phone number or Lead ID is required';
-      return;
-    }
-    
-    await callFromList(manualDialNumber, manualDialName, manualDialLeadId);
-    
-    // Clear form after dialing
-    manualDialNumber = '';
-    manualDialLeadId = '';
-    manualDialName = '';
-  }
-  
-  // Function to handle ending a call
+  // Fonction pour terminer un appel
   async function handleEndCall() {
     try {
-      console.log('Ending call with ID:', $agentState.callId);
-      
-      if (!$agentState.callId) {
-        console.error('No active call ID found');
-        errorMessage = 'No active call to end';
-        setTimeout(() => { errorMessage = ''; }, 3000);
-        return;
+      if (get(agentState).callActive && get(agentState).callId) {
+        const response = await api.post('/agent/calls/hangup', {
+          callId: get(agentState).callId
+        });
+        
+        if (response.ok) {
+          endAgentCall();
+          successMessage = 'Appel terminé avec succès';
+          setTimeout(() => { successMessage = ''; }, 3000);
+          
+          // Mise à jour des statistiques
+          callStats = {
+            callsToday: callStats.callsToday + 1,
+            successfulCalls: callStats.successfulCalls + 1,
+            averageDuration: formatCallDuration(get(agentCallDuration)),
+            currentCalls: callStats.currentCalls,
+            totalCalls: callStats.totalCalls,
+            callRatio: callStats.callRatio
+          };
+          
+          // Réinitialiser l'état
+          setTimeout(() => {
+            resetCall();
+            prospectData = null;
+          }, 2000);
+        } else {
+          errorMessage = 'Erreur lors de la fin de l\'appel';
+          setTimeout(() => { errorMessage = ''; }, 3000);
+        }
       }
-      
-      const response = await api.post('/agent/calls/end-call', {
-        callId: $agentState.callId,
-        agentId: $agentState.extension || $agentState.phoneLogin
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to end call: ${response.status} ${response.statusText}`);
-      }
-      
-      // Update the UI
-      endCall();
-      successMessage = 'Appel terminé avec succès';
-      setTimeout(() => { successMessage = ''; }, 3000);
-      
-      // Reset the state after a short delay
-      setTimeout(() => {
-        resetCall();
-        prospectData = null;
-      }, 2000);
-    } catch (error) {
-      console.error('Error ending call:', error);
-      errorMessage = 'Error ending call';
+    } catch (err) {
+      errorMessage = 'Erreur lors de la fin de l\'appel';
       setTimeout(() => { errorMessage = ''; }, 3000);
-      
-      // If the call is stuck, provide an option to force reset the local state
-      if (confirm('Impossible de terminer l\'appel normalement. Voulez-vous forcer la réinitialisation de l\'interface?')) {
-        endCall();
-        setTimeout(() => {
-          resetCall();
-          prospectData = null;
-        }, 1000);
-      }
     }
   }
   
-  // Function to save prospect data
-  async function saveProspectData(data: Record<string, any>) {
+  // Charger la campagne depuis le localStorage
+  function loadCampaignFromLocalStorage() {
     try {
-      // In a real implementation, we would send this data to the backend
-      console.log('Saving prospect data:', data);
-      successMessage = 'Prospect data saved';
+      // Récupérer l'ID de campagne du localStorage
+      const campaignId = localStorage.getItem('campaign_id');
       
-      // Update local prospect data
-      prospectData = data;
-    } catch (error) {
-      console.error('Error saving prospect data:', error);
-      errorMessage = 'Error saving prospect data';
-    }
-  }
-  
-  // Function to toggle predictive dialing mode
-  function togglePredictiveMode() {
-    predictiveMode = !predictiveMode;
-    
-    if (predictiveMode) {
-      successMessage = 'Predictive dialing mode activated';
-      startPredictive();
-    } else {
-      successMessage = 'Predictive dialing mode deactivated';
-      stopPredictive();
-    }
-  }
-  
-  // Function to update agent status on both frontend and backend
-  async function updateAgentStatusWithBackend(status: AgentStatus, pauseCode?: string) {
-    console.log(`Updating agent status to ${status}${pauseCode ? ` with pause code ${pauseCode}` : ''}`);
-    
-    // Update local state first for immediate UI feedback
-    updateAgentStatus(status);
-    
-    // Prepare payload
-    const payload: any = { status };
-    if (pauseCode) payload.pauseCode = pauseCode;
-    
-    // Use direct fetch with proper API base URL
-    try {
-      const response = await fetch(`${API_BASE_URL}/agent/status`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('agent_token') || localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(payload)
-      });
-      
-      if (!response.ok) {
-        console.error('Failed to update status on backend:', response.status, response.statusText);
-        errorMessage = 'Failed to update agent status';
-        setTimeout(() => { errorMessage = ''; }, 3000);
+      if (campaignId) {
+        selectedCampaign = campaignId;
+        console.log('Campagne chargée depuis localStorage:', campaignId);
+        
+        // Récupérer les informations de l'agent depuis le token JWT
+        const agentToken = localStorage.getItem('agent_token');
+        if (agentToken) {
+          try {
+            // Décoder le token JWT pour obtenir le nom de la campagne
+            const tokenParts = agentToken.split('.');
+            if (tokenParts.length === 3) {
+              const payload = JSON.parse(atob(tokenParts[1]));
+              campaignName = payload.campaign_name || '';
+            }
+          } catch (tokenErr) {
+            console.error('Erreur lors du décodage du token:', tokenErr);
+          }
+        }
+        
+        return true;
+      } else {
+        console.warn('Aucun ID de campagne trouvé dans le localStorage');
         return false;
       }
-      
-      console.log(`Successfully updated agent status to ${status}`);
-      return true;
-    } catch (error) {
-      console.error('Error updating agent status:', error);
-      errorMessage = 'Error updating agent status';
-      setTimeout(() => { errorMessage = ''; }, 3000);
+    } catch (err) {
+      console.error('Erreur lors du chargement de la campagne depuis localStorage:', err);
       return false;
     }
   }
   
-  // Function to start predictive dialing
-  async function startPredictive() {
-    waitingForCall = true;
+  // Fonction pour mettre à jour les statistiques du mode prédictif
+  async function updatePredictiveStats() {
+    if (!predictiveMode || !selectedCampaign) return;
     
-    // Changer directement le statut en INCALL sans passer par READY
-    await updateAgentStatusWithBackend('INCALL');
-    
-    // Démarrer l'appel immédiatement sans délai
-    simulatePredictiveCall();
-    
-    successMessage = 'Appel en cours de lancement...';
-    setTimeout(() => { successMessage = ''; }, 3000);
-  }
-  
-  // Function to stop predictive dialing
-  async function stopPredictive() {
-    waitingForCall = false;
-    await updateAgentStatusWithBackend('PAUSED', 'OTHER');
-    
-    successMessage = 'Predictive dialing mode deactivated';
-    setTimeout(() => { successMessage = ''; }, 3000);
-  }
-  
-  // Simulate a predictive call (for demo purposes)
-  function simulatePredictiveCall() {
-    console.log('Tentative de simulation d\'un appel prédictif...');
-    console.log('status:', $agentState.status);
-    console.log('waitingForCall:', waitingForCall);
-    console.log('campaignNumbers:', campaignNumbers);
-    
-    // Appeler immédiatement quel que soit le statut de l'agent
-    // L'agent est déjà en statut INCALL à ce stade
-    if (campaignNumbers.length > 0) {
-      console.log('Lancement immédiat de l\'appel prédictif...');
-      callNextNumber();
-    } else {
-      console.log('Impossible de lancer un appel: pas de numéros disponibles');
-      errorMessage = 'Aucun numéro disponible pour l\'appel prédictif';
-      setTimeout(() => { errorMessage = ''; }, 3000);
-      
-      // Réinitialiser le statut de l'agent si aucun appel ne peut être lancé
-      updateAgentStatusWithBackend('READY');
+    try {
+      const response = await api.get(`/predictive/stats?campaignId=${selectedCampaign}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.stats) {
+          callStats = {
+            callsToday: data.stats.totalCalls || 0,
+            successfulCalls: data.stats.successfulCalls || 0,
+            averageDuration: formatCallDuration(data.stats.averageDuration || 0),
+            currentCalls: data.stats.currentCalls || 0,
+            totalCalls: data.stats.totalCalls || 0,
+            callRatio: data.stats.callRatio || 0
+          };
+        }
+      }
+    } catch (err) {
+      console.error('Erreur lors de la récupération des statistiques:', err);
     }
   }
   
-  // Call the next number in the campaign list
-  async function callNextNumber() {
-    // Filter available numbers
-    const availableNumbers = campaignNumbers.filter(n => !n.called);
-    console.log(`${availableNumbers.length} numéros disponibles sur ${campaignNumbers.length} total`);
-    
-    if (availableNumbers.length > 0) {
-      // Get the next number
-      const nextNumber = availableNumbers[0];
-      console.log('Prochain numéro à appeler:', nextNumber);
-      
-      // Mark as called
-      const index = campaignNumbers.findIndex(n => n.phone_number === nextNumber.phone_number);
-      if (index !== -1) {
-        campaignNumbers[index].called = true;
+  // Fonction pour activer/désactiver le mode prédictif
+  async function togglePredictiveMode() {
+    try {
+      // Si le mode prédictif n'est pas actif, essayer de charger la campagne depuis localStorage
+      if (!predictiveMode && !selectedCampaign) {
+        const campaignLoaded = loadCampaignFromLocalStorage();
+        if (!campaignLoaded) {
+          errorMessage = 'Aucune campagne disponible. Veuillez vous reconnecter.';
+          setTimeout(() => { errorMessage = ''; }, 3000);
+          return;
+        }
       }
       
-      console.log(`Initiation d'un appel vers ${nextNumber.phone_number} ( ${nextNumber.first_name} ${nextNumber.last_name} )`);
+      predictiveMode = !predictiveMode;
       
-      // Générer un ID temporaire pour l'appel
-      const tempCallId = `pred_${Date.now()}`;
-      
-      // Mettre à jour l'interface avant même que l'appel ne soit lancé
-      // pour une réponse immédiate
-      startCall({
-        leadId: nextNumber.lead_id,
-        phoneNumber: nextNumber.phone_number,
-        callId: tempCallId,
-        contactName: `${nextNumber.first_name} ${nextNumber.last_name}`
-      });
-      
-      // Récupérer les données du prospect immédiatement
-      await getProspectData(nextNumber.lead_id, nextNumber.phone_number);
-      
-      try {
-        // Créer directement la requête API pour l'appel au lieu d'utiliser callFromList
-        // pour éviter les conflits de statut
-        const payload = {
-          agentId: $agentState.extension || $agentState.phoneLogin,
-          campaignId: $agentState.campaignId || 'DEFAULT',
-          phoneNumber: nextNumber.phone_number,
-          contactName: `${nextNumber.first_name} ${nextNumber.last_name}`,
-          leadId: nextNumber.lead_id
-        };
+      if (predictiveMode) {
+        // Mettre à jour le statut de l'agent à READY
+        setAgentReady();
         
-        console.log('Envoi direct de la requête d\'appel:', payload);
+        // Mettre à jour le statut sur le serveur
+        try {
+          await api.post('/agent/status', { status: AGENT_STATUSES.READY });
+        } catch (statusErr) {
+          // Erreur silencieuse - déjà loggée par l'API
+        }
         
-        const response = await fetch(`${API_BASE_URL}/agent/calls/manual-call`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('agent_token') || localStorage.getItem('token')}`
-          },
-          body: JSON.stringify(payload)
+        // Appel API pour démarrer le composeur prédictif
+        const response = await api.post('/predictive/start', {
+          campaignId: selectedCampaign,
+          level: dialLevel
         });
         
-        if (!response.ok) {
-          throw new Error(`Erreur lors de l'initiation de l'appel: ${response.status}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.campaignName) campaignName = data.campaignName;
+          if (data.dialLevel) callStats.callRatio = data.dialLevel;
+          
+          successMessage = `Mode prédictif activé pour ${campaignName || selectedCampaign}`;
+          setTimeout(() => { successMessage = ''; }, 3000);
+          waitingForCall = true;
+          
+          // Démarrer la vérification périodique des appels et des statistiques
+          predictiveCheckInterval = window.setInterval(() => {
+            checkForIncomingCalls();
+            updatePredictiveStats();
+          }, 3000);
+        } else {
+          const data = await response.json();
+          errorMessage = `Erreur: ${data.message || 'Erreur lors de l\'activation du mode prédictif'}`;
+          setTimeout(() => { errorMessage = ''; }, 3000);
+          predictiveMode = false;
+          setAgentPaused('SYSTEM', 'Erreur activation mode prédictif');
         }
+      } else {
+        // Mettre à jour le statut de l'agent à PAUSED
+        setAgentPaused('SYSTEM', 'Arrêt mode prédictif');
         
-        const data = await response.json();
-        console.log('Appel initié avec succès:', data);
-        
-        // Mettre à jour l'ID d'appel avec celui retourné par l'API
-        if (data.callId) {
-          startCall({
-            leadId: nextNumber.lead_id,
-            phoneNumber: nextNumber.phone_number,
-            callId: data.callId,
-            contactName: `${nextNumber.first_name} ${nextNumber.last_name}`
+        // Mettre à jour le statut sur le serveur
+        try {
+          await api.post('/agent/status', {
+            status: AGENT_STATUSES.PAUSED,
+            pauseCode: 'SYSTEM'
           });
+        } catch (statusErr) {
+          // Erreur silencieuse - déjà loggée par l'API
         }
         
-        successMessage = `Appel lancé vers ${nextNumber.phone_number}`;
-      } catch (error) {
-        console.error('Erreur lors du lancement de l\'appel:', error);
-        errorMessage = 'Erreur lors du lancement de l\'appel';
-        setTimeout(() => { errorMessage = ''; }, 3000);
+        // Appel API pour arrêter le composeur prédictif
+        const response = await api.post('/predictive/stop', {
+          campaignId: selectedCampaign
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.stats) {
+            callStats = {
+              ...callStats,
+              totalCalls: data.stats.totalCalls || callStats.totalCalls,
+              successfulCalls: data.stats.successfulCalls || callStats.successfulCalls
+            };
+          }
+        }
+        
+        // Arrêter la vérification périodique des appels
+        if (predictiveCheckInterval) clearInterval(predictiveCheckInterval);
+        
+        successMessage = `Mode prédictif désactivé pour ${campaignName || selectedCampaign}`;
+        setTimeout(() => { successMessage = ''; }, 3000);
+        waitingForCall = false;
       }
-    } else {
-      console.log('Aucun numéro disponible à appeler');
-      successMessage = 'Aucun numéro disponible';
-      stopPredictive();
+    } catch (err) {
+      console.error('Erreur lors du changement de mode prédictif:', err);
+      errorMessage = 'Erreur lors du changement de mode prédictif';
+      setTimeout(() => { errorMessage = ''; }, 3000);
+      predictiveMode = !predictiveMode; // Revenir à l'état précédent
     }
   }
   
-  // Load campaign numbers (simulation)
-  function loadCampaignNumbers() {
-    console.log('Utilisation de numéros de campagne simulés');
-    
-    // Simulate campaign numbers
-    campaignNumbers = [
-      { phone_number: '0123456789', first_name: 'Jean', last_name: 'Dupont', lead_id: '101', called: false },
-      { phone_number: '0234567890', first_name: 'Marie', last_name: 'Martin', lead_id: '102', called: false },
-      { phone_number: '0345678901', first_name: 'Pierre', last_name: 'Durand', lead_id: '103', called: false },
-      { phone_number: '0456789012', first_name: 'Sophie', last_name: 'Lefebvre', lead_id: '104', called: false }
-    ];
-    
-    console.log(`${campaignNumbers.length} numéros simulés disponibles pour la campagne`);
+  // Fonction pour sauvegarder les données du prospect
+  async function saveProspectData(data: any) {
+    try {
+      const response = await api.post('/agent/prospect/save', {
+        leadId: get(agentState).leadId,
+        prospectData: data
+      });
+      
+      if (response.ok) {
+        prospectData = data;
+        successMessage = 'Données du prospect sauvegardées';
+        setTimeout(() => { successMessage = ''; }, 3000);
+      } else {
+        errorMessage = 'Erreur lors de la sauvegarde des données';
+        setTimeout(() => { errorMessage = ''; }, 3000);
+      }
+    } catch (err) {
+      errorMessage = 'Erreur lors de la sauvegarde des données';
+      setTimeout(() => { errorMessage = ''; }, 3000);
+    }
   }
   
-  // Start checking for calls on component mount
+  // Fonctions utilitaires
+  const handleCheckCalls = () => checkForIncomingCalls();
+  const closeErrorMessage = () => errorMessage = '';
+  const closeSuccessMessage = () => successMessage = '';
+  const toggleStats = () => showCallStats = !showCallStats;
+  
+  // Initialisation au montage du composant
   onMount(() => {
-    // Load campaign numbers for simulation
-    loadCampaignNumbers();
+    // Charger la campagne depuis le localStorage
+    loadCampaignFromLocalStorage();
     
-    // Start checking for calls
-    checkCallsInterval = setInterval(checkForIncomingCalls, CHECK_CALLS_INTERVAL) as unknown as number;
+    // Vérifier les appels entrants toutes les 3 secondes
+    predictiveCheckInterval = window.setInterval(checkForIncomingCalls, 3000);
     
+    // Nettoyer l'intervalle lors de la destruction du composant
     return () => {
-      if (checkCallsInterval) clearInterval(checkCallsInterval);
+      if (predictiveCheckInterval) clearInterval(predictiveCheckInterval);
     };
   });
   
-  // Clean up on component destroy
+  // Nettoyage à la destruction du composant
   onDestroy(() => {
-    if (checkCallsInterval) clearInterval(checkCallsInterval);
+    if (predictiveCheckInterval) clearInterval(predictiveCheckInterval);
+    if (callTimer) clearInterval(callTimer);
   });
-  
-  // Watch for changes in call state to pause/resume checking
-  $: if ($agentState.callActive) {
-    console.log('Vérification des appels entrants suspendue pendant l\'appel');
-    if (checkCallsInterval) {
-      clearInterval(checkCallsInterval);
-      checkCallsInterval = undefined;
-    }
-  } else if (!checkCallsInterval) {
-    console.log('Reprise de la vérification des appels entrants');
-    checkCallsInterval = setInterval(checkForIncomingCalls, CHECK_CALLS_INTERVAL) as unknown as number;
-  }
-  
-  // Watch for changes in callEnded prop
-  $: if (callEnded) {
-    handleEndCall();
-  }
-  
-  // Type definition for prospect data
-  interface ProspectData {
-    lead_id?: string;
-    first_name?: string;
-    last_name?: string;
-    phone_number?: string;
-    address1?: string;
-    address2?: string;
-    city?: string;
-    state?: string;
-    postal_code?: string;
-    email?: string;
-    comments?: string;
-    [key: string]: any;
-  }
 </script>
 
-<div class="container-fluid">
-  <div class="card mb-4 shadow">
-    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-      <h2 class="h5 mb-0 d-flex align-items-center">
-        <i class="bi bi-telephone-fill me-2"></i>
-        Predictive Dialer
-      </h2>
-      <div class="d-flex align-items-center">
-        <span class="me-2 small">Status:</span>
-        <span class="badge {$agentState.callActive ? 'bg-success' : 'bg-warning'}">
-          {$agentState.callActive ? 'In Call' : $agentState.status}
-        </span>
+<div class="container-fluid py-4 bg-light">
+  <div class="container mb-4">
+    <!-- Notifications -->
+    {#if errorMessage}
+      <div 
+        class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"
+        in:fly={{ x: 300, duration: 300, easing: quintOut }}
+        out:fly={{ x: 300, duration: 200 }}
+      >
+        <div class="toast show align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="d-flex">
+            <div class="toast-body">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              {errorMessage}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" on:click={closeErrorMessage}></button>
+          </div>
+        </div>
+      </div>
+    {/if}
+    
+    {#if successMessage}
+      <div 
+        class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"
+        in:fly={{ x: 300, duration: 300, easing: quintOut }}
+        out:fly={{ x: 300, duration: 200 }}
+      >
+        <div class="toast show align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="d-flex">
+            <div class="toast-body">
+              <i class="bi bi-check-circle-fill me-2"></i>
+              {successMessage}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" on:click={closeSuccessMessage}></button>
+          </div>
+        </div>
+      </div>
+    {/if}
+
+    <!-- Header avec titre et statut -->
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-white py-3">
+        <div class="row align-items-center">
+          <div class="col-md-7">
+            <h5 class="card-title d-flex align-items-center mb-0 fw-bold">
+              <i class="bi bi-telephone-fill text-primary me-2 fs-4"></i>
+              Composeur Prédictif
+            </h5>
+            <p class="card-text text-muted small mt-1 mb-0">Gérez vos appels sortants automatiquement</p>
+          </div>
+          
+          <div class="col-md-5 d-flex justify-content-end align-items-center gap-2">
+            <!-- Statut de l'agent -->
+            <div class="d-flex align-items-center">
+              <span class="badge {predictiveMode ? 'bg-success' : 'bg-secondary'} d-flex align-items-center py-2 px-3">
+                {#if predictiveMode}
+                  <span class="spinner-grow spinner-grow-sm me-2" role="status" aria-hidden="true"></span>
+                {/if}
+                <i class="bi {predictiveMode ? 'bi-headset' : 'bi-headset-vr'} me-1"></i>
+                <span>
+                  {#if predictiveMode}
+                    Mode prédictif actif - {campaignName || selectedCampaign}
+                  {:else}
+                    Mode prédictif inactif
+                  {/if}
+                </span>
+              </span>
+            </div>
+            
+            <!-- Boutons de contrôle -->
+            <button 
+              class="btn {predictiveMode ? 'btn-danger' : 'btn-success'}"
+              on:click={togglePredictiveMode}
+            >
+              {predictiveMode ? 'Arrêter' : 'Démarrer'}
+            </button>
+            
+            <button 
+              class="btn btn-outline-primary btn-sm"
+              on:click={() => showCallStats = !showCallStats}
+              aria-label="Statistiques"
+            >
+              <i class="bi bi-bar-chart-fill"></i>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
-    
-    <div class="card-body">
-      {#if errorMessage}
-        <div class="alert alert-danger d-flex align-items-center mb-3" role="alert">
-          <i class="bi bi-exclamation-circle-fill me-2"></i>
-          <div>{errorMessage}</div>
-        </div>
-      {/if}
-      
-      {#if successMessage}
-        <div class="alert alert-success d-flex align-items-center mb-3" role="alert">
-          <i class="bi bi-check-circle-fill me-2"></i>
-          <div>{successMessage}</div>
-        </div>
-      {/if}
-      
-      <div class="d-flex justify-content-between mb-3 gap-3">
+
+    {#if showCallStats}
+    <div class="card shadow-sm border-0 mb-4" transition:slide={{ duration: 300 }}>
+      <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <h5 class="card-title mb-0 d-flex align-items-center fw-bold">
+          <i class="bi bi-bar-chart-fill text-primary me-2"></i>
+          Statistiques d'appels
+        </h5>
         <button 
-          class="btn flex-grow-1 d-flex align-items-center justify-content-center {predictiveMode ? 'btn-danger' : 'btn-primary'}" 
-          on:click={togglePredictiveMode}
-        >
-          <i class="bi {predictiveMode ? 'bi-x-lg' : 'bi-play-circle'} me-2"></i>
-          {predictiveMode ? 'Stop Predictive' : 'Start Predictive'}
-        </button>
-        
-        <button 
-          class="btn btn-secondary flex-grow-1 d-flex align-items-center justify-content-center" 
-          disabled={$agentState.callActive} 
-          on:click={checkForIncomingCalls}
-        >
-          <i class="bi bi-arrow-repeat me-2"></i>
-          Check Calls
-        </button>
+          type="button" 
+          class="btn-close" 
+          aria-label="Fermer" 
+          on:click={() => showCallStats = false}
+        ></button>
       </div>
-  
-      {#if $agentState.callActive}
-        <div class="card mb-3 border-primary">
-          <div class="card-body">
-            <div class="d-flex align-items-start">
-              <div class="bg-primary rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                <i class="bi bi-telephone-fill text-white fs-4"></i>
-              </div>
-              <div class="flex-grow-1">
-                <h5 class="d-flex align-items-center">
-                  <span class="me-2">Active Call</span>
-                  <span class="badge bg-success rounded-pill">Active</span>
-                </h5>
-                
-                <div class="row mt-2 g-2">
-                  <div class="col-md-6 d-flex align-items-center">
-                    <i class="bi bi-telephone me-2 text-primary"></i>
-                    <span class="fw-medium">{$agentState.phoneNumber || 'N/A'}</span>
+      
+      <div class="card-body p-4">
+        <div class="row g-4">
+          <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+              <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="text-primary fw-bold mb-1">Appels aujourd'hui</h6>
+                    <h3 class="display-6 fw-bold mb-0">{callStats.callsToday}</h3>
                   </div>
-                  
-                  {#if $agentState.contactName}
-                    <div class="col-md-6 d-flex align-items-center">
-                      <i class="bi bi-person me-2 text-primary"></i>
-                      <span class="fw-medium">{$agentState.contactName}</span>
+                  <div class="bg-light rounded-circle p-3 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-telephone-outbound fs-3 text-primary"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+              <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="text-success fw-bold mb-1">Appels réussis</h6>
+                    <h3 class="display-6 fw-bold mb-0">{callStats.successfulCalls}</h3>
+                  </div>
+                  <div class="bg-light rounded-circle p-3 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-check-circle fs-3 text-success"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+              <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="text-info fw-bold mb-1">Durée moyenne</h6>
+                    <h3 class="display-6 fw-bold mb-0">{callStats.averageDuration}</h3>
+                  </div>
+                  <div class="bg-light rounded-circle p-3 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-clock-history fs-3 text-info"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {/if}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Contrôles de numérotation -->
+      <div class="mb-4">
+        
+    
+        </div>
+
+        {#if get(agentState).callActive}
+          <!-- Carte d'appel actif -->
+          <div 
+            class="card shadow mb-4"
+            in:scale={{ duration: 400, start: 0.9 }}
+          >
+            <div class="card-header bg-success text-white p-4">
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                  <div class="rounded-circle bg-white bg-opacity-25 p-3 me-3">
+                    <i class="bi bi-telephone-fill text-white fs-4 animate-pulse"></i>
+                  </div>
+                  <div>
+                    <h3 class="mb-0 fs-4">Appel en cours</h3>
+                    <p class="mb-0 text-white-50">{formatCallDuration($agentCallDuration)}s</p>
+                  </div>
+                </div>
+                <button 
+                  class="btn btn-outline-light"
+                  on:click={handleEndCall}
+                >
+                  <i class="bi bi-x-lg me-2"></i>
+                  Terminer l'appel
+                </button>
+              </div>
+            </div>
+            
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <div class="card border-0 bg-light">
+                    <div class="card-body">
+                      <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
+                          <i class="bi bi-telephone-fill text-primary"></i>
+                        </div>
+                        <div>
+                          <small class="text-muted d-block">Numéro</small>
+                          <span class="fw-medium">{get(agentState).phoneNumber || 'Numéro inconnu'}</span>
+                        </div>
+                      </div>
                     </div>
-                  {/if}
-                  
-                  {#if $agentState.leadId}
-                    <div class="col-md-6 d-flex align-items-center">
-                      <i class="bi bi-hash me-2 text-primary"></i>
-                      <span class="fw-medium">Lead ID: {$agentState.leadId}</span>
+                  </div>
+                </div>
+                
+                <div class="col-md-6">
+                  <div class="card border-0 bg-light">
+                    <div class="card-body">
+                      <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-info bg-opacity-10 p-2 me-3">
+                          <i class="bi bi-person-fill text-info"></i>
+                        </div>
+                        <div>
+                          <small class="text-muted d-block">Contact</small>
+                          <span class="fw-medium">{get(agentState).contactName || 'Contact inconnu'}</span>
+                        </div>
+                      </div>
                     </div>
-                  {/if}
-                  
-                  <div class="col-md-6 d-flex align-items-center">
-                    <i class="bi bi-clock me-2 text-primary"></i>
-                    <span class="fw-medium">Duration: {Math.floor($agentState.callDuration / 60)}:{($agentState.callDuration % 60).toString().padStart(2, '0')}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {:else}
+     
+        {/if}
+      </div>
+
+      <!-- Informations du prospect -->
+      <div class="card shadow-sm border-0 mb-4" in:fade={{ duration: 400, delay: 300 }}>
+        <div class="card-header bg-gradient-primary text-white p-4">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+              <div class="rounded-circle bg-white bg-opacity-25 p-2 me-3">
+                <i class="bi bi-person-circle fs-4"></i>
+              </div>
+              <div>
+                <h5 class="card-title mb-0 fw-bold">Informations prospect</h5>
+                <p class="card-subtitle text-white-50 small mb-0">Données du contact actuel</p>
+              </div>
+            </div>
+            
+            {#if prospectData}
+              <button class="btn btn-sm btn-outline-light" aria-label="Edit prospect data">
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-pencil-square me-2"></i>
+                  <span>Modifier</span>
+                </div>
+              </button>
+            {/if}
+          </div>
+        </div>
+        
+        <div class="card-body p-4">
+          {#if get(agentState).callActive && prospectData}
+            <div class="prospect-form" in:slide={{ duration: 300 }}>
+              <!-- Formulaire prospect -->
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label class="form-label" for="firstName">Prénom</label>
+                  <input 
+                    type="text" 
+                    value={prospectData?.firstName || ''}
+                    on:input={(e) => prospectData = {...prospectData, firstName: e.target.value}}
+                    class="form-control" 
+                    placeholder="Prénom du prospect"
+                    id="firstName"
+                    readonly
+                  />
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label" for="lastName">Nom</label>
+                  <input 
+                    type="text" 
+                    value={prospectData?.lastName || ''}
+                    on:input={(e) => prospectData = {...prospectData, lastName: e.target.value}}
+                    class="form-control"
+                    placeholder="Nom du prospect"
+                    id="lastName"
+                    readonly
+                  />
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label" for="phone">Téléphone</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                    <input 
+                      type="tel" 
+                      value={prospectData?.phone || ''}
+                      on:input={(e) => prospectData = {...prospectData, phone: e.target.value}}
+                      class="form-control"
+                      placeholder="Numéro de téléphone"
+                      id="phone"
+                      readonly
+                    />
+                  </div>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label" for="email">Email</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                    <input 
+                      type="email" 
+                      value={prospectData?.email || ''}
+                      on:input={(e) => prospectData = {...prospectData, email: e.target.value}}
+                      class="form-control"
+                      placeholder="Adresse email"
+                      id="email"
+                      readonly
+                    />
                   </div>
                 </div>
               </div>
               
+              <div class="mb-3">
+                <label class="form-label" for="company">Entreprise</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-building"></i></span>
+                  <input 
+                    type="text" 
+                    value={prospectData?.company || ''}
+                    on:input={(e) => prospectData = {...prospectData, company: e.target.value}}
+                    class="form-control"
+                    placeholder="Nom de l'entreprise"
+                    id="company"
+                    readonly
+                  />
+                </div>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label" for="notes">Commentaires</label>
+                <textarea 
+                  value={prospectData?.notes || ''}
+                  on:input={(e) => prospectData = {...prospectData, notes: e.target.value}}
+                  rows="3"
+                  class="form-control"
+                  placeholder="Ajoutez vos commentaires ici..."
+                  id="notes"
+                ></textarea>
+                <div class="form-text">Seul ce champ peut être modifié par l'agent.</div>
+              </div>
+              
               <button 
-                class="btn btn-danger d-flex align-items-center" 
-                on:click={handleEndCall}
+                class="btn btn-success w-100 py-3"
+                aria-label="Save prospect data"
+                on:click={() => saveProspectData(prospectData)}
               >
-                <i class="bi bi-x-lg me-1"></i>
-                End Call
+                <div class="d-flex align-items-center justify-content-center">
+                  <i class="bi bi-save me-2 fs-5"></i>
+                  <span>Sauvegarder les commentaires</span>
+                </div>
               </button>
             </div>
-          </div>
-        </div>
-      {:else}
-        <!-- Manual dial section removed as requested -->
-        <div class="alert alert-info">
-          <div class="d-flex align-items-center">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            <div>
-              <p class="mb-0">Waiting for predictive dialer to assign a call.</p>
+          {:else}
+            <!-- État vide -->
+            <div class="text-center py-4">
+              <div class="bg-light rounded-circle p-4 d-inline-flex align-items-center justify-content-center mb-3" style="width: 100px; height: 100px;">
+                <i class="bi bi-person-circle text-secondary fs-1"></i>
+              </div>
+              <h3 class="fs-4 fw-bold mb-2">Aucun prospect actif</h3>
+              <p class="text-muted mb-4">Les informations du prospect s'afficheront pendant un appel</p>
+              <button class="btn btn-outline-primary" aria-label="Manual call">
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-telephone-plus me-2"></i>
+                  <span>Appel manuel</span>
+                </div>
+              </button>
             </div>
-          </div>
-        </div>
-  {/if}
-  
-  {#if predictiveMode}
-    <div class="alert alert-warning">
-      <div class="d-flex align-items-center">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        <div>
-          <p class="mb-1">Predictive dialing mode is active. The system will automatically dial the next available number.</p>
-          {#if waitingForCall}
-            <p class="fw-bold mb-0">Waiting for next call...</p>
           {/if}
         </div>
       </div>
     </div>
-  {/if}
-  </div><!-- end of card-body -->
-  </div><!-- end of card -->
-  
-  <div class="card mb-4">
-    <div class="card-header bg-light">
-      <h5 class="mb-0 d-flex align-items-center">
-        <i class="bi bi-person-lines-fill me-2 text-primary"></i>
-        Informations du prospect
-      </h5>
-    </div>
-    <div class="card-body">
-      {#if $agentState.callActive}
-        <!-- Always show the form when a call is active, even if prospectData is null -->
-        <ProspectForm prospectData={prospectData || {}} onSave={saveProspectData} />
-      {:else if prospectData}
-        <!-- Show the form if we have prospect data but no active call -->
-        <ProspectForm prospectData={prospectData} onSave={saveProspectData} />
-      {:else}
-        <div class="text-center py-4 text-secondary">
-          <i class="bi bi-person-circle fs-1 mb-3"></i>
-          <h5 class="mb-2">Aucun prospect actif</h5>
-          <p class="mb-2 small">Les informations du prospect s'afficheront ici pendant un appel.</p>
-          <p class="text-muted small">Utilisez le composant de numérotation pour initier un appel.</p>
-        </div>
-      {/if}
-    </div>
-  </div>
-</div>
 
 <style>
-  /* All styling is now handled by Bootstrap */
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+  
+  .bg-gradient-primary {
+    background: linear-gradient(to right, #4f46e5, #7e22ce);
+  }
+  
+  .bg-white.bg-opacity-25 {
+    background-color: rgba(255, 255, 255, 0.25);
+  }
 </style>
