@@ -11,7 +11,7 @@
 module.exports = {
   // Configuration de la base de données
   database: {
-    host: process.env.DB_HOST || '213.32.34.33',
+    host: process.env.DB_HOST || '213.32.34.38',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || 'root',
     database: process.env.DB_NAME || 'asterisk',
@@ -33,7 +33,7 @@ module.exports = {
   
   // Configuration Asterisk
   asterisk: {
-    host: process.env.ASTERISK_HOST || '213.32.34.33',
+    host: process.env.ASTERISK_HOST || '213.32.34.38',
     port: process.env.ASTERISK_PORT || 5038, // Port AMI standard
     username: process.env.ASTERISK_USERNAME || 'cron', // Utilisateur AMI confirmé dans manager.conf
     password: process.env.ASTERISK_PASSWORD || '1234', // Mot de passe confirmé dans manager.conf
@@ -47,7 +47,7 @@ module.exports = {
     simulationModeEnabled: false, // Désactiver le mode simulation par défaut
     eventMask: 'call,system,user,agent', // Inclure les événements agent pour le suivi des agents
     sipPort: 5060, // Port SIP standard
-    sipDomain: '213.32.34.33' // Domaine SIP pour l'enregistrement des extensions
+    sipDomain: '213.32.34.38' // Domaine SIP pour l'enregistrement des extensions
   },
   
   // Configuration du serveur

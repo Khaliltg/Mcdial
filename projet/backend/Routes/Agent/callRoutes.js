@@ -1,12 +1,143 @@
-const express = require("express")
-const router = express.Router()
-const db = require("../../config/bd") // Utiliser la connexion existante
-const dotenv = require("dotenv")
-const { authenticateToken } = require("../../middleware/auth")
-const asteriskService = require("../../services/asteriskService")
+const express = require("express");
+const router = express.Router();
+const db = require("../../config/bd"); // Utiliser la connexion existante
+const dotenv = require("dotenv");
+const { authenticateToken } = require("../../middleware/auth");
+const asteriskService = require("../../services/asteriskService");
+
+// Stockage des informations d'appel en cours par agent
+const activeCallsByAgent = new Map();
+
+// Écouter les événements d'appel du service Asterisk
+asteriskService.on('callConnected', (callData) => {
+  console.log('Appel connecté détecté:', callData);
+  
+  // Récupérer l'agent associé à cet appel
+  db.query(
+    'SELECT user FROM vicidial_auto_calls WHERE uniqueid = ? OR callerid LIKE ?',
+    [callData.uniqueId, `%${callData.uniqueId}%`]
+  ).then(([rows]) => {
+    if (rows && rows.length > 0) {
+      const agentId = rows[0].user;
+      console.log(`Appel associé à l'agent ${agentId}`);
+      
+      // Stocker les informations d'appel pour cet agent
+      activeCallsByAgent.set(agentId, {
+        ...callData,
+        timestamp: Date.now()
+      });
+    }
+  }).catch(err => {
+    console.error('Erreur lors de la récupération de l\'agent pour l\'appel:', err);
+  });
+});
+
+// Écouter les événements de fin d'appel
+asteriskService.on('callHangup', (callData) => {
+  console.log('Fin d\'appel détectée:', callData);
+  
+  // Parcourir tous les agents pour trouver celui qui a cet appel
+  for (const [agentId, activeCall] of activeCallsByAgent.entries()) {
+    if (activeCall.uniqueId === callData.uniqueId) {
+      console.log(`Suppression de l'appel pour l'agent ${agentId}`);
+      activeCallsByAgent.delete(agentId);
+      break;
+    }
+  }
+});
 
 // Charger les variables d'environnement
 dotenv.config()
+
+// Route pour récupérer les informations d'appel en cours pour un agent
+router.get("/active-call", authenticateToken, async (req, res) => {
+  try {
+    const agentId = req.user.user;
+    
+    // Vérifier si l'agent a un appel en cours
+    const activeCall = activeCallsByAgent.get(agentId);
+    
+    if (activeCall) {
+      // Si l'appel est trop ancien (plus de 30 minutes), le supprimer
+      const callAge = Date.now() - activeCall.timestamp;
+      if (callAge > 30 * 60 * 1000) { // 30 minutes en millisecondes
+        activeCallsByAgent.delete(agentId);
+        return res.json({ success: true, hasActiveCall: false });
+      }
+      
+      // Renvoyer les informations de l'appel
+      return res.json({
+        success: true,
+        hasActiveCall: true,
+        callData: {
+          leadId: activeCall.leadId,
+          phoneNumber: activeCall.phoneNumber,
+          firstName: activeCall.firstName,
+          lastName: activeCall.lastName,
+          address: activeCall.address,
+          city: activeCall.city,
+          state: activeCall.state,
+          postalCode: activeCall.postalCode,
+          email: activeCall.email,
+          comments: activeCall.comments
+        }
+      });
+    } else {
+      // Vérifier dans la base de données si l'agent a un appel en cours
+      const [callRows] = await db.query(
+        `SELECT vac.*, vl.* 
+         FROM vicidial_auto_calls vac 
+         JOIN vicidial_list vl ON vac.lead_id = vl.lead_id 
+         WHERE vac.user = ? AND vac.status IN ('SENT', 'LIVE')`,
+        [agentId]
+      );
+      
+      if (callRows && callRows.length > 0) {
+        const callInfo = callRows[0];
+        
+        // Stocker les informations d'appel pour cet agent
+        const callData = {
+          uniqueId: callInfo.uniqueid,
+          leadId: callInfo.lead_id,
+          phoneNumber: callInfo.phone_number,
+          firstName: callInfo.first_name,
+          lastName: callInfo.last_name,
+          address: callInfo.address1,
+          city: callInfo.city,
+          state: callInfo.state,
+          postalCode: callInfo.postal_code,
+          email: callInfo.email,
+          comments: callInfo.comments,
+          timestamp: Date.now()
+        };
+        
+        activeCallsByAgent.set(agentId, callData);
+        
+        return res.json({
+          success: true,
+          hasActiveCall: true,
+          callData: {
+            leadId: callData.leadId,
+            phoneNumber: callData.phoneNumber,
+            firstName: callData.firstName,
+            lastName: callData.lastName,
+            address: callData.address,
+            city: callData.city,
+            state: callData.state,
+            postalCode: callData.postalCode,
+            email: callData.email,
+            comments: callData.comments
+          }
+        });
+      } else {
+        return res.json({ success: true, hasActiveCall: false });
+      }
+    }
+  } catch (error) {
+    console.error('Erreur lors de la récupération des informations d\'appel:', error);
+    return res.status(500).json({ success: false, message: "Erreur serveur" });
+  }
+});
 
 // Route pour récupérer les informations de l'agent
 router.get("/info", authenticateToken, async (req, res) => {
@@ -85,13 +216,54 @@ router.post("/status", authenticateToken, async (req, res) => {
 
     if (results.length === 0) {
       // L'agent n'est pas dans la table, l'ajouter
+      // Récupérer l'adresse IP du serveur Asterisk depuis la base de données
+      const [serverInfo] = await db.query(
+        "SELECT server_ip FROM servers WHERE active_asterisk_server = 'Y' AND active = 'Y' LIMIT 1"
+      );
+      
+      // Utiliser l'adresse IP récupérée ou une valeur par défaut si non trouvée
+      const serverIp = (serverInfo && serverInfo.length > 0) ? serverInfo[0].server_ip : process.env.ASTERISK_HOST || '127.0.0.1';
+      
+      // Vérifier si l'extension existe déjà dans vicidial_live_agents
+      const [existingAgent] = await db.query(
+        "SELECT extension FROM vicidial_live_agents WHERE user = ? LIMIT 1",
+        [userId]
+      );
+      
+      let extension;
+      if (existingAgent && existingAgent.length > 0 && existingAgent[0].extension) {
+        extension = existingAgent[0].extension;
+      } else {
+        // Si aucune extension n'est trouvée, utiliser l'ID utilisateur comme extension par défaut
+        // ou une valeur fixe comme 1001 si l'ID utilisateur n'est pas numérique
+        extension = userId.match(/^\d+$/) ? userId : '1001';
+      }
+      
+      console.log(`Extension utilisée pour l'agent ${userId}: ${extension}`);
+      
+      // Générer un numéro de conférence au format correct (8600xxx)
+      const confExten = `8600${Math.floor(Math.random() * 900) + 100}`;
+      
+      // Formater le canal SIP correctement
+      const sipChannel = `SIP/${extension}`;
+      
       const insertQuery = `
                 INSERT INTO vicidial_live_agents 
-                (user, campaign_id, status, last_update_time, last_state_change, random_id) 
-                VALUES (?, ?, ?, NOW(), NOW(), FLOOR(RAND() * 1000000))
+                (user, server_ip, conf_exten, extension, campaign_id, status, channel,
+                 last_update_time, last_state_change, random_id, call_server_ip) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), FLOOR(RAND() * 1000000), ?)
             `
 
-      const [insertResult] = await db.query(insertQuery, [userId, campaignId, status])
+      const [insertResult] = await db.query(insertQuery, [
+        userId, 
+        serverIp, 
+        confExten, 
+        extension, 
+        campaignId, 
+        status, 
+        sipChannel,
+        serverIp
+      ])
       console.log("Agent ajouté à vicidial_live_agents, ID:", insertResult.insertId)
 
       // Si l'agent est en pause, enregistrer le code de pause
@@ -421,14 +593,52 @@ router.post("/manual-call", authenticateToken, async (req, res) => {
     }
 
     // Mettre à jour le statut de l'agent
+    // Récupérer l'adresse IP du serveur Asterisk depuis la base de données
+    const [serverInfo2] = await db.query(
+      "SELECT server_ip FROM servers WHERE active_asterisk_server = 'Y' AND active = 'Y' LIMIT 1"
+    );
+    
+    // Utiliser l'adresse IP récupérée ou une valeur par défaut si non trouvée
+    const serverIp2 = (serverInfo2 && serverInfo2.length > 0) ? serverInfo2[0].server_ip : process.env.ASTERISK_HOST || '127.0.0.1';
+    
+    // Récupérer l'extension de l'agent
+    const [userExtension2] = await db.query(
+      "SELECT extension FROM vicidial_users WHERE user = ? LIMIT 1",
+      [userId]
+    );
+    
+    const extension2 = userExtension2.length > 0 ? userExtension2[0].extension : userId;
+    
+    // Générer un numéro de conférence au format correct (8600xxx)
+    const confExten2 = `8600${Math.floor(Math.random() * 900) + 100}`;
+    
+    // Formater le canal SIP correctement
+    const sipChannel2 = `SIP/${extension2}`;
+    
     const updateStatusQuery = `
             INSERT INTO vicidial_live_agents 
-            (user, campaign_id, status, last_update_time, random_id) 
-            VALUES (?, ?, 'INCALL', NOW(), FLOOR(RAND() * 1000000))
-            ON DUPLICATE KEY UPDATE status = 'INCALL', last_update_time = NOW()
+            (user, server_ip, conf_exten, extension, campaign_id, status, channel, 
+             last_update_time, random_id, call_server_ip) 
+            VALUES (?, ?, ?, ?, ?, 'INCALL', ?, NOW(), FLOOR(RAND() * 1000000), ?)
+            ON DUPLICATE KEY UPDATE status = 'INCALL', last_update_time = NOW(), 
+            server_ip = ?, conf_exten = ?, extension = ?, channel = ?, call_server_ip = ?
         `
 
-    await db.query(updateStatusQuery, [userId, campaignId])
+    await db.query(updateStatusQuery, [
+      userId, 
+      serverIp2, 
+      confExten2, 
+      extension2, 
+      campaignId, 
+      sipChannel2,
+      serverIp2,
+      // For the ON DUPLICATE KEY UPDATE part:
+      serverIp2,
+      confExten2,
+      extension2,
+      sipChannel2,
+      serverIp2
+    ])
 
     // Générer un ID unique pour l'appel
     const uniqueId = `M-${Date.now()}-${Math.floor(Math.random() * 1000000)}`

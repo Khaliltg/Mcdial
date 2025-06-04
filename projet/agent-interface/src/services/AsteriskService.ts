@@ -8,7 +8,7 @@ import { agentState } from "../stores/agent"
  */
 export class AsteriskService {
   // Configuration Asterisk
-  private static ASTERISK_HOST = "213.32.34.33"
+  private static ASTERISK_HOST = "213.32.34.38"
   private static ASTERISK_PORT = 5038
   private static ASTERISK_USERNAME = "admin"
   private static ASTERISK_PASSWORD = "admin123"

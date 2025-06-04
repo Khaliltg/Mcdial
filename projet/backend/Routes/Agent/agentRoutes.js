@@ -138,17 +138,17 @@ router.post('/update-status', [apiLimiter, authenticateToken, validateUserId], a
             // Si l'agent n'existe pas, l'ajouter
             await db.query(`
                 INSERT INTO vicidial_live_agents 
-                (user, campaign_id, status, last_update_time, random_id) 
-                VALUES (?, ?, ?, NOW(), FLOOR(RAND() * 1000000))
-            `, [userId, campaignId, status]);
+                (user, campaign_id, status, external_status, last_update_time, random_id) 
+                VALUES (?, ?, ?, ?, NOW(), FLOOR(RAND() * 1000000))
+            `, [userId, campaignId, status, status]);
         } else {
             // Si l'agent existe, mettre à jour son statut
             await db.query(`
                 UPDATE vicidial_live_agents 
-                SET status = ?, last_update_time = NOW() 
+                SET status = ?, external_status = ?, last_update_time = NOW() 
                 WHERE user = ? 
                 AND campaign_id = ?
-            `, [status, userId, campaignId]);
+            `, [status, status, userId, campaignId]);
         }
         
         // Si c'est une pause, enregistrer le code de pause

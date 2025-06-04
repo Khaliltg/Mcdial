@@ -26,7 +26,7 @@
   let pauseCodeError = '';
   
   // Constante pour le serveur SIP (normalement définie dans SipService.ts)
-  const SIP_SERVER = '213.32.34.33';
+  const SIP_SERVER = '213.32.34.38';
   
   // Fonction pour mettre à jour l'horloge
   function updateDateTime() {

@@ -1,4 +1,4 @@
-const db = require('../../config/bd'); // ajuster le chemin si nécessaire
+const db = require('../../config/bd');
 
 exports.getAllServers = async (req, res) => {
   try {

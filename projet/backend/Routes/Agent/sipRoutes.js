@@ -20,7 +20,7 @@ router.get('/generate-uri', [apiLimiter, authenticateToken, validateUserId], asy
         }
         
         // Configurer le domaine SIP (utiliser la configuration ou une valeur par défaut)
-        const sipDomain = config.asterisk?.host || '213.32.34.33';
+        const sipDomain = config.asterisk?.host || '213.32.34.38';
         
         // Générer le lien SIP URI
         const sipUri = `sip:${extension}@${sipDomain}`;
@@ -73,7 +73,7 @@ router.get('/registration-status/:extension', [apiLimiter, authenticateToken], a
             success: true,
             extension,
             registered: true,
-            server: config.asterisk?.host || '213.32.34.33',
+            server: config.asterisk?.host || '213.32.34.38',
             lastRegistration: new Date().toISOString()
         });
     } catch (error) {

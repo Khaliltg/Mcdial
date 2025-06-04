@@ -5,7 +5,7 @@ const logger = require('./utils/logger');
 // Configuration Asterisk
 const asteriskConfig = {
   port: 5038,
-  host: "213.32.34.33",
+  host: "213.32.34.38",
   username: "cron",
   password: config.ASTERISK_PASSWORD || "1234", // Utilisez le mot de passe configuré
   reconnect: true,

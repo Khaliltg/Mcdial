@@ -174,4 +174,30 @@ router.get('/stats', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * @route   GET /api/predictive/agent-stats
+ * @desc    Obtenir les statistiques des agents pour une campagne
+ * @access  Private
+ */
+router.get('/agent-stats', authenticateToken, async (req, res) => {
+  try {
+    const { campaignId } = req.query;
+    
+    if (!campaignId) {
+      return res.status(400).json({ success: false, message: 'ID de campagne requis' });
+    }
+
+    // Obtenir les statistiques des agents
+    const agentStats = await PredictiveDialerService.getAgentStats(campaignId);
+    
+    return res.status(200).json({ 
+      success: true, 
+      agentStats
+    });
+  } catch (error) {
+    logger.error('Erreur lors de la récupération des statistiques des agents:', error);
+    return res.status(500).json({ success: false, message: 'Erreur serveur lors de la récupération des statistiques des agents' });
+  }
+});
+
 module.exports = router;

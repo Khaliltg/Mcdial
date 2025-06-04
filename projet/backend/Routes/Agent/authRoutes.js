@@ -294,6 +294,10 @@ router.post("/select-campaign", async (req, res) => {
       // Récupérer les informations de la campagne sélectionnée
       let campaignInfo;
       try {
+        // S'assurer que la campagne est active
+        const activationResult = await asteriskService.ensureCampaignActive(campaignId);
+        console.log(`Vérification/activation de la campagne ${campaignId}:`, activationResult);
+        
         const [campaignRows] = await db.query(
           `SELECT campaign_id, campaign_name, dial_method, auto_dial_level 
            FROM vicidial_campaigns 
@@ -616,7 +620,13 @@ router.post("/select-campaign", async (req, res) => {
       console.log(`Agent existant ${decoded.user} mis à jour avec statut PAUSED dans vicidial_live_agents`);
     } else {
       // Insérer l'agent dans la table vicidial_live_agents
-      const serverIp = process.env.ASTERISK_HOST || '127.0.0.1';
+      // Récupérer l'adresse IP du serveur Asterisk depuis la base de données
+      const [serverInfo] = await db.query(
+        "SELECT server_ip FROM servers WHERE active_asterisk_server = 'Y' AND active = 'Y' LIMIT 1"
+      );
+      
+      // Utiliser l'adresse IP récupérée ou une valeur par défaut si non trouvée
+      const serverIp = (serverInfo && serverInfo.length > 0) ? serverInfo[0].server_ip : process.env.ASTERISK_HOST || '127.0.0.1';
       
       // Récupérer l'ID de l'agent depuis vicidial_users pour le champ user_level
       const [userInfo] = await db.query(
@@ -625,6 +635,12 @@ router.post("/select-campaign", async (req, res) => {
       );
       
       const userLevel = userInfo.length > 0 ? userInfo[0].user_level : 1;
+      
+      // Générer un numéro de conférence au format correct (8600xxx)
+      const confExten = `8600${Math.floor(Math.random() * 900) + 100}`;
+      
+      // Formater le canal SIP correctement
+      const sipChannel = `SIP/${decoded.extension}`;
       
       // Insérer l'agent avec statut PAUSED
       await db.query(
@@ -635,16 +651,17 @@ router.post("/select-campaign", async (req, res) => {
           pause_code, comments, external_pause_code, external_status, last_state_change
         ) 
         VALUES (?, ?, ?, ?, ?, 'PAUSED', 0, 
-          '', '', '', ?, FLOOR(RAND()*10000000), 
+          ?, '', '', ?, FLOOR(RAND()*10000000), 
           NOW(), NOW(), NOW(), '', ?,
           'LOGIN', 'Agent en pause après connexion', 'LOGIN', 'PAUSED', NOW())
         `,
         [
           decoded.user,
           serverIp,
-          decoded.extension,
+          confExten,
           decoded.extension,
           campaignId,
+          sipChannel,
           userLevel,
           serverIp
         ]
@@ -717,6 +734,17 @@ router.post("/logout", authenticateToken, async (req, res) => {
       // On continue malgré l'erreur
     }
 
+    // S'assurer que la campagne reste active
+    if (req.user && req.user.campaign_id) {
+      try {
+        const activationResult = await asteriskService.ensureCampaignActive(req.user.campaign_id);
+        console.log(`Vérification/activation de la campagne ${req.user.campaign_id} lors de la déconnexion:`, activationResult);
+      } catch (campaignErr) {
+        console.error("Erreur lors de la vérification/activation de la campagne:", campaignErr);
+        // On continue malgré l'erreur
+      }
+    }
+    
     // Supprimer l'agent de la table vicidial_live_agents
     const [result] = await db.query(
       "DELETE FROM vicidial_live_agents WHERE user = ?",

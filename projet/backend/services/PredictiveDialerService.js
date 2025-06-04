@@ -121,25 +121,42 @@ class PredictiveDialerService {
     const durationMs = endTime - dialer.startTime;
     const durationMinutes = Math.round(durationMs / 60000);
     
-    // Mettre à jour le statut de la campagne dans la base de données
+    // Mettre à jour le niveau de numérotation de la campagne dans la base de données, mais ne pas la désactiver
     try {
       await db.query(
-        'UPDATE vicidial_campaigns SET active = "N" WHERE campaign_id = ?',
+        'UPDATE vicidial_campaigns SET auto_dial_level = 0 WHERE campaign_id = ?',
         [campaignId]
       );
       
-      // Enregistrer les statistiques
-      await db.query(
-        `INSERT INTO vicidial_campaign_stats 
-         (campaign_id, stats_date, dialable_leads, calls_today, answers_today, drops_today, pause_time_today) 
-         VALUES (?, NOW(), 0, ?, ?, ?, 0) 
-         ON DUPLICATE KEY UPDATE 
-         calls_today = calls_today + ?, 
-         answers_today = answers_today + ?, 
-         drops_today = drops_today + ?`,
-        [campaignId, dialer.totalCalls, dialer.successfulCalls, dialer.totalCalls - dialer.successfulCalls,
-         dialer.totalCalls, dialer.successfulCalls, dialer.totalCalls - dialer.successfulCalls]
-      );
+      // Vérifier la structure de la table vicidial_campaign_stats
+      try {
+        // Essayer d'abord avec la structure qui inclut stats_date
+        await db.query(
+          `INSERT INTO vicidial_campaign_stats 
+           (campaign_id, stats_date, dialable_leads, calls_today, answers_today, drops_today, pause_time_today) 
+           VALUES (?, NOW(), 0, ?, ?, ?, 0) 
+           ON DUPLICATE KEY UPDATE 
+           calls_today = calls_today + ?, 
+           answers_today = answers_today + ?, 
+           drops_today = drops_today + ?`,
+          [campaignId, dialer.totalCalls, dialer.successfulCalls, dialer.totalCalls - dialer.successfulCalls,
+           dialer.totalCalls, dialer.successfulCalls, dialer.totalCalls - dialer.successfulCalls]
+        );
+      } catch (statsError) {
+        // Si la première tentative échoue, essayer sans stats_date
+        logger.info('Tentative d\'insertion sans stats_date dans vicidial_campaign_stats');
+        await db.query(
+          `INSERT INTO vicidial_campaign_stats 
+           (campaign_id, dialable_leads, calls_today, answers_today, drops_today, pause_time_today) 
+           VALUES (?, 0, ?, ?, ?, 0) 
+           ON DUPLICATE KEY UPDATE 
+           calls_today = calls_today + ?, 
+           answers_today = answers_today + ?, 
+           drops_today = drops_today + ?`,
+          [campaignId, dialer.totalCalls, dialer.successfulCalls, dialer.totalCalls - dialer.successfulCalls,
+           dialer.totalCalls, dialer.successfulCalls, dialer.totalCalls - dialer.successfulCalls]
+        );
+      }
       
       // Journaliser l'arrêt du mode prédictif
       await db.query(
@@ -180,8 +197,22 @@ class PredictiveDialerService {
       // 1. Obtenir le nombre d'agents disponibles et leur statut
       const agentStats = await this.getAgentStats(campaignId);
       
+      // Afficher les statistiques d'agents pour débogage
+      logger.info(`Statistiques d'agents pour la campagne ${campaignId}: ${JSON.stringify(agentStats)}`);
+      
       if (agentStats.availableCount <= 0) {
         logger.info(`Aucun agent disponible pour la campagne ${campaignId}, pause de la numérotation`);
+        
+        // Vérifier s'il y a des agents assignés à cette campagne mais pas en statut READY
+        const [nonReadyAgents] = await db.query(
+          'SELECT user, status, external_status FROM vicidial_live_agents WHERE campaign_id = ?',
+          [campaignId]
+        );
+        
+        if (nonReadyAgents && nonReadyAgents.length > 0) {
+          logger.info(`Agents assignés à la campagne ${campaignId} mais pas disponibles: ${JSON.stringify(nonReadyAgents)}`);
+        }
+        
         return;
       }
       
@@ -213,16 +244,28 @@ class PredictiveDialerService {
       }
       
       if (callsToMake <= 0) {
-        logger.debug(`Pas besoin de nouveaux appels pour la campagne ${campaignId}`);
+        logger.debug(`Pas besoin de nouveaux appels pour la campagne ${campaignId}, appels actifs: ${agentStats.activeCalls}, ratio: ${dialer.config.callRatio}`);
         return;
       }
+
+      logger.info(`Tentative d'appel de ${callsToMake} prospects pour la campagne ${campaignId}`);
 
       // 3. Obtenir les prospects à appeler
       const leads = await this.getLeadsToCall(campaignId, callsToMake, dialer.config.maxAttempts);
       if (leads.length === 0) {
         logger.info(`Aucun prospect à appeler pour la campagne ${campaignId}`);
+        
+        // Vérifier s'il y a des prospects dans la base de données
+        const [totalLeads] = await db.query(
+          'SELECT COUNT(*) as count FROM vicidial_list',
+          []
+        );
+        
+        logger.info(`Nombre total de prospects dans la base de données: ${totalLeads[0]?.count || 0}`);
         return;
       }
+      
+      logger.info(`${leads.length} prospects trouvés à appeler pour la campagne ${campaignId}`);
 
       // 4. Passer les appels
       for (const lead of leads) {
@@ -255,15 +298,15 @@ class PredictiveDialerService {
    */
   async getAgentStats(campaignId) {
     try {
-      // Obtenir le nombre d'agents disponibles
+      // Obtenir le nombre d'agents disponibles (l'un des deux statuts doit être READY)
       const [readyAgents] = await db.query(
-        'SELECT COUNT(*) as count FROM vicidial_live_agents WHERE campaign_id = ? AND status = "READY"',
+        'SELECT COUNT(*) as count FROM vicidial_live_agents WHERE campaign_id = ? AND (status = "READY" OR external_status = "READY")',
         [campaignId]
       );
       
-      // Obtenir le nombre d'agents en appel
+      // Obtenir le nombre d'agents en appel (vérifier à la fois status et external_status)
       const [busyAgents] = await db.query(
-        'SELECT COUNT(*) as count FROM vicidial_live_agents WHERE campaign_id = ? AND status = "INCALL"',
+        'SELECT COUNT(*) as count FROM vicidial_live_agents WHERE campaign_id = ? AND (status = "INCALL" OR external_status = "INCALL")',
         [campaignId]
       );
       
@@ -312,8 +355,43 @@ class PredictiveDialerService {
    */
   async getLeadsToCall(campaignId, limit, maxAttempts) {
     try {
+      // Vérifier les listes associées à la campagne
+      const [lists] = await db.query(
+        'SELECT list_id FROM vicidial_lists WHERE campaign_id = ?',
+        [campaignId]
+      );
+      
+      logger.info(`Listes trouvées pour la campagne ${campaignId}: ${JSON.stringify(lists)}`);
+      
+      if (lists.length === 0) {
+        logger.warn(`Aucune liste trouvée pour la campagne ${campaignId}`);
+        
+        // Vérifier s'il y a des prospects directement associés à la campagne
+        const [directLeads] = await db.query(
+          'SELECT COUNT(*) as count FROM vicidial_list WHERE campaign_id = ?',
+          [campaignId]
+        );
+        
+        logger.info(`Prospects directement associés à la campagne ${campaignId}: ${directLeads[0]?.count || 0}`);
+        
+        if (directLeads[0]?.count > 0) {
+          // Utiliser les prospects directement associés à la campagne
+          const [rows] = await db.query(
+            `SELECT * FROM vicidial_list 
+             WHERE campaign_id = ? 
+             AND status NOT IN ('COMP', 'DNC', 'INVALID')
+             LIMIT ?`,
+            [campaignId, limit]
+          );
+          
+          logger.info(`${rows.length} prospects trouvés directement dans la campagne ${campaignId}`);
+          return rows;
+        }
+        
+        return [];
+      }
+      
       // Requête pour obtenir les prospects non appelés ou avec moins de maxAttempts tentatives
-      // Adapter la requête aux tables vicidial
       const [rows] = await db.query(
         `SELECT vl.* 
          FROM vicidial_list vl
@@ -332,6 +410,7 @@ class PredictiveDialerService {
         [campaignId, maxAttempts, limit]
       );
       
+      logger.info(`${rows.length} prospects trouvés pour la campagne ${campaignId}`);
       return rows;
     } catch (error) {
       logger.error('Erreur lors de la récupération des prospects:', error);
@@ -391,28 +470,53 @@ class PredictiveDialerService {
         [campaignId, lead.lead_id, uniqueId, callerId, `SIP/MCDIAL_OUTBOUND`, lead.phone_number]
       );
       
-      // 7. Envoyer la commande d'appel à Asterisk
+      // 7. Trouver un agent disponible pour cette campagne (l'un des deux statuts doit être READY)
+      const [availableAgents] = await db.query(
+        `SELECT user, extension, conf_exten 
+         FROM vicidial_live_agents 
+         WHERE campaign_id = ? AND (status = "READY" OR external_status = "READY") 
+         LIMIT 1`,
+        [campaignId]
+      );
+      
+      if (availableAgents.length === 0) {
+        logger.warn(`Aucun agent disponible pour la campagne ${campaignId} au moment de l'appel`);
+        return { success: false, message: "Aucun agent disponible" };
+      }
+      
+      const agent = availableAgents[0];
+      logger.info(`Agent disponible trouvé pour l'appel: ${agent.user} (extension: ${agent.extension})`);
+      
+      // 8. Envoyer la commande d'appel à Asterisk
       const phoneNumber = dialPrefix + lead.phone_number;
       const result = await this.asteriskService.initiateCall(
-        'MCDIAL_OUTBOUND', // Extension de l'agent (utiliser une extension système)
+        agent.extension,   // Extension de l'agent disponible
         phoneNumber,       // Numéro à appeler
-        'SYSTEM',          // ID de l'agent (utiliser SYSTEM pour le mode prédictif)
+        agent.user,        // ID de l'agent
         lead.lead_id,      // ID du prospect
-        campaignId         // ID de la campagne
+        campaignId,        // ID de la campagne
+        null,              // Session ID
+        agent.conf_exten   // Numéro de conférence de l'agent
       );
 
       // 8. Gérer le résultat
       if (result.success) {
+        // Mettre à jour le statut de l'agent en INCALL
+        await db.query(
+          'UPDATE vicidial_live_agents SET status = "INCALL", external_status = "INCALL", lead_id = ?, last_update_time = NOW() WHERE user = ?',
+          [lead.lead_id, agent.user]
+        );
+        
         // Mettre à jour le statut de l'appel dans vicidial_log
         await db.query(
-          'UPDATE vicidial_log SET status = "SENT" WHERE uniqueid = ?',
-          [uniqueId]
+          'UPDATE vicidial_log SET status = "SENT", user = ? WHERE uniqueid = ?',
+          [agent.user, uniqueId]
         );
         
         // Mettre à jour le statut dans vicidial_auto_calls
         await db.query(
-          'UPDATE vicidial_auto_calls SET status = "LIVE" WHERE uniqueid = ?',
-          [uniqueId]
+          'UPDATE vicidial_auto_calls SET status = "LIVE", user = ? WHERE uniqueid = ?',
+          [agent.user, uniqueId]
         );
         
         // Mettre à jour les statistiques de la campagne

@@ -13,7 +13,7 @@ export function getApiUrl() {
 
 // Configuration Asterisk
 export const ASTERISK_CONFIG = {
-  host: '213.32.34.33',
+  host: '213.32.34.38',
   port: 5038,
   username: 'root',
   password: 'Mc@2025',
